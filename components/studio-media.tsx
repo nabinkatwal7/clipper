@@ -1,7 +1,8 @@
 "use client";
-import { useDeferredValue,useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import {
-  Ellipsis,ArrowUpRight,
+  Ellipsis,
+  ArrowUpRight,
   ChevronRight,
   FolderClosed,
   Film,
@@ -99,8 +100,21 @@ export function MediaLibrary({
       setPub(JSON.parse(localStorage.getItem("clipper-publishing") || "{}"));
     } catch {}
   }, []);
-  const [stats,setStats]=useState<Record<string,{bytes:number;date:string}>>({});
-  useEffect(()=>{let active=true;fetch("/api/clip-stats").then(r=>r.ok?r.json():{}).then(data=>{if(active)setStats(data)}).catch(()=>{});return()=>{active=false}},[projects]);
+  const [stats, setStats] = useState<
+    Record<string, { bytes: number; date: string }>
+  >({});
+  useEffect(() => {
+    let active = true;
+    fetch("/api/clip-stats")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((data) => {
+        if (active) setStats(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [projects]);
   function publish(value: string) {
     const next = { ...pub };
     for (const { c } of items)
@@ -141,7 +155,7 @@ export function MediaLibrary({
     setFavorites(next);
     localStorage.setItem("studio-favorites", JSON.stringify(next));
   }
-  const search=useDeferredValue(q.trim().toLowerCase());
+  const search = useDeferredValue(q.trim().toLowerCase());
   let items = projects
     .flatMap((p) => p.clips.map((c) => ({ p, c })))
     .filter(
@@ -159,10 +173,24 @@ export function MediaLibrary({
     items.sort((a, b) => b.c.end - b.c.start - (a.c.end - a.c.start));
   else if (sort === "Title")
     items.sort((a, b) => a.c.title.localeCompare(b.c.title));
-  else if(sort==="File size")items.sort((a,b)=>(stats[b.c.id]?.bytes||0)-(stats[a.c.id]?.bytes||0));
-  else if(sort==="Source")items.sort((a,b)=>a.p.title.localeCompare(b.p.title));
-  else if(sort==="Status")items.sort((a,b)=>(pub[a.c.editorialId||a.c.id]||"Ready").localeCompare(pub[b.c.editorialId||b.c.id]||"Ready"));
-  else items.sort((a,b)=>(stats[b.c.id]?.date||b.p.createdAt).localeCompare(stats[a.c.id]?.date||a.p.createdAt));
+  else if (sort === "File size")
+    items.sort(
+      (a, b) => (stats[b.c.id]?.bytes || 0) - (stats[a.c.id]?.bytes || 0),
+    );
+  else if (sort === "Source")
+    items.sort((a, b) => a.p.title.localeCompare(b.p.title));
+  else if (sort === "Status")
+    items.sort((a, b) =>
+      (pub[a.c.editorialId || a.c.id] || "Ready").localeCompare(
+        pub[b.c.editorialId || b.c.id] || "Ready",
+      ),
+    );
+  else
+    items.sort((a, b) =>
+      (stats[b.c.id]?.date || b.p.createdAt).localeCompare(
+        stats[a.c.id]?.date || a.p.createdAt,
+      ),
+    );
   const selectedHere = items.filter(({ c }) => selected.includes(c.id));
   if (recent) items = items.slice(0, 4);
   return (
@@ -226,7 +254,15 @@ export function MediaLibrary({
             value={sort}
             onChange={(e) => setSort(e.target.value)}
           >
-            {["Recent", "AI score", "Duration", "Title","Source","File size","Status"].map((v) => (
+            {[
+              "Recent",
+              "AI score",
+              "Duration",
+              "Title",
+              "Source",
+              "File size",
+              "Status",
+            ].map((v) => (
               <option key={v}>{v}</option>
             ))}
           </select>
@@ -332,7 +368,12 @@ export function MediaLibrary({
                 {c.settings.resolution}p · {c.settings.ratio}
                 {c.score !== null && " · Score " + c.score}
               </span>
-              {list&&!recent&&stats[c.id]&&<small className="list-stats">{(stats[c.id].bytes/1024**2).toFixed(1)} MB · {new Date(stats[c.id].date).toLocaleDateString()}</small>}
+              {list && !recent && stats[c.id] && (
+                <small className="list-stats">
+                  {(stats[c.id].bytes / 1024 ** 2).toFixed(1)} MB ·{" "}
+                  {new Date(stats[c.id].date).toLocaleDateString()}
+                </small>
+              )}
             </div>
             <button
               className="favorite"
@@ -350,7 +391,36 @@ export function MediaLibrary({
                 }
               />
             </button>
-            {!recent&&<details className="clip-actions-menu project-menu"><summary aria-label={"Actions for "+c.title} title="Clip actions"><Ellipsis size={16}/></summary><div><button onClick={()=>open(p.id,c.id)}>Open clip</button><a href={`/api/download?project=${p.id}&clip=${c.id}&kind=bundle`}>Download MP4 + TXT</a><button onClick={e=>{star(c.editorialId||c.id);e.currentTarget.closest("details")?.removeAttribute("open")}}>{favorites.includes(c.editorialId||c.id)?"Remove favorite":"Add to favorites"}</button></div></details>}
+            {!recent && (
+              <details className="clip-actions-menu project-menu">
+                <summary
+                  aria-label={"Actions for " + c.title}
+                  title="Clip actions"
+                >
+                  <Ellipsis size={16} />
+                </summary>
+                <div>
+                  <button onClick={() => open(p.id, c.id)}>Open clip</button>
+                  <a
+                    href={`/api/download?project=${p.id}&clip=${c.id}&kind=bundle`}
+                  >
+                    Download MP4 + TXT
+                  </a>
+                  <button
+                    onClick={(e) => {
+                      star(c.editorialId || c.id);
+                      e.currentTarget
+                        .closest("details")
+                        ?.removeAttribute("open");
+                    }}
+                  >
+                    {favorites.includes(c.editorialId || c.id)
+                      ? "Remove favorite"
+                      : "Add to favorites"}
+                  </button>
+                </div>
+              </details>
+            )}
           </article>
         ))}
       </div>

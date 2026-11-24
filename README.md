@@ -145,3 +145,16 @@ The main workspace focuses on the clip gallery. Open Review clip to preview the 
 
 The redesign was checked at desktop and phone widths, including a real local upload, manual generation, caption save, and trim/re-render. Temporary test media was removed afterward.
 
+
+
+## Studio workspace
+
+Open the local app at `http://127.0.0.1:4000`. Studio overview shows recent projects and rendered clips. Start with a video link or upload, then select **Generate clips**. The default output is 720p and the upload limit is 5 GiB. Use **Ctrl/Cmd + K** to find a project, clip, channel, page, or command.
+
+- **Clip library** supports grid and list views, favorites, publishing status, search, and selection across projects. A selected download streams a ZIP with one MP4 and one matching caption TXT per clip.
+- **Video editor** previews framing and subtitles, plays source audio, and supports timeline scrubbing, trim handles, source-frame stepping, split, undo/redo, and composition transforms. **Save changes** queues an FFmpeg render. **Export saved clip** downloads the latest completed render. **Subtitle studio** opens the caption inspector directly.
+- **Transcript explorer** searches source dialogue, edits timestamped text, and uses local Ollama for translations and related-term queries. Selecting a highlight exposes its reasoning, trim range, and clip action. **Index audio and scene changes** queues a measured source scan. Long streams can take time.
+- **Thumbnail studio** exports a 1280 × 720 PNG from a selected source frame, with text and optional image layers.
+- **Streamers** accepts a public channel recordings feed. **Automatic clipping** checks enabled feeds while the studio is open. The first successful check records a baseline. Subsequent checks queue newly discovered recordings.
+- **Content calendar** stores editorial plans in this browser. Dates, publishing labels, and platform selections are planning metadata. Publishing to a platform is a separate manual step.
+- Media and transcripts are stored on disk. Theme, sidebar preferences, favorites, branding profiles, calendar entries, and channel monitoring settings are stored in the browser for this local origin.

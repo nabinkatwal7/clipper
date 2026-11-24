@@ -57,8 +57,13 @@ export function settings(input: unknown): Settings {
     !["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].includes(s.font)
   )
     throw Error("Invalid font");
-  if(s.captionAnimation && !["none","fade"].includes(s.captionAnimation))throw Error("Invalid caption animation");
-  if(s.captionBackground!==undefined && typeof s.captionBackground!=="boolean")throw Error("Invalid caption background");
+  if (s.captionAnimation && !["none", "fade"].includes(s.captionAnimation))
+    throw Error("Invalid caption animation");
+  if (
+    s.captionBackground !== undefined &&
+    typeof s.captionBackground !== "boolean"
+  )
+    throw Error("Invalid caption background");
   if (s.captionColor && !/^#[a-fA-F0-9]{6}$/.test(s.captionColor))
     throw Error("Invalid caption color");
   for (const [value, max] of [
@@ -71,7 +76,17 @@ export function settings(input: unknown): Settings {
       (!Number.isFinite(value) || value < 0 || value > max)
     )
       throw Error("Invalid render setting");
-  for(const [value,min,max] of [[s.scale,1,2],[s.rotation,-180,180],[s.opacity,0,1],[s.offsetY,0,100]] as const)if(value!==undefined&&(!Number.isFinite(value)||value<min||value>max))throw Error("Invalid transform setting");
+  for (const [value, min, max] of [
+    [s.scale, 1, 2],
+    [s.rotation, -180, 180],
+    [s.opacity, 0, 1],
+    [s.offsetY, 0, 100],
+  ] as const)
+    if (
+      value !== undefined &&
+      (!Number.isFinite(value) || value < min || value > max)
+    )
+      throw Error("Invalid transform setting");
   return s;
 }
 export function validateHighlights(

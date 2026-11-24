@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState,useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   Upload,
   Link2,
@@ -37,8 +37,18 @@ export function CreateClips({
     [uploadProgress, setUploadProgress] = useState<number | null>(null),
     [error, setError] = useState(""),
     [dragging, setDragging] = useState(false);
-  const [preview,setPreview]=useState(""),[fileMeta,setFileMeta]=useState("");
-  useEffect(()=>{setFileMeta("");if(!file){setPreview("");return}const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url)},[file]);
+  const [preview, setPreview] = useState(""),
+    [fileMeta, setFileMeta] = useState("");
+  useEffect(() => {
+    setFileMeta("");
+    if (!file) {
+      setPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
   const input = useRef<HTMLInputElement>(null),
     request = useRef<XMLHttpRequest | null>(null);
   function choose(file: File | undefined) {
@@ -237,10 +247,35 @@ export function CreateClips({
                   />
                   {file ? (
                     <div className="selected-file">
-                      {preview&&<video className="upload-preview" preload="metadata" muted src={preview+"#t=0.1"} onLoadedMetadata={e=>{const v=e.currentTarget;setFileMeta(v.videoWidth+" × "+v.videoHeight+" · "+Math.floor(v.duration/60)+":"+String(Math.floor(v.duration)%60).padStart(2,"0"))}}/>}
+                      {preview && (
+                        <video
+                          className="upload-preview"
+                          preload="metadata"
+                          muted
+                          src={preview + "#t=0.1"}
+                          onLoadedMetadata={(e) => {
+                            const v = e.currentTarget;
+                            setFileMeta(
+                              v.videoWidth +
+                                " × " +
+                                v.videoHeight +
+                                " · " +
+                                Math.floor(v.duration / 60) +
+                                ":" +
+                                String(Math.floor(v.duration) % 60).padStart(
+                                  2,
+                                  "0",
+                                ),
+                            );
+                          }}
+                        />
+                      )}
                       <div>
                         <strong>{file.name}</strong>
-                        <span>{(file.size / 1024 ** 2).toFixed(1)} MB · {fileMeta||"Reading video metadata…"}</span>
+                        <span>
+                          {(file.size / 1024 ** 2).toFixed(1)} MB ·{" "}
+                          {fileMeta || "Reading video metadata…"}
+                        </span>
                       </div>
                       <button
                         type="button"

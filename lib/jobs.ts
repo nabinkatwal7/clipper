@@ -20,7 +20,7 @@ import {
   reporter,
   ffmpegSeconds,
 } from "./progress";
-import {importSourceSubtitles} from "./source-subtitles";
+import { importSourceSubtitles } from "./source-subtitles";
 import { readOllamaResponse } from "./ollama";
 type Task = {
   id: string;
@@ -259,7 +259,7 @@ export async function ingest(p: Project, signal: AbortSignal) {
               current,
               total,
               "bytes",
-              `Downloading ${selection.height || ""}p video · ${(current / 1024 / 1024).toFixed(0)} MB received${data.speed>0?" · "+(data.speed/1024**2).toFixed(1)+" MB/s":""}`,
+              `Downloading ${selection.height || ""}p video · ${(current / 1024 / 1024).toFixed(0)} MB received${data.speed > 0 ? " · " + (data.speed / 1024 ** 2).toFixed(1) + " MB/s" : ""}`,
               Number.isFinite(data.eta) ? data.eta : undefined,
             );
           } catch {}
@@ -279,17 +279,55 @@ export async function ingest(p: Project, signal: AbortSignal) {
       diagnostics || output,
     );
     p.title = output.trim().split("\n").at(-1) || p.title;
-    const languages=Object.keys(info.subtitles||{}).filter(k=>/^[a-zA-Z0-9_-]{2,30}$/.test(k)&&info.subtitles?.[k]?.some(f=>f.ext==="vtt"));
-    if((p.settings.captions||p.settings.mode==="ai")&&languages.length){
-      const lang=languages.find(k=>k==="en")||languages[0];
-      await stage(p,"source-subtitles","Reading available source subtitles");
-      try {await run(bin.ytdlp,[...common,"--skip-download","--write-subs","--sub-langs",lang,"--sub-format","vtt","-o",file("uploads",p.id,"mp4"),"--",p.source!],signal,undefined,60000)}
-      catch {signal.throwIfAborted();p.detail="Source subtitles unavailable. Speech transcription will be used.";await save(p)}
+    const languages = Object.keys(info.subtitles || {}).filter(
+      (k) =>
+        /^[a-zA-Z0-9_-]{2,30}$/.test(k) &&
+        info.subtitles?.[k]?.some((f) => f.ext === "vtt"),
+    );
+    if ((p.settings.captions || p.settings.mode === "ai") && languages.length) {
+      const lang = languages.find((k) => k === "en") || languages[0];
+      await stage(p, "source-subtitles", "Reading available source subtitles");
+      try {
+        await run(
+          bin.ytdlp,
+          [
+            ...common,
+            "--skip-download",
+            "--write-subs",
+            "--sub-langs",
+            lang,
+            "--sub-format",
+            "vtt",
+            "-o",
+            file("uploads", p.id, "mp4"),
+            "--",
+            p.source!,
+          ],
+          signal,
+          undefined,
+          60000,
+        );
+      } catch {
+        signal.throwIfAborted();
+        p.detail =
+          "Source subtitles unavailable. Speech transcription will be used.";
+        await save(p);
+      }
     }
   } finally {
     proxy.close();
   }
-  if(await importSourceSubtitles(p.id)){beginProgress(p,"source-subtitles","Imported source subtitles",1,"steps");completeProgress(p,"source-subtitles");await save(p)}
+  if (await importSourceSubtitles(p.id)) {
+    beginProgress(
+      p,
+      "source-subtitles",
+      "Imported source subtitles",
+      1,
+      "steps",
+    );
+    completeProgress(p, "source-subtitles");
+    await save(p);
+  }
   await probe(p, signal);
 }
 export async function transcribe(p: Project, signal: AbortSignal) {
@@ -518,13 +556,25 @@ export async function render(
     .replace(/\\/g, "/")
     .replace(/:/g, "\\:")
     .replace(/'/g, "'\\''");
-  const zoom=s.scale??1,alpha=s.opacity??1;
-  const transforms:string[]=[];
-  if(zoom!==1){const zw=Math.round(w*zoom/2)*2,zh=Math.round(height*zoom/2)*2;transforms.push(`scale=${zw}:${zh},crop=${w}:${height}:(iw-ow)*${s.crop/100}:(ih-oh)*${(s.offsetY??50)/100}`)}
-  if(s.rotation)transforms.push(`rotate=${s.rotation}*PI/180:c=black`);
-  if(alpha!==1)transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
-  if(s.captions)transforms.push(`subtitles=filename='${subtitlePath}'`);
-  const filter=layoutFilter(s,w,height)+";[formatted]"+(transforms.join(",")||"null")+"[out]";
+  const zoom = s.scale ?? 1,
+    alpha = s.opacity ?? 1;
+  const transforms: string[] = [];
+  if (zoom !== 1) {
+    const zw = Math.round((w * zoom) / 2) * 2,
+      zh = Math.round((height * zoom) / 2) * 2;
+    transforms.push(
+      `scale=${zw}:${zh},crop=${w}:${height}:(iw-ow)*${s.crop / 100}:(ih-oh)*${(s.offsetY ?? 50) / 100}`,
+    );
+  }
+  if (s.rotation) transforms.push(`rotate=${s.rotation}*PI/180:c=black`);
+  if (alpha !== 1)
+    transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
+  if (s.captions) transforms.push(`subtitles=filename='${subtitlePath}'`);
+  const filter =
+    layoutFilter(s, w, height) +
+    ";[formatted]" +
+    (transforms.join(",") || "null") +
+    "[out]";
   const temporary = file("temp", id, "mp4");
   try {
     await run(

@@ -25,7 +25,7 @@ import { captionFile, clipBasename } from "./post-captions";
 import { readOllamaResponse } from "./ollama";
 import { run, bin } from "./process";
 import { transcriptAction } from "./transcript-actions";
-import {indexStream} from "./stream-index";
+import { indexStream } from "./stream-index";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
 function guard(req: NextRequest) {
@@ -46,10 +46,28 @@ export async function handle(
     guard(req);
     await init();
     const query = req.nextUrl.searchParams;
-    if(action==="source-index"){
-      const project=await read(query.get("project")||"");
-      if(req.method==="GET"){try{return NextResponse.json(JSON.parse(await fs.readFile(file("temp",project.id,"index.json"),"utf8")))}catch(e){if((e as NodeJS.ErrnoException).code==="ENOENT")return NextResponse.json(null);throw e}}
-      if(req.method==="POST"){if(busy(project.id))throw Error("Wait for the current job to finish.");if(!project.duration)throw Error("Import the source first.");enqueue(project.id,signal=>indexStream(project,signal));return NextResponse.json({ok:true},{status:202})}
+    if (action === "source-index") {
+      const project = await read(query.get("project") || "");
+      if (req.method === "GET") {
+        try {
+          return NextResponse.json(
+            JSON.parse(
+              await fs.readFile(file("temp", project.id, "index.json"), "utf8"),
+            ),
+          );
+        } catch (e) {
+          if ((e as NodeJS.ErrnoException).code === "ENOENT")
+            return NextResponse.json(null);
+          throw e;
+        }
+      }
+      if (req.method === "POST") {
+        if (busy(project.id))
+          throw Error("Wait for the current job to finish.");
+        if (!project.duration) throw Error("Import the source first.");
+        enqueue(project.id, (signal) => indexStream(project, signal));
+        return NextResponse.json({ ok: true }, { status: 202 });
+      }
     }
     if (req.method === "POST" && action === "transcript") {
       return NextResponse.json(
@@ -179,9 +197,22 @@ export async function handle(
         throw e;
       }
     }
-    if(req.method==="GET"&&action==="clip-stats"){
-      const clips=(await list()).flatMap(p=>p.clips);const records=await Promise.all(clips.map(async c=>{const stat=await fs.stat(file("clips",c.id,"mp4")).catch(()=>null);return [c.id,stat?{bytes:stat.size,date:stat.birthtime.toISOString()}:null]}));
-      return NextResponse.json(Object.fromEntries(records))
+    if (req.method === "GET" && action === "clip-stats") {
+      const clips = (await list()).flatMap((p) => p.clips);
+      const records = await Promise.all(
+        clips.map(async (c) => {
+          const stat = await fs
+            .stat(file("clips", c.id, "mp4"))
+            .catch(() => null);
+          return [
+            c.id,
+            stat
+              ? { bytes: stat.size, date: stat.birthtime.toISOString() }
+              : null,
+          ];
+        }),
+      );
+      return NextResponse.json(Object.fromEntries(records));
     }
     if (req.method === "GET" && action === "storage") {
       const usage = await Promise.all(
@@ -204,7 +235,12 @@ export async function handle(
           };
         }),
       );
-      const disk=await fs.statfs(root).catch(()=>null);return NextResponse.json(usage,{headers:disk?{"X-Storage-Available":String(disk.bavail*disk.bsize)}:{}});
+      const disk = await fs.statfs(root).catch(() => null);
+      return NextResponse.json(usage, {
+        headers: disk
+          ? { "X-Storage-Available": String(disk.bavail * disk.bsize) }
+          : {},
+      });
     }
     if (req.method === "GET" && action === "health")
       return NextResponse.json(await health());
@@ -443,8 +479,14 @@ export async function handle(
           end - start > 600
         )
           throw Error("Choose a valid trim range up to 10 minutes");
-        const splitAt=body.splitAt;
-        if(splitAt!=null&&(!Number.isFinite(splitAt)||splitAt<=start+.04||splitAt>=end-.04))throw Error("Place the split inside the selected range.");
+        const splitAt = body.splitAt;
+        if (
+          splitAt != null &&
+          (!Number.isFinite(splitAt) ||
+            splitAt <= start + 0.04 ||
+            splitAt >= end - 0.04)
+        )
+          throw Error("Place the split inside the selected range.");
         let segments: Segment[] = body.segments ?? clip.segments;
         if (
           !Array.isArray(segments) ||
@@ -508,16 +550,55 @@ export async function handle(
           );
           const editProgress = reporter(p, "rendering");
           await save(p);
-          const boundaries:number[]=splitAt==null?[start,end]:[start,splitAt,end];
-          const parts:Project["clips"]=[];let committed=false;
-          try{
-            for(let i=0;i<boundaries.length-1;i++){
-              const from=boundaries[i],to=boundaries[i+1];
-              parts.push(await render(p,{...clip,editorialId:i===0?clip.editorialId||clip.id:randomUUID(),title:splitAt==null?clip.title:clip.title+" · Part "+(i+1),start:from,end:to},s,segments.filter(seg=>seg.end>from&&seg.start<to),signal,randomUUID(),seconds=>editProgress.update(from-start+seconds,end-start,"seconds",`Rendering changes · ${Math.round(from-start+seconds)}s encoded`)));
+          const boundaries: number[] =
+            splitAt == null ? [start, end] : [start, splitAt, end];
+          const parts: Project["clips"] = [];
+          let committed = false;
+          try {
+            for (let i = 0; i < boundaries.length - 1; i++) {
+              const from = boundaries[i],
+                to = boundaries[i + 1];
+              parts.push(
+                await render(
+                  p,
+                  {
+                    ...clip,
+                    editorialId:
+                      i === 0 ? clip.editorialId || clip.id : randomUUID(),
+                    title:
+                      splitAt == null
+                        ? clip.title
+                        : clip.title + " · Part " + (i + 1),
+                    start: from,
+                    end: to,
+                  },
+                  s,
+                  segments.filter((seg) => seg.end > from && seg.start < to),
+                  signal,
+                  randomUUID(),
+                  (seconds) =>
+                    editProgress.update(
+                      from - start + seconds,
+                      end - start,
+                      "seconds",
+                      `Rendering changes · ${Math.round(from - start + seconds)}s encoded`,
+                    ),
+                ),
+              );
             }
-            await editProgress.flush();completeProgress(p,"rendering");
-            p.clips=p.clips.flatMap(c=>c.id===clip.id?parts:[c]);await save(p);committed=true;
-          } finally {if(!committed)await Promise.all(parts.map(c=>fs.rm(file("clips",c.id,"mp4"),{force:true})))}
+            await editProgress.flush();
+            completeProgress(p, "rendering");
+            p.clips = p.clips.flatMap((c) => (c.id === clip.id ? parts : [c]));
+            await save(p);
+            committed = true;
+          } finally {
+            if (!committed)
+              await Promise.all(
+                parts.map((c) =>
+                  fs.rm(file("clips", c.id, "mp4"), { force: true }),
+                ),
+              );
+          }
           await Promise.all(
             ["mp4", "jpg"].map((ext) =>
               fs.rm(file("clips", clip.id, ext), { force: true }),

@@ -1,7 +1,7 @@
 "use client";
-import {useEffect,useState} from "react";
-import {ChevronLeft,ChevronRight} from "lucide-react";
-import type {Project} from "@/lib/types";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { Project } from "@/lib/types";
 type Plan = Record<string, string>;
 const dateKey = (d: Date) =>
   [
@@ -25,10 +25,26 @@ export function Calendar({
       setPlan(JSON.parse(localStorage.getItem("studio-calendar") || "{}"));
     } catch {}
   }, []);
-  const [platform,setPlatform]=useState("All platforms"),[status,setStatus]=useState("All statuses"),[targets,setTargets]=useState<Record<string,string>>({}),[publishing,setPublishing]=useState<Record<string,string>>({});
-  useEffect(()=>{try{setTargets(JSON.parse(localStorage.getItem("studio-platforms")||"{}"));setPublishing(JSON.parse(localStorage.getItem("clipper-publishing")||"{}"))}catch{}},[]);
+  const [platform, setPlatform] = useState("All platforms"),
+    [status, setStatus] = useState("All statuses"),
+    [targets, setTargets] = useState<Record<string, string>>({}),
+    [publishing, setPublishing] = useState<Record<string, string>>({});
+  useEffect(() => {
+    try {
+      setTargets(JSON.parse(localStorage.getItem("studio-platforms") || "{}"));
+      setPublishing(
+        JSON.parse(localStorage.getItem("clipper-publishing") || "{}"),
+      );
+    } catch {}
+  }, []);
   const clips = projects.flatMap((p) => p.clips.map((c) => ({ c, p })));
-  const visible=clips.filter(({c})=>(platform==="All platforms"||targets[c.editorialId||c.id]===platform)&&(status==="All statuses"||(publishing[c.editorialId||c.id]||"Ready")===status));
+  const visible = clips.filter(
+    ({ c }) =>
+      (platform === "All platforms" ||
+        targets[c.editorialId || c.id] === platform) &&
+      (status === "All statuses" ||
+        (publishing[c.editorialId || c.id] || "Ready") === status),
+  );
   function schedule(id: string, day: string) {
     if (!clips.some(({ c }) => (c.editorialId || c.id) === id)) return;
     const next = { ...plan, [id]: day };
@@ -145,7 +161,34 @@ export function Calendar({
         </div>
       )}
       <div className="section-row">
-        <h2>Publishing schedule</h2><div className="calendar-filters"><select aria-label="Filter target platform" value={platform} onChange={e=>setPlatform(e.target.value)}>{["All platforms","YouTube","Instagram","TikTok","Twitch","Other"].map(v=><option key={v}>{v}</option>)}</select><select aria-label="Filter publication status" value={status} onChange={e=>setStatus(e.target.value)}>{["All statuses","Draft","Ready","Published"].map(v=><option key={v}>{v}</option>)}</select></div>
+        <h2>Publishing schedule</h2>
+        <div className="calendar-filters">
+          <select
+            aria-label="Filter target platform"
+            value={platform}
+            onChange={(e) => setPlatform(e.target.value)}
+          >
+            {[
+              "All platforms",
+              "YouTube",
+              "Instagram",
+              "TikTok",
+              "Twitch",
+              "Other",
+            ].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter publication status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            {["All statuses", "Draft", "Ready", "Published"].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </select>
+        </div>
         <select
           aria-label="Schedule filter"
           value={filter}
@@ -156,7 +199,13 @@ export function Calendar({
           <option value="scheduled">Scheduled</option>
         </select>
       </div>
-      {visible.filter(({c})=>view!=="List"||!plan[c.editorialId||c.id]||plan[c.editorialId||c.id].startsWith(dateKey(month).slice(0,7)))
+      {visible
+        .filter(
+          ({ c }) =>
+            view !== "List" ||
+            !plan[c.editorialId || c.id] ||
+            plan[c.editorialId || c.id].startsWith(dateKey(month).slice(0, 7)),
+        )
         .filter(
           ({ c }) =>
             filter === "all" ||
@@ -172,7 +221,26 @@ export function Calendar({
             key={c.id}
           >
             <button onClick={() => open(p.id, c.id)}>{c.title}</button>
-            <select aria-label={"Target platform for "+c.title} value={targets[c.editorialId||c.id]||""} onChange={e=>{const next={...targets,[c.editorialId||c.id]:e.target.value};setTargets(next);localStorage.setItem("studio-platforms",JSON.stringify(next))}}><option value="">Choose platform</option>{["YouTube","Instagram","TikTok","Twitch","Other"].map(v=><option key={v}>{v}</option>)}</select><input
+            <select
+              aria-label={"Target platform for " + c.title}
+              value={targets[c.editorialId || c.id] || ""}
+              onChange={(e) => {
+                const next = {
+                  ...targets,
+                  [c.editorialId || c.id]: e.target.value,
+                };
+                setTargets(next);
+                localStorage.setItem("studio-platforms", JSON.stringify(next));
+              }}
+            >
+              <option value="">Choose platform</option>
+              {["YouTube", "Instagram", "TikTok", "Twitch", "Other"].map(
+                (v) => (
+                  <option key={v}>{v}</option>
+                ),
+              )}
+            </select>
+            <input
               type="date"
               aria-label={"Schedule " + c.title}
               value={plan[c.editorialId || c.id] || ""}

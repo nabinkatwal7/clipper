@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Film, Captions, ZoomIn, ZoomOut } from "lucide-react";
-import {FrameStrip} from "./frame-strip";
+import { FrameStrip } from "./frame-strip";
 import { duration } from "./studio-media";
 import type { Segment } from "@/lib/types";
 export function EditTimeline({
@@ -34,11 +34,40 @@ export function EditTimeline({
   segments: Segment[];
 }) {
   const [zoom, setZoom] = useState(1);
-  const [markers,setMarkers]=useState<number[]>([]),[snap,setSnap]=useState(true);
-  const markerKey="clipper-markers-"+project;
-  useEffect(()=>{try{setMarkers(JSON.parse(localStorage.getItem(markerKey)||"[]"))}catch{}},[markerKey]);
-  function mark(){const at=Math.round(now*100)/100;const next=markers.includes(at)?markers.filter(m=>m!==at):[...markers,at].sort((a,b)=>a-b);setMarkers(next);localStorage.setItem(markerKey,JSON.stringify(next))}
-  function snapped(at:number){if(!snap)return at;const points=[originalStart,originalEnd,...markers,...segments.flatMap(s=>[s.start,s.end])];let best=at,delta=.12;for(const p of points){if(Math.abs(at-p)<delta){delta=Math.abs(at-p);best=p}}return best}
+  const [markers, setMarkers] = useState<number[]>([]),
+    [snap, setSnap] = useState(true);
+  const markerKey = "clipper-markers-" + project;
+  useEffect(() => {
+    try {
+      setMarkers(JSON.parse(localStorage.getItem(markerKey) || "[]"));
+    } catch {}
+  }, [markerKey]);
+  function mark() {
+    const at = Math.round(now * 100) / 100;
+    const next = markers.includes(at)
+      ? markers.filter((m) => m !== at)
+      : [...markers, at].sort((a, b) => a - b);
+    setMarkers(next);
+    localStorage.setItem(markerKey, JSON.stringify(next));
+  }
+  function snapped(at: number) {
+    if (!snap) return at;
+    const points = [
+      originalStart,
+      originalEnd,
+      ...markers,
+      ...segments.flatMap((s) => [s.start, s.end]),
+    ];
+    let best = at,
+      delta = 0.12;
+    for (const p of points) {
+      if (Math.abs(at - p) < delta) {
+        delta = Math.abs(at - p);
+        best = p;
+      }
+    }
+    return best;
+  }
 
   const span = Math.min(
       length,
@@ -53,7 +82,17 @@ export function EditTimeline({
       <div className="section-row">
         <h2>Timeline</h2>
         <div>
-          <time>{duration(now)}</time><button title="Add or remove marker at playhead" onClick={mark}>Marker</button><button title="Snap trim handles to nearby markers and captions" aria-pressed={snap} onClick={()=>setSnap(!snap)}>Snap {snap?"on":"off"}</button>
+          <time>{duration(now)}</time>
+          <button title="Add or remove marker at playhead" onClick={mark}>
+            Marker
+          </button>
+          <button
+            title="Snap trim handles to nearby markers and captions"
+            aria-pressed={snap}
+            onClick={() => setSnap(!snap)}
+          >
+            Snap {snap ? "on" : "off"}
+          </button>
           <button
             title="Zoom out timeline"
             disabled={zoom <= 0.25}
@@ -75,9 +114,26 @@ export function EditTimeline({
           <time key={i}>{duration(left + (i * span) / 5)}</time>
         ))}
       </div>
-      {markers.some(m=>m>=left&&m<=right)&&<div className="marker-lane">{markers.filter(m=>m>=left&&m<=right).map(m=><button key={m} title={"Marker "+duration(m)} style={{left:pct(m)+"%"}} onClick={()=>seek(m)}>◆</button>)}</div>}<div className="timeline-bed">
+      {markers.some((m) => m >= left && m <= right) && (
+        <div className="marker-lane">
+          {markers
+            .filter((m) => m >= left && m <= right)
+            .map((m) => (
+              <button
+                key={m}
+                title={"Marker " + duration(m)}
+                style={{ left: pct(m) + "%" }}
+                onClick={() => seek(m)}
+              >
+                ◆
+              </button>
+            ))}
+        </div>
+      )}
+      <div className="timeline-bed">
         <div className="frame-track">
-          <FrameStrip project={project} left={left} span={span}/><b className="track-label">Video</b>
+          <FrameStrip project={project} left={left} span={span} />
+          <b className="track-label">Video</b>
           <span
             className="range-band"
             style={{
@@ -86,7 +142,8 @@ export function EditTimeline({
             }}
           />
         </div>
-        <div className="audio-track"><b className="track-label">Audio</b>
+        <div className="audio-track">
+          <b className="track-label">Audio</b>
           <img
             alt="Clip audio waveform"
             src={`/api/waveform?project=${project}&clip=${clip}`}
@@ -97,7 +154,8 @@ export function EditTimeline({
             }}
           />
         </div>
-        <div className="caption-track"><b className="track-label">Subtitles</b>
+        <div className="caption-track">
+          <b className="track-label">Subtitles</b>
           {segments
             .filter((s) => s.end > left && s.start < right)
             .map((s, i) => (
@@ -135,7 +193,9 @@ export function EditTimeline({
             max={right}
             step=".01"
             value={start}
-            onChange={(e) => inPoint(Math.min(snapped(+e.target.value), end - 0.05))}
+            onChange={(e) =>
+              inPoint(Math.min(snapped(+e.target.value), end - 0.05))
+            }
           />
         </label>
         <label>
@@ -147,7 +207,9 @@ export function EditTimeline({
             max={right}
             step=".01"
             value={end}
-            onChange={(e) => outPoint(Math.max(snapped(+e.target.value), start + 0.05))}
+            onChange={(e) =>
+              outPoint(Math.max(snapped(+e.target.value), start + 0.05))
+            }
           />
         </label>
       </div>

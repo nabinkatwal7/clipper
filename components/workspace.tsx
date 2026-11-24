@@ -30,10 +30,10 @@ import { JobProgress } from "./job-progress";
 import type { Project, Clip } from "@/lib/types";
 import { Channels, useChannelMonitor } from "./channels";
 import { Branding } from "./brand-profiles";
-import { StudioShell,sections } from "./studio-shell";
+import { StudioShell, sections } from "./studio-shell";
 import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
-import {Calendar} from "./content-calendar";
-import {StorageUsage} from "./storage-usage";
+import { Calendar } from "./content-calendar";
+import { StorageUsage } from "./storage-usage";
 import { SourceTool } from "./studio-tools";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
@@ -78,16 +78,21 @@ export default function Workspace() {
     [initialUpload, setInitialUpload] = useState(false);
   function openProject(id: string) {
     select(id);
-    go("Project",id);
+    go("Project", id);
   }
   function openClip(id: string, clipId: string) {
     select(id);
     setReview(clipId);
   }
-  function go(next:string,id?:string) {
-    const hash="#"+(next==="Project"?"project/"+id:next.toLowerCase().replaceAll(" ","-"));
-    if(location.hash!==hash)history.pushState(null,"",hash);
-    window.scrollTo(0,0);setPage(next);
+  function go(next: string, id?: string) {
+    const hash =
+      "#" +
+      (next === "Project"
+        ? "project/" + id
+        : next.toLowerCase().replaceAll(" ", "-"));
+    if (location.hash !== hash) history.pushState(null, "", hash);
+    window.scrollTo(0, 0);
+    setPage(next);
     setSearch("");
   }
   const refresh = useCallback(async () => {
@@ -109,11 +114,47 @@ export default function Workspace() {
     try {
       setSelected(localStorage.getItem("clipper-project") || "");
     } catch {}
-    const route=()=>{const hash=location.hash.slice(1);if(hash.startsWith("project/")){select(hash.slice(8));setPage("Project")}else{setPage(sections.flatMap(([,items])=>items.map(([name])=>name)).filter(n=>n!=="New project").find(name=>name.toLowerCase().replaceAll(" ","-")===hash)||"Overview")}setComposer(false);setHealth(false);setReview(null);setEditing(null);setLibrary(false);setSearch("")};route();window.addEventListener("popstate",route);
+    const route = () => {
+      const hash = location.hash.slice(1);
+      if (hash.startsWith("project/")) {
+        select(hash.slice(8));
+        setPage("Project");
+      } else {
+        setPage(
+          sections
+            .flatMap(([, items]) => items.map(([name]) => name))
+            .filter((n) => n !== "New project")
+            .find((name) => name.toLowerCase().replaceAll(" ", "-") === hash) ||
+            "Overview",
+        );
+      }
+      setComposer(false);
+      setHealth(false);
+      setReview(null);
+      setEditing(null);
+      setLibrary(false);
+      setSearch("");
+    };
+    route();
+    window.addEventListener("popstate", route);
     void refresh().finally(() => setLoaded(true));
-    void api("/api/health").then(setChecks).catch(()=>setChecks([{name:"Local engine",ok:false,detail:"Could not reach the dependency check. Use Check again to retry."}]));
+    void api("/api/health")
+      .then(setChecks)
+      .catch(() =>
+        setChecks([
+          {
+            name: "Local engine",
+            ok: false,
+            detail:
+              "Could not reach the dependency check. Use Check again to retry.",
+          },
+        ]),
+      );
     const timer = setInterval(() => void refresh(), 2500);
-    return () => {clearInterval(timer);window.removeEventListener("popstate",route)};
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("popstate", route);
+    };
   }, [refresh]);
   useEffect(() => {
     if (!notice) return;

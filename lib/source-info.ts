@@ -48,7 +48,15 @@ export async function sourceInfo(
         url: String(x.webpage_url || x.url || ""),
       }))
       .filter((x: { url: string }) => /^https?:\/\//.test(x.url));
+    const thumbnail =
+      typeof info.thumbnail === "string" &&
+      /^https:\/\/(?:[a-z0-9-]+\.)*(?:ytimg\.com|jtvnw\.net|kickcdn\.com)\//i.test(
+        info.thumbnail,
+      )
+        ? info.thumbnail
+        : undefined;
     return {
+      thumbnail,
       title: info.title || url.hostname,
       channel: info.channel || info.uploader || "",
       platform: info.extractor_key || url.hostname,

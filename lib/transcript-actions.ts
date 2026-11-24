@@ -15,36 +15,44 @@ export async function transcriptAction(
   signal: AbortSignal,
 ) {
   const project = await read(body.project);
-  const edits=globalThis as typeof globalThis & {studioTranscriptWriters?:Set<string>};
-  const writers=edits.studioTranscriptWriters??=new Set<string>();
+  const edits = globalThis as typeof globalThis & {
+    studioTranscriptWriters?: Set<string>;
+  };
+  const writers = (edits.studioTranscriptWriters ??= new Set<string>());
   if (body.action === "edit") {
-    if (busy(project.id)||writers.has(project.id))
+    if (busy(project.id) || writers.has(project.id))
       throw Error(
         "Wait for this project to finish before editing its transcript.",
       );
-    writers.add(project.id);try {const rows=await transcript(project.id);
-    const seg = rows.find((s) => s.start === body.start);
-    if (!seg || !body.text?.trim() || body.text.length > 4000)
-      throw Error("Enter a segment under 4000 characters.");
-    if (seg.text !== body.original)
-      throw Error(
-        "This segment has changed. Reopen the transcript to edit the latest version.",
-      );
-    seg.text = body.text.trim();
-    seg.words = [];
-    const target = file("transcripts", project.id, "json"),
-      tmp = target + "." + randomUUID() + ".tmp";
+    writers.add(project.id);
     try {
-      await fs.writeFile(tmp, JSON.stringify(rows));
-      await fs.rename(tmp, target);
+      const rows = await transcript(project.id);
+      const seg = rows.find((s) => s.start === body.start);
+      if (!seg || !body.text?.trim() || body.text.length > 4000)
+        throw Error("Enter a segment under 4000 characters.");
+      if (seg.text !== body.original)
+        throw Error(
+          "This segment has changed. Reopen the transcript to edit the latest version.",
+        );
+      seg.text = body.text.trim();
+      seg.words = [];
+      const target = file("transcripts", project.id, "json"),
+        tmp = target + "." + randomUUID() + ".tmp";
+      try {
+        await fs.writeFile(tmp, JSON.stringify(rows));
+        await fs.rename(tmp, target);
+      } finally {
+        await fs.rm(tmp, { force: true });
+      }
+      return { text: seg.text };
     } finally {
-      await fs.rm(tmp, { force: true });
+      writers.delete(project.id);
     }
-    return { text: seg.text };} finally { writers.delete(project.id) }
   }
   let prompt: string;
   if (body.action === "translate") {
-    const rows=await transcript(project.id);const seg = rows.find((s) => s.start === body.start);
+    const rows = await transcript(project.id);
+    const seg = rows.find((s) => s.start === body.start);
     if (!seg || !body.language?.trim() || body.language.length > 60)
       throw Error("Choose a segment and target language.");
     prompt =

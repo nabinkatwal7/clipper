@@ -3,12 +3,16 @@ export type Settings = {
   instructions?: string;
   model?: string;
   captionColor?: string;
-  captionBackground?:boolean; captionAnimation?:"none"|"fade";
+  captionBackground?: boolean;
+  captionAnimation?: "none" | "fade";
   outline?: number;
   shadow?: number;
   font?: string;
   volume?: number;
-  scale?:number; rotation?:number; opacity?:number; offsetY?:number;
+  scale?: number;
+  rotation?: number;
+  opacity?: number;
+  offsetY?: number;
   duration: "15-30" | "30-60" | "60-90";
   count: number;
   ratio: "9:16" | "1:1" | "4:5" | "16:9";
@@ -80,7 +84,13 @@ export type Project = {
   progress?: Partial<Record<ProcessingStage, StageProgress>>;
 };
 export type ProcessingStage =
-  "source-subtitles" | "indexing" | "importing" | "extracting" | "transcribing" | "analyzing" | "rendering";
+  | "source-subtitles"
+  | "indexing"
+  | "importing"
+  | "extracting"
+  | "transcribing"
+  | "analyzing"
+  | "rendering";
 export type StageProgress = {
   current: number;
   total: number;

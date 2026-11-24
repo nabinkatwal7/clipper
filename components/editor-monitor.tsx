@@ -6,12 +6,14 @@ export function EditorMonitor({
   video,
   settings,
   segments,
-  quality, safe,
+  quality,
+  safe,
 }: {
   video: RefObject<HTMLVideoElement | null>;
   settings: Settings;
   segments: Segment[];
-  quality:number; safe: boolean;
+  quality: number;
+  safe: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -24,7 +26,7 @@ export function EditorMonitor({
     c.height = Math.round(height * factor);
     const ctx = c.getContext("2d");
     if (!ctx) return;
-    const transformCanvas=document.createElement("canvas");
+    const transformCanvas = document.createElement("canvas");
     let frame = 0;
     function paint() {
       if (!v || !c || !ctx || v.readyState < 2) return;
@@ -78,9 +80,33 @@ export function EditorMonitor({
         );
         fill(0, h * 0.3, w, h * 0.7);
       } else fill(0, 0, w, h);
-      if((settings.scale??1)!==1 || settings.rotation || (settings.opacity??1)!==1){
-        const scratch=transformCanvas; if(scratch.width!==w||scratch.height!==h){scratch.width=w;scratch.height=h}
-        scratch.getContext("2d")?.drawImage(c,0,0);ctx.fillStyle="black";ctx.fillRect(0,0,w,h);ctx.save();ctx.globalAlpha=settings.opacity??1;ctx.translate(w/2,h/2);ctx.rotate((settings.rotation??0)*Math.PI/180);ctx.translate(-w/2,-h/2);const z=settings.scale??1;ctx.drawImage(scratch,-(w*z-w)*settings.crop/100,-(h*z-h)*(settings.offsetY??50)/100,w*z,h*z);ctx.restore();
+      if (
+        (settings.scale ?? 1) !== 1 ||
+        settings.rotation ||
+        (settings.opacity ?? 1) !== 1
+      ) {
+        const scratch = transformCanvas;
+        if (scratch.width !== w || scratch.height !== h) {
+          scratch.width = w;
+          scratch.height = h;
+        }
+        scratch.getContext("2d")?.drawImage(c, 0, 0);
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, w, h);
+        ctx.save();
+        ctx.globalAlpha = settings.opacity ?? 1;
+        ctx.translate(w / 2, h / 2);
+        ctx.rotate(((settings.rotation ?? 0) * Math.PI) / 180);
+        ctx.translate(-w / 2, -h / 2);
+        const z = settings.scale ?? 1;
+        ctx.drawImage(
+          scratch,
+          (-(w * z - w) * settings.crop) / 100,
+          (-(h * z - h) * (settings.offsetY ?? 50)) / 100,
+          w * z,
+          h * z,
+        );
+        ctx.restore();
       }
       if (settings.captions) {
         const at = v.currentTime;
@@ -118,8 +144,21 @@ export function EditorMonitor({
           ctx.save();
           ctx.translate(w / 2, y);
           ctx.scale(k, 1);
-          if(settings.captionAnimation==="fade"){const a=group[0]?.start??seg.start,b=group.at(-1)?.end??seg.end;ctx.globalAlpha=Math.min(1,Math.max(0,(at-a)/.075),Math.max(0,(b-at)/.06))}
-          if(settings.captionBackground){const tw=ctx.measureText(line).width;const th=Math.max(8,settings.fontSize*h/1920);ctx.fillStyle="#111";ctx.fillRect(-tw/2-3,-th,tw+6,th+4)}
+          if (settings.captionAnimation === "fade") {
+            const a = group[0]?.start ?? seg.start,
+              b = group.at(-1)?.end ?? seg.end;
+            ctx.globalAlpha = Math.min(
+              1,
+              Math.max(0, (at - a) / 0.075),
+              Math.max(0, (b - at) / 0.06),
+            );
+          }
+          if (settings.captionBackground) {
+            const tw = ctx.measureText(line).width;
+            const th = Math.max(8, (settings.fontSize * h) / 1920);
+            ctx.fillStyle = "#111";
+            ctx.fillRect(-tw / 2 - 3, -th, tw + 6, th + 4);
+          }
           let x = -ctx.measureText(line).width / 2;
           words.forEach((word, i) => {
             ctx.shadowColor = "rgba(0,0,0,.7)";
@@ -167,7 +206,7 @@ export function EditorMonitor({
       v.removeEventListener("seeked", paint);
       v.removeEventListener("loadeddata", paint);
     };
-  }, [settings, segments, safe, video,quality]);
+  }, [settings, segments, safe, video, quality]);
   return (
     <canvas
       className="monitor-canvas"

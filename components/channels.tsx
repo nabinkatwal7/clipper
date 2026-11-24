@@ -12,6 +12,9 @@ type Channel = {
   records: Recording[];
   seen: string[];
   checked?: number;
+  attempted?: number;
+  thumbnail?: string;
+  profile?: string;
   live?: boolean;
   platform?: string;
   instructions: string;
@@ -51,6 +54,7 @@ async function check(id: string) {
       const ch = read().find((c) => c.id === id);
       if (!ch) return;
       try {
+        update(id, { attempted: Date.now() });
         const data = await request("inspect", { url: ch.url, channel: true });
         const records: Recording[] = data.recordings;
         const fresh = read().find((c) => c.id === id);
@@ -75,6 +79,7 @@ async function check(id: string) {
           checked: Date.now(),
           live: data.live,
           platform: data.platform,
+          thumbnail: data.thumbnail,
           error: "",
         });
       } catch (e) {
@@ -87,7 +92,9 @@ export function useChannelMonitor() {
   useEffect(() => {
     const timer = setInterval(() => {
       const next = read().find(
-        (c) => c.auto && Date.now() - (c.checked || 0) > 15 * 60 * 1000,
+        (c) =>
+          c.auto &&
+          Date.now() - (c.attempted || c.checked || 0) > 15 * 60 * 1000,
       );
       if (next) void check(next.id);
     }, 60000);
@@ -112,7 +119,7 @@ export function Channels({
     [busy, setBusy] = useState(""),
     [err, setErr] = useState("");
   useEffect(() => {
-    setId(sessionStorage.getItem("studio-channel")||"");
+    setId(sessionStorage.getItem("studio-channel") || "");
     const sync = () => setRows(read());
     sync();
     window.addEventListener(key, sync);
@@ -210,6 +217,14 @@ export function Channels({
           {selected && (
             <section>
               <div className="section-row">
+                {selected.thumbnail && (
+                  <img
+                    className="channel-thumbnail"
+                    src={selected.thumbnail}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
+                )}
                 <h2>{selected.name}</h2>
                 <button
                   title="Favorite channel"

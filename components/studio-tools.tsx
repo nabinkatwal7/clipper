@@ -8,8 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import {FrameStrip} from "./frame-strip";
-import {StreamIndex} from "./stream-index";
+import { FrameStrip } from "./frame-strip";
+import { StreamIndex } from "./stream-index";
 import { duration } from "./studio-media";
 import type { Project, Segment } from "@/lib/types";
 export function SourceTool({
@@ -29,13 +29,13 @@ export function SourceTool({
     [guides, setGuides] = useState(false),
     [layer, setLayer] = useState("Title"),
     [zoom, setZoom] = useState(100);
-  const [frameReady,setFrameReady]=useState(false);
+  const [frameReady, setFrameReady] = useState(false);
   const video = useRef<HTMLVideoElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
   const [rows, setRows] = useState<Segment[]>([]),
     [query, setQuery] = useState(""),
     [time, setTime] = useState(0),
-    [scroll,setScroll]=useState(0),
+    [scroll, setScroll] = useState(0),
     [label, setLabel] = useState(""),
     [color, setColor] = useState("#ffffff"),
     [position, setPosition] = useState(85),
@@ -89,7 +89,8 @@ export function SourceTool({
       if (!r.ok) throw Error(data.error);
       if (action === "search") {
         setTerms(data.terms);
-        setScroll(0);if(transcriptList.current)transcriptList.current.scrollTop=0;
+        setScroll(0);
+        if (transcriptList.current) transcriptList.current.scrollTop = 0;
       } else if (action === "translate") setTranslation(data.text);
       else if (selected) {
         const next = { ...selected, text: data.text, words: [] };
@@ -126,7 +127,8 @@ export function SourceTool({
     setDecisions(next);
     localStorage.setItem("highlight-" + project.id, JSON.stringify(next));
   }
-  const transcriptList=useRef<HTMLDivElement>(null);const firstRow=Math.max(0,Math.floor(scroll/74)-3);
+  const transcriptList = useRef<HTMLDivElement>(null);
+  const firstRow = Math.max(0, Math.floor(scroll / 74) - 3);
   const filtered = useMemo(
     () =>
       rows.filter((s) =>
@@ -207,7 +209,8 @@ export function SourceTool({
           preload="auto"
           src={`/api/download?project=${project.id}&kind=source`}
           onLoadedData={() => {
-            setFrameReady(true); if (thumbnail) draw();
+            setFrameReady(true);
+            if (thumbnail) draw();
           }}
           onTimeUpdate={(e) => {
             const at = e.currentTarget.currentTime;
@@ -270,7 +273,14 @@ export function SourceTool({
             onChange={(e) => seek(+e.target.value)}
           />
         </label>
-        {thumbnail&&<FrameStrip project={project.id} left={0} span={project.duration} onSelect={seek}/>}
+        {thumbnail && (
+          <FrameStrip
+            project={project.id}
+            left={0}
+            span={project.duration}
+            onSelect={seek}
+          />
+        )}
         {!thumbnail && kind === "Highlights" && (
           <div className="highlight-rail">
             {project.highlights.map((h, i) => (
@@ -287,7 +297,9 @@ export function SourceTool({
             ))}
           </div>
         )}
-        {!thumbnail&&kind==="Highlights"&&<StreamIndex project={project} seek={seek}/>}
+        {!thumbnail && kind === "Highlights" && (
+          <StreamIndex project={project} seek={seek} />
+        )}
         {error && <p role="alert">{error}</p>}
       </section>
       <section>
@@ -537,7 +549,9 @@ export function SourceTool({
                     onChange={(e) => {
                       setQuery(e.target.value);
                       setTerms([]);
-                      setScroll(0);if(transcriptList.current)transcriptList.current.scrollTop=0;
+                      setScroll(0);
+                      if (transcriptList.current)
+                        transcriptList.current.scrollTop = 0;
                     }}
                   />
                 </label>
@@ -586,8 +600,13 @@ export function SourceTool({
                     {translation && <p>{translation}</p>}
                   </div>
                 )}
-                <div className="transcript-rows virtual-transcript" ref={transcriptList} onScroll={e=>setScroll(e.currentTarget.scrollTop)}><div style={{height:firstRow*74}} aria-hidden="true"/>
-                  {filtered.slice(firstRow,firstRow+28).map((s) => (
+                <div
+                  className="transcript-rows virtual-transcript"
+                  ref={transcriptList}
+                  onScroll={(e) => setScroll(e.currentTarget.scrollTop)}
+                >
+                  <div style={{ height: firstRow * 74 }} aria-hidden="true" />
+                  {filtered.slice(firstRow, firstRow + 28).map((s) => (
                     <div
                       key={s.start}
                       className={
@@ -622,7 +641,12 @@ export function SourceTool({
                           : "No transcript available. Generate clips with subtitles enabled to transcribe this source."}
                     </p>
                   )}
-                  <div style={{height:Math.max(0,filtered.length-firstRow-28)*74}} aria-hidden="true"/>
+                  <div
+                    style={{
+                      height: Math.max(0, filtered.length - firstRow - 28) * 74,
+                    }}
+                    aria-hidden="true"
+                  />
                 </div>
               </>
             )}

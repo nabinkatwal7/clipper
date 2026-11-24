@@ -68,15 +68,15 @@ export function VideoEditor({
       .then((data) => setFps(data.fps || null))
       .catch(() => {});
   }, [project.id]);
-  const [shortcutQuery,setShortcutQuery]=useState("");
+  const [shortcutQuery, setShortcutQuery] = useState("");
   const good =
     valid &&
     start >= 0 &&
     end > start &&
     end <= project.duration &&
     end - start <= 600;
-  const [splitAt,setSplitAt]=useState<number|null>(null);
-  const snapshot = { settings, startText, endText, segments,splitAt };
+  const [splitAt, setSplitAt] = useState<number | null>(null);
+  const snapshot = { settings, startText, endText, segments, splitAt };
   const history = useRef<{
     past: (typeof snapshot)[];
     future: (typeof snapshot)[];
@@ -89,7 +89,8 @@ export function VideoEditor({
       old.settings === settings &&
       old.startText === startText &&
       old.endText === endText &&
-      old.segments === segments && old.splitAt===splitAt
+      old.segments === segments &&
+      old.splitAt === splitAt
     )
       return;
     if (!restoring.current) {
@@ -98,8 +99,8 @@ export function VideoEditor({
       history.current.future = [];
     }
     restoring.current = false;
-    previous.current = { settings, startText, endText, segments,splitAt };
-  }, [settings, startText, endText, segments,splitAt]);
+    previous.current = { settings, startText, endText, segments, splitAt };
+  }, [settings, startText, endText, segments, splitAt]);
   function restore(redo: boolean) {
     const { past, future } = history.current;
     const next = (redo ? future : past).pop();
@@ -109,7 +110,8 @@ export function VideoEditor({
     setSettings(next.settings);
     setStartText(next.startText);
     setEndText(next.endText);
-    setSegments(next.segments);setSplitAt(next.splitAt);
+    setSegments(next.segments);
+    setSplitAt(next.splitAt);
   }
   function seek(t: number) {
     if (video.current) {
@@ -139,7 +141,10 @@ export function VideoEditor({
       )
         return;
       const k = e.key.toLowerCase();
-      if ((e.ctrlKey||e.metaKey)&&k==="e"){e.preventDefault();document.getElementById("export-saved-render")?.click()} else if ((e.ctrlKey || e.metaKey) && k === "s") {
+      if ((e.ctrlKey || e.metaKey) && k === "e") {
+        e.preventDefault();
+        document.getElementById("export-saved-render")?.click();
+      } else if ((e.ctrlKey || e.metaKey) && k === "s") {
         e.preventDefault();
         if (good) void save();
       } else if ((e.ctrlKey || e.metaKey) && k === "z") {
@@ -148,7 +153,15 @@ export function VideoEditor({
       } else if (k === " " && !(e.target instanceof HTMLButtonElement)) {
         e.preventDefault();
         toggle();
-      } else if(k==="s"&&!e.ctrlKey&&!e.metaKey&&now>start+.04&&now<end-.04)setSplitAt(now); else if (k === "i" && now < end) setStartText(timecode(now));
+      } else if (
+        k === "s" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        now > start + 0.04 &&
+        now < end - 0.04
+      )
+        setSplitAt(now);
+      else if (k === "i" && now < end) setStartText(timecode(now));
       else if (k === "o" && now > start) setEndText(timecode(now));
       else if (fps && (k === "arrowleft" || k === "arrowright")) {
         e.preventDefault();
@@ -160,9 +173,16 @@ export function VideoEditor({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   });
-  const [quality,setQuality]=useState(720);
-  const dirty=settings!==clip.settings||segments!==clip.segments||start!==clip.start||end!==clip.end||splitAt!==null;
-  const close = useCallback(()=>{if(!dirty||confirm("Discard unsaved clip changes?"))onClose()},[dirty,onClose]);
+  const [quality, setQuality] = useState(720);
+  const dirty =
+    settings !== clip.settings ||
+    segments !== clip.segments ||
+    start !== clip.start ||
+    end !== clip.end ||
+    splitAt !== null;
+  const close = useCallback(() => {
+    if (!dirty || confirm("Discard unsaved clip changes?")) onClose();
+  }, [dirty, onClose]);
   async function save() {
     setSaving(true);
     setError("");
@@ -176,7 +196,8 @@ export function VideoEditor({
           start,
           end,
           settings,
-          segments,splitAt,
+          segments,
+          splitAt,
         }),
       });
       const data = await res.json();
@@ -192,27 +213,57 @@ export function VideoEditor({
   return (
     <Modal
       title="Edit video"
-      description={project.title+" · "+clip.title}
+      description={project.title + " · " + clip.title}
       size="wide"
       onClose={close}
       busy={saving}
     >
       <div className="edit-toolbar">
         <span>
-          {dirty?"Unsaved changes":"Saved render"} · {settings.resolution}p <i> / </i> {settings.ratio}
+          {dirty ? "Unsaved changes" : "Saved render"} · {settings.resolution}p{" "}
+          <i> / </i> {settings.ratio}
         </span>
         <div>
-          <select className="preview-quality" aria-label="Preview quality" value={quality} onChange={e=>setQuality(+e.target.value)}><option value={360}>360p preview</option><option value={720}>720p preview</option></select><button
+          <select
+            className="preview-quality"
+            aria-label="Preview quality"
+            value={quality}
+            onChange={(e) => setQuality(+e.target.value)}
+          >
+            <option value={360}>360p preview</option>
+            <option value={720}>720p preview</option>
+          </select>
+          <button
             title="Toggle inspector"
             aria-pressed={inspector}
             onClick={() => setInspector(!inspector)}
           >
             Inspector
           </button>
-          <button disabled={splitAt===null&&(now<=start+.04||now>=end-.04)} title="Split at playhead" onClick={()=>setSplitAt(splitAt===null?now:null)}>{splitAt===null?<Scissors size={16}/>:("Clear split "+timecode(splitAt))}</button><button title="Undo" onClick={() => restore(false)}>
+          <button
+            disabled={
+              splitAt === null && (now <= start + 0.04 || now >= end - 0.04)
+            }
+            title="Split at playhead"
+            onClick={() => setSplitAt(splitAt === null ? now : null)}
+          >
+            {splitAt === null ? (
+              <Scissors size={16} />
+            ) : (
+              "Clear split " + timecode(splitAt)
+            )}
+          </button>
+          <button title="Undo" onClick={() => restore(false)}>
             <Undo2 size={16} />
           </button>
-          <a id="export-saved-render" className="editor-export" download href={`/api/download?project=${project.id}&clip=${clip.id}&kind=bundle`}>Export saved clip</a>
+          <a
+            id="export-saved-render"
+            className="editor-export"
+            download
+            href={`/api/download?project=${project.id}&clip=${clip.id}&kind=bundle`}
+          >
+            Export saved clip
+          </a>
           <button title="Redo" onClick={() => restore(true)}>
             <Redo2 size={16} />
           </button>
@@ -242,7 +293,36 @@ export function VideoEditor({
         </div>
       </div>
       {help && (
-        <section className="shortcuts-panel"><label className="search-field"><input aria-label="Search shortcuts" placeholder="Search keyboard shortcuts" value={shortcutQuery} onChange={e=>setShortcutQuery(e.target.value)}/></label>{[["Space","Play / pause"],["K / L","Pause / play"],["← / →","Step one frame"],["I / O","Set in / out point"],["S","Split at playhead"],["Ctrl/Cmd + Z","Undo"],["Ctrl/Cmd + Shift + Z","Redo"],["Ctrl/Cmd + S","Save render"],["Ctrl/Cmd + E","Export saved render"]].filter(row=>row.join(" ").toLowerCase().includes(shortcutQuery.toLowerCase())).map(([key,name])=><div key={key}><kbd>{key}</kbd>{name}</div>)}</section>
+        <section className="shortcuts-panel">
+          <label className="search-field">
+            <input
+              aria-label="Search shortcuts"
+              placeholder="Search keyboard shortcuts"
+              value={shortcutQuery}
+              onChange={(e) => setShortcutQuery(e.target.value)}
+            />
+          </label>
+          {[
+            ["Space", "Play / pause"],
+            ["K / L", "Pause / play"],
+            ["← / →", "Step one frame"],
+            ["I / O", "Set in / out point"],
+            ["S", "Split at playhead"],
+            ["Ctrl/Cmd + Z", "Undo"],
+            ["Ctrl/Cmd + Shift + Z", "Redo"],
+            ["Ctrl/Cmd + S", "Save render"],
+            ["Ctrl/Cmd + E", "Export saved render"],
+          ]
+            .filter((row) =>
+              row.join(" ").toLowerCase().includes(shortcutQuery.toLowerCase()),
+            )
+            .map(([key, name]) => (
+              <div key={key}>
+                <kbd>{key}</kbd>
+                {name}
+              </div>
+            ))}
+        </section>
       )}
       <div
         className={"editor-grid " + (!inspector ? "hide-inspector" : "")}
@@ -284,7 +364,8 @@ export function VideoEditor({
                 <LoaderCircle className="spin" size={15} /> Loading source frame
               </span>
             )}
-            <EditorMonitor quality={quality}
+            <EditorMonitor
+              quality={quality}
               video={video}
               settings={settings}
               segments={segments}
@@ -357,7 +438,31 @@ export function VideoEditor({
                 Use minutes:seconds or hours:minutes:seconds.
               </p>
               <FormatSettings value={settings} onChange={setSettings} />
-              <details><summary className="inline-link">Transform canvas</summary>{([["scale","Scale",1,2,.01,1],["rotation","Rotation",-180,180,1,0],["opacity","Opacity",0,1,.01,1],["offsetY","Vertical crop",0,100,1,50]] as const).map(([key,label,min,max,step,defaultValue])=><label className="field" key={key}>{label} · {settings[key]??defaultValue}<input type="range" min={min} max={max} step={step} value={settings[key]??defaultValue} onChange={e=>setSettings({...settings,[key]:+e.target.value})}/></label>)}</details>
+              <details>
+                <summary className="inline-link">Transform canvas</summary>
+                {(
+                  [
+                    ["scale", "Scale", 1, 2, 0.01, 1],
+                    ["rotation", "Rotation", -180, 180, 1, 0],
+                    ["opacity", "Opacity", 0, 1, 0.01, 1],
+                    ["offsetY", "Vertical crop", 0, 100, 1, 50],
+                  ] as const
+                ).map(([key, label, min, max, step, defaultValue]) => (
+                  <label className="field" key={key}>
+                    {label} · {settings[key] ?? defaultValue}
+                    <input
+                      type="range"
+                      min={min}
+                      max={max}
+                      step={step}
+                      value={settings[key] ?? defaultValue}
+                      onChange={(e) =>
+                        setSettings({ ...settings, [key]: +e.target.value })
+                      }
+                    />
+                  </label>
+                ))}
+              </details>
               <label className="field">
                 Audio volume · {Math.round((settings.volume ?? 1) * 100)}%
                 <input
@@ -462,7 +567,7 @@ export function VideoEditor({
           ) : (
             <Check size={16} />
           )}
-          {splitAt===null?"Save changes":"Save two clips"}
+          {splitAt === null ? "Save changes" : "Save two clips"}
         </Button>
       </footer>
     </Modal>

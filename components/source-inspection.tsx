@@ -4,6 +4,7 @@ import { duration } from "./studio-media";
 export function SourceInspection({ url }: { url: string }) {
   const [data, setData] = useState<{
       title: string;
+      thumbnail?: string;
       channel: string;
       platform: string;
       duration: number;
@@ -39,6 +40,14 @@ export function SourceInspection({ url }: { url: string }) {
     <div className="source-inspection">
       {data ? (
         <>
+          {data.thumbnail && (
+            <img
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              alt=""
+              src={data.thumbnail}
+            />
+          )}
           <strong>{data.title}</strong>
           <small>
             {[

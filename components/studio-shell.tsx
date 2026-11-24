@@ -36,7 +36,8 @@ export const sections = [
   [
     "Workspace",
     [
-      ["Overview", PanelsTopLeft],["New project",Plus],
+      ["Overview", PanelsTopLeft],
+      ["New project", Plus],
       ["Projects", FolderClosed],
       ["Clip library", Library],
     ],
@@ -134,12 +135,30 @@ export function StudioShell({
     go(p);
     setDrawer(false);
   };
-  const [channels,setChannels]=useState<{id:string;name:string}[]>([]);
-  useEffect(()=>{if(dialog==="search")try{setChannels(JSON.parse(localStorage.getItem("studio-channels")||"[]"))}catch{}},[dialog]);
+  const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (dialog === "search")
+      try {
+        setChannels(
+          JSON.parse(localStorage.getItem("studio-channels") || "[]"),
+        );
+      } catch {}
+  }, [dialog]);
   const commands = [
-    ...channels.map(c=>({name:c.name,kind:"Streamer",run:()=>{sessionStorage.setItem("studio-channel",c.id);navigate("Streamers")}})),
-    {name:"Search transcripts",kind:"Action",run:()=>navigate("Transcript explorer")},
-    {name:"Ollama settings",kind:"Settings",run:setup},
+    ...channels.map((c) => ({
+      name: c.name,
+      kind: "Streamer",
+      run: () => {
+        sessionStorage.setItem("studio-channel", c.id);
+        navigate("Streamers");
+      },
+    })),
+    {
+      name: "Search transcripts",
+      kind: "Action",
+      run: () => navigate("Transcript explorer"),
+    },
+    { name: "Ollama settings", kind: "Settings", run: setup },
     { name: "New project", kind: "Action", run: create },
     { name: "Change theme", kind: "Action", run: theme },
     { name: "Local settings", kind: "Settings", run: setup },
@@ -147,7 +166,7 @@ export function StudioShell({
       items.map(([name]) => ({
         name,
         kind: "Page",
-        run: () => name==="New project"?create():navigate(name),
+        run: () => (name === "New project" ? create() : navigate(name)),
       })),
     ),
     ...projects.flatMap((p) => [
@@ -194,8 +213,8 @@ export function StudioShell({
             Clipper <b>AI</b>
           </strong>
           <button
-            title={collapsed?"Expand sidebar":"Collapse sidebar"}
-            aria-label={collapsed?"Expand sidebar":"Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="desktop-collapse"
             onClick={() => {
               setCollapsed(!collapsed);
@@ -232,7 +251,12 @@ export function StudioShell({
                     key={label}
                     aria-current={page === label ? "page" : undefined}
                     className={`nav-item ${page === label ? "current" : ""}`}
-                    onClick={() => {if(label==="New project"){setDrawer(false);create()}else navigate(label)}}
+                    onClick={() => {
+                      if (label === "New project") {
+                        setDrawer(false);
+                        create();
+                      } else navigate(label);
+                    }}
                   >
                     <Icon size={16} />
                     <span>{label}</span>
@@ -284,7 +308,17 @@ export function StudioShell({
             <Workflow size={15} /> Studio <ChevronRight size={13} />
             <strong>{page}</strong>
           </span>
-          <div className="bar-tools">{active>0&&<button className="queue-indicator" title="Open processing queue" onClick={()=>navigate("Processing queue")}><ListVideo size={14}/>{active} active</button>}
+          <div className="bar-tools">
+            {active > 0 && (
+              <button
+                className="queue-indicator"
+                title="Open processing queue"
+                onClick={() => navigate("Processing queue")}
+              >
+                <ListVideo size={14} />
+                {active} active
+              </button>
+            )}
             <button
               className="command-key"
               onClick={palette}

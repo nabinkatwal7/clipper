@@ -47,7 +47,16 @@ export function JobProgress({
   onRefresh: () => void;
   onCancel?: () => void;
 }) {
-  const steps=project.progress?.indexing && project.stage==="indexing"?[{id:"indexing" as const,label:"Index source"}]:project.progress?.["source-subtitles"]?[pipeline[0],{id:"source-subtitles" as const,label:"Read subtitles"},...pipeline.slice(1)]:pipeline;
+  const steps =
+    project.progress?.indexing && project.stage === "indexing"
+      ? [{ id: "indexing" as const, label: "Index source" }]
+      : project.progress?.["source-subtitles"]
+        ? [
+            pipeline[0],
+            { id: "source-subtitles" as const, label: "Read subtitles" },
+            ...pipeline.slice(1),
+          ]
+        : pipeline;
   const running = ["queued", "processing"].includes(project.status);
   const active = steps.some((s) => s.id === project.stage)
     ? (project.stage as ProcessingStage)
@@ -62,7 +71,7 @@ export function JobProgress({
     if (active) setSelected(active);
   }, [active]);
   useEffect(() => {
-    if(!running)return;
+    if (!running) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [running]);
