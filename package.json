@@ -10,7 +10,8 @@
     "test": "tsx --test tests/*.test.ts",
     "health": "tsx scripts/health.ts",
     "format": "prettier --write app components lib scripts tests types *.json *.ts *.mjs README.md",
-    "clipper": "node scripts/clipper.mjs"
+    "clipper": "node scripts/clipper.mjs",
+    "lint": "eslint app components lib scripts tests"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",

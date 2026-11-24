@@ -575,13 +575,12 @@ export async function render(
   if (alpha !== 1)
     transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
   if(s.grade)transforms.push(...gradeFilters(s.grade,w,height));
-  if (s.captions || s.overlayText?.trim())
-    transforms.push(`subtitles=filename='${subtitlePath}'`);
+  const finalOverlay = s.captions || s.overlayText?.trim() ? `subtitles=filename='${subtitlePath}'` : 'null';
   const master=["volume="+(s.volume??1),...(s.mix?mixFilters(s.mix,h.end-h.start):[])].join(",");
   let sourceAudio=p.hasAudio;
   if(s.composition?.tracks.length&&sourceAudio===undefined){const streams=await run(bin.ffprobe,["-v","error","-select_streams","a:0","-show_entries","stream=index","-of","csv=p=0",file("uploads",p.id,"mp4")],signal);sourceAudio=!!streams.trim()}
   const comp=await compose(s.composition,w,height,h.end-h.start,!!sourceAudio,master);
-  const filter=[layoutFilter(s,w,height),"[formatted]"+(transforms.join(",")||"null")+"[base]",...comp.graph,`[${comp.video}]null[out]`].join(";");
+  const filter=[layoutFilter(s,w,height),"[formatted]"+(transforms.join(",")||"null")+"[base]",...comp.graph,`[${comp.video}]${finalOverlay}[out]`].join(";");
   const temporary = file("temp", id, "mp4");
   try {
     await run(
@@ -634,7 +633,7 @@ export async function render(
       },
     );
     signal.throwIfAborted();
-    const qa=await verifyRender(temporary,w,height,h.end-h.start,p.hasAudio,signal);
+    const qa=await verifyRender(temporary,w,height,h.end-h.start,comp.hasAudio || p.hasAudio,signal);
     signal.throwIfAborted(); await fs.rename(temporary, file("clips", id, "mp4"));
     return { ...h, qa,id, file: `${id}.mp4`, settings: s, segments };
   } finally {
