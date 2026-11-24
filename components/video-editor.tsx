@@ -6,7 +6,7 @@ import { FormatSettings, SubtitleSettings } from "./clip-settings";
 import { Button } from "./ui/button";
 import type { Clip, Project, Segment } from "@/lib/types";
 import { EditorMonitor } from "./editor-monitor";
-import {EditorInspector,editorTools} from "./editor-inspector";
+import { EditorInspector, editorTools } from "./editor-inspector";
 import { EditTimeline } from "./edit-timeline";
 import { Undo2, Redo2, Scan, Maximize, Keyboard } from "lucide-react";
 function timecode(value: number) {
@@ -82,7 +82,7 @@ export function VideoEditor({
     past: (typeof snapshot)[];
     future: (typeof snapshot)[];
   }>({ past: [], future: [] });
-  const [historyCount,setHistoryCount]=useState([0,0]);
+  const [historyCount, setHistoryCount] = useState([0, 0]);
   const previous = useRef(snapshot),
     restoring = useRef(false);
   useEffect(() => {
@@ -100,7 +100,11 @@ export function VideoEditor({
       if (history.current.past.length > 100) history.current.past.shift();
       history.current.future = [];
     }
-    restoring.current = false;setHistoryCount([history.current.past.length,history.current.future.length]);
+    restoring.current = false;
+    setHistoryCount([
+      history.current.past.length,
+      history.current.future.length,
+    ]);
     previous.current = { settings, startText, endText, segments, splitAt };
   }, [settings, startText, endText, segments, splitAt]);
   function restore(redo: boolean) {
@@ -115,7 +119,11 @@ export function VideoEditor({
     setSegments(next.segments);
     setSplitAt(next.splitAt);
   }
-  function resizeInspector(width:number){const next=Math.min(480,Math.max(250,Math.round(width)));setPanelWidth(next);localStorage.setItem("studio-inspector",String(next))}
+  function resizeInspector(width: number) {
+    const next = Math.min(480, Math.max(250, Math.round(width)));
+    setPanelWidth(next);
+    localStorage.setItem("studio-inspector", String(next));
+  }
   function seek(t: number) {
     if (video.current) {
       video.current.currentTime = Math.max(0, Math.min(project.duration, t));
@@ -256,11 +264,19 @@ export function VideoEditor({
               "Clear split " + timecode(splitAt)
             )}
           </button>
-          <button disabled={!historyCount[0]} title="Undo" onClick={() => restore(false)}>
+          <button
+            disabled={!historyCount[0]}
+            title="Undo"
+            onClick={() => restore(false)}
+          >
             <Undo2 size={16} />
           </button>
 
-          <button disabled={!historyCount[1]} title="Redo" onClick={() => restore(true)}>
+          <button
+            disabled={!historyCount[1]}
+            title="Redo"
+            onClick={() => restore(true)}
+          >
             <Redo2 size={16} />
           </button>
           <button
@@ -334,7 +350,22 @@ export function VideoEditor({
           { "--inspector-width": panelWidth + "px" } as React.CSSProperties
         }
       >
-        <nav className="editor-rail" aria-label="Editing tools">{editorTools.map(([id,name,Icon])=><button key={id} onClick={()=>{setTab(id);setInspector(true)}} title={name} aria-pressed={tab===id}><Icon size={16}/><span>{name}</span></button>)}</nav>
+        <nav className="editor-rail" aria-label="Editing tools">
+          {editorTools.map(([id, name, Icon]) => (
+            <button
+              key={id}
+              onClick={() => {
+                setTab(id);
+                setInspector(true);
+              }}
+              title={name}
+              aria-pressed={tab === id}
+            >
+              <Icon size={16} />
+              <span>{name}</span>
+            </button>
+          ))}
+        </nav>
         <div className="editor-player-column">
           <div
             className="editor-preview"
@@ -383,10 +414,43 @@ export function VideoEditor({
           </Button>
         </div>
         {inspector && (
-          <div role="separator" tabIndex={0} aria-orientation="vertical" aria-label="Resize inspector" aria-valuemin={250} aria-valuemax={480} aria-valuenow={panelWidth} className="panel-resize" title="Drag to resize inspector" onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))resizeInspector(e.currentTarget.parentElement!.getBoundingClientRect().right-e.clientX)}} onKeyDown={e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();e.stopPropagation();resizeInspector(panelWidth+(e.key==="ArrowLeft"?8:-8))}}}/>
+          <div
+            role="separator"
+            tabIndex={0}
+            aria-orientation="vertical"
+            aria-label="Resize inspector"
+            aria-valuemin={250}
+            aria-valuemax={480}
+            aria-valuenow={panelWidth}
+            className="panel-resize"
+            title="Drag to resize inspector"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              if (e.currentTarget.hasPointerCapture(e.pointerId))
+                resizeInspector(
+                  e.currentTarget.parentElement!.getBoundingClientRect().right -
+                    e.clientX,
+                );
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                e.preventDefault();
+                e.stopPropagation();
+                resizeInspector(panelWidth + (e.key === "ArrowLeft" ? 8 : -8));
+              }
+            }}
+          />
         )}
         <div className="editor-controls" hidden={!inspector}>
-          {tab==="video"&&<h3 className="inspector-title">Trim &amp; layout</h3>}{tab==="subtitles"&&<h3 className="inspector-title">Subtitle properties</h3>}
+          {tab === "video" && (
+            <h3 className="inspector-title">Trim &amp; layout</h3>
+          )}
+          {tab === "subtitles" && (
+            <h3 className="inspector-title">Subtitle properties</h3>
+          )}
           {tab === "video" ? (
             <div className="editor-fields">
               <div className="field-grid">
@@ -414,7 +478,15 @@ export function VideoEditor({
               </p>
               <FormatSettings value={settings} onChange={setSettings} />
             </div>
-          ) : tab!=="subtitles"? <EditorInspector tab={tab} settings={settings} change={setSettings} project={project} now={now}/> : (
+          ) : tab !== "subtitles" ? (
+            <EditorInspector
+              tab={tab}
+              settings={settings}
+              change={setSettings}
+              project={project}
+              now={now}
+            />
+          ) : (
             <div className="editor-fields">
               <SubtitleSettings value={settings} onChange={setSettings} />
               {settings.captions && (
@@ -457,7 +529,8 @@ export function VideoEditor({
         </div>
       </div>
       <EditTimeline
-        overlay={settings.overlayText} clip={clip.id}
+        overlay={settings.overlayText}
+        clip={clip.id}
         originalStart={clip.start}
         originalEnd={clip.end}
         project={project.id}

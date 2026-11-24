@@ -180,7 +180,20 @@ export function EditorMonitor({
           ctx.restore();
         }
       }
-      if(settings.overlayText?.trim()){ctx.save();ctx.font="bold "+Math.round(h*.042)+"px "+(settings.font||"Arial");ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineWidth=2;ctx.strokeStyle="#111";ctx.fillStyle="white";const y=h*(settings.overlayY??15)/100;ctx.strokeText(settings.overlayText,w/2,y,w*.9);ctx.fillText(settings.overlayText,w/2,y,w*.9);ctx.restore()}
+      if (settings.overlayText?.trim()) {
+        ctx.save();
+        ctx.font =
+          "bold " + Math.round(h * 0.042) + "px " + (settings.font || "Arial");
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#111";
+        ctx.fillStyle = "white";
+        const y = (h * (settings.overlayY ?? 15)) / 100;
+        ctx.strokeText(settings.overlayText, w / 2, y, w * 0.9);
+        ctx.fillText(settings.overlayText, w / 2, y, w * 0.9);
+        ctx.restore();
+      }
       if (safe) {
         ctx.strokeStyle = "rgba(255,255,255,.75)";
         ctx.setLineDash([4, 5]);

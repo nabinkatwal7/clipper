@@ -87,8 +87,16 @@ export function settings(input: unknown): Settings {
       (!Number.isFinite(value) || value < min || value > max)
     )
       throw Error("Invalid transform setting");
-  if(s.overlayText!==undefined&&(typeof s.overlayText!=="string"||s.overlayText.length>100))throw Error("Overlay text exceeds 100 characters");
-  if(s.overlayY!==undefined&&(!Number.isFinite(s.overlayY)||s.overlayY<8||s.overlayY>90))throw Error("Invalid overlay position");
+  if (
+    s.overlayText !== undefined &&
+    (typeof s.overlayText !== "string" || s.overlayText.length > 100)
+  )
+    throw Error("Overlay text exceeds 100 characters");
+  if (
+    s.overlayY !== undefined &&
+    (!Number.isFinite(s.overlayY) || s.overlayY < 8 || s.overlayY > 90)
+  )
+    throw Error("Invalid overlay position");
   return s;
 }
 export function validateHighlights(

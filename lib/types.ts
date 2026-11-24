@@ -12,7 +12,8 @@ export type Settings = {
   scale?: number;
   rotation?: number;
   opacity?: number;
-  overlayText?:string; overlayY?:number;
+  overlayText?: string;
+  overlayY?: number;
   offsetY?: number;
   duration: "15-30" | "30-60" | "60-90";
   count: number;
