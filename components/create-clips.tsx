@@ -3,7 +3,6 @@ import { useRef, useState, useEffect } from "react";
 import {
   Upload,
   Link2,
-  Film,
   X,
   Sparkles,
   LoaderCircle,

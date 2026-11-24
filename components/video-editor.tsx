@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Play, Check, LoaderCircle, Scissors, Captions } from "lucide-react";
+import { Play, Check, LoaderCircle, Scissors } from "lucide-react";
 import { Modal } from "./modal";
 import { FormatSettings, SubtitleSettings } from "./clip-settings";
 import { Button } from "./ui/button";
@@ -484,7 +484,6 @@ export function VideoEditor({
               settings={settings}
               change={setSettings}
               project={project}
-              now={now}
             />
           ) : (
             <div className="editor-fields">

@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Film, Captions, ZoomIn, ZoomOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
 import { duration } from "./studio-media";
 import type { Segment } from "@/lib/types";

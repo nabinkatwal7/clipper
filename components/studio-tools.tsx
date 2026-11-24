@@ -3,10 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   Download,
-  HardDrive,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
 import { StreamIndex } from "./stream-index";

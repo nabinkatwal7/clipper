@@ -20,12 +20,9 @@ import {
   Sun,
   Moon,
   Plus,
-  Command,
   Workflow,
   SlidersHorizontal,
   Menu,
-  Check,
-  X,
   HardDrive,
   Cpu,
 } from "lucide-react";

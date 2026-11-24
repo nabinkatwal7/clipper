@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Radio, RefreshCw, Plus, Star, Trash2 } from "lucide-react";
+import { RefreshCw, Plus, Star, Trash2 } from "lucide-react";
 import type { Project } from "@/lib/types";
 type Recording = { url: string; title: string };
 type Channel = {

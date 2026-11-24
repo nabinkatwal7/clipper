@@ -26,13 +26,11 @@ export function EditorInspector({
   settings,
   change,
   project,
-  now,
 }: {
   tab: string;
   settings: Settings;
   change: (s: Settings) => void;
   project: Project;
-  now: number;
 }) {
   const adjust = (patch: Partial<Settings>) =>
     change({ ...settings, ...patch });

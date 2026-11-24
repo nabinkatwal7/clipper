@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Play,
   Plus,
-  FolderOpen,
   Download,
   ChevronRight,
   ChevronLeft,
@@ -13,7 +12,6 @@ import {
   Sparkles,
   Check,
   LoaderCircle,
-  Settings2,
   Film,
   Search,
   RefreshCw,
@@ -175,9 +173,6 @@ export default function Workspace() {
   const processing =
     !!project && ["queued", "processing"].includes(project.status);
   const clip = project?.clips.find((c) => c.id === review);
-  const activeCount = projects.filter((p) =>
-    ["queued", "processing"].includes(p.status),
-  ).length;
   const clips = project
     ? [...project.clips].sort((a, b) =>
         sort === "best" ? (b.score ?? -1) - (a.score ?? -1) : a.start - b.start,
