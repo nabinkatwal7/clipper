@@ -1,4 +1,46 @@
-import {SiteHeader,SiteFooter,Workflow,faq} from "@/components/public-site";
-import {copy} from "@/lib/public-copy";
-import {webUser,webLocale} from "@/lib/web-session";
-export default async function Home(){const [user,l]=await Promise.all([webUser(),webLocale()]),t=copy[l],href=user?"/app":"/register";return <main className="public-site"><SiteHeader locale={l} logged={!!user}/><section className="site-hero"><div className="hero-copy"><div className="capability">Local AI <b>·</b> Multilingual <b>·</b> No subscription</div><h1>{t.line}<br/><em>{t.em}</em></h1><p>{t.desc}</p><div className="site-actions"><a className="site-button" href={href}>{user?t.open:t.register}</a><a className="site-secondary" href="/features">{t.features}</a></div></div><figure className="product-shot"><img src="/studio-demo.webp" alt="Clipper Studio video editor with demonstration footage and timeline"/><figcaption>{t.studio} · Product screenshot</figcaption></figure></section><section className="public-section"><h2>{t.nav[1]}</h2><Workflow locale={l}/></section><section className="public-section"><h2>{t.nav[2]}</h2><p lang="ne">एउटै कथा, धेरै भाषाहरू।</p><a href="/languages">{t.nav[2]}</a></section><section className="public-section"><h2>FAQ</h2>{faq.map(([q,a])=><details key={q}><summary>{q}</summary><p>{a}</p></details>)}</section><section className="public-section"><h2>{t.close}</h2><a className="site-button" href={href}>{user?t.open:t.register}</a></section><SiteFooter locale={l}/></main>}
+import { SiteHeader, SiteFooter, Workflow, faq } from "@/components/public-site";
+import { ProductPreview, Showcase, LanguagesBand, PrivacyBand, FeatureGrid, ClosingCta } from "@/components/landing";
+import { copy } from "@/lib/public-copy";
+import { webUser, webLocale } from "@/lib/web-session";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Clipper Studio — local-first video clipping", description: "Find highlights, make vertical clips and caption them in your language. Local AI, no subscription." };
+
+export default async function Home() {
+  const [user, l] = await Promise.all([webUser(), webLocale()]);
+  const t = copy[l];
+  const href = user ? "/app" : "/register";
+  const cta = user ? t.open : t.register;
+  return (
+    <main className="public-site">
+      <SiteHeader locale={l} logged={!!user} />
+      <section className="site-hero">
+        <div className="hero-copy">
+          <div className="capability">Local AI <b>·</b> Multilingual <b>·</b> No subscription</div>
+          <h1>{t.line} <em>{t.em}</em></h1>
+          <p>{t.desc}</p>
+          <div className="site-actions">
+            <a className="site-button big" href={href}>{cta}</a>
+            <a className="site-secondary big" href="/features">{t.features}</a>
+          </div>
+        </div>
+        <ProductPreview />
+      </section>
+      <Showcase />
+      <section className="lp-section">
+        <p className="eyebrow">{t.nav[1]}</p>
+        <h2>Six steps, one workspace</h2>
+        <Workflow locale={l} />
+      </section>
+      <LanguagesBand />
+      <PrivacyBand />
+      <FeatureGrid />
+      <section className="lp-section faq">
+        <h2>Questions</h2>
+        {faq.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}
+      </section>
+      <ClosingCta href={href} label={user ? t.open : "Open Clipper Studio"} title={t.close} />
+      <SiteFooter locale={l} />
+    </main>
+  );
+}

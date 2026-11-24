@@ -63,7 +63,7 @@ Open http://127.0.0.1:4000. Keep Ollama running and keep the virtual environment
 
 Copy `.env.example` to `.env.local` to customize commands, limits, or model settings. `PYTHON_BIN` can point directly to `.venv/Scripts/python.exe` on Windows or `.venv/bin/python` on Unix. `npm run health` loads `.env.local` and checks the configured tools. Missing Ollama does not prevent manual clipping or fixed-duration splitting. Turn off captions to skip Whisper too.
 
-For production locally: `npm run build` then `npm start`. This requires a persistent Node server; do not deploy to serverless platforms. Development hot reloads and server restarts can interrupt work. Projects are preserved, and interrupted projects can be retried. Keep this app bound to localhost; it has no authentication and is not intended to be exposed to a LAN or the internet.
+For production locally: `npm run build` then `npm start`. This requires a persistent Node server; do not deploy to serverless platforms. Development hot reloads and server restarts can interrupt work. Projects are preserved, and interrupted projects can be retried. The app now has first-party accounts: open `/register` on first run and paste the token from `storage/auth/owner-setup-token.txt` to create the owner. Registration is closed afterwards by default. `/app` and `/api/*` require a session, and each user has an isolated folder under `storage/workspaces/`. Keep the app bound to localhost; the auth routes only accept localhost origins and it is not hardened for LAN or internet exposure.
 
 ## Use
 
