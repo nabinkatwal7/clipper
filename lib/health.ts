@@ -4,11 +4,7 @@ export async function health() {
     ["FFmpeg", bin.ffmpeg, ["-version"]],
     ["FFprobe", bin.ffprobe, ["-version"]],
     ["yt-dlp", bin.ytdlp, ["--version"]],
-    [
-      "Faster Whisper",
-      bin.python,
-      ["-c", "import faster_whisper; print(faster_whisper.__version__)"],
-    ],
+
   ];
   const checks = await Promise.all(
     commands.map(async ([name, command, args]) => {

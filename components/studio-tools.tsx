@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Download } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
@@ -103,7 +104,7 @@ export function SourceTool({
   useEffect(() => {
     try {
       setDecisions(
-        JSON.parse(localStorage.getItem("highlight-" + project.id) || "{}"),
+        JSON.parse(studioStorage.getItem("highlight-" + project.id) || "{}"),
       );
     } catch {}
   }, [project.id]);
@@ -118,7 +119,7 @@ export function SourceTool({
     if (!h) return;
     const next = { ...decisions, [h.start]: status };
     setDecisions(next);
-    localStorage.setItem("highlight-" + project.id, JSON.stringify(next));
+    studioStorage.setItem("highlight-" + project.id, JSON.stringify(next));
   }
   const transcriptList = useRef<HTMLDivElement>(null);
   const firstRow = Math.max(0, Math.floor(scroll / 74) - 3);

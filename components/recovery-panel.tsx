@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { browserKeys, browserSettings } from "@/lib/browser-settings";
 import { useEffect, useState } from "react";
 import type { Project } from "@/lib/types";
@@ -44,13 +45,13 @@ export function RecoveryPanel({ projects }: { projects: Project[] }) {
           browser:
             action === "create" && !project
               ? Object.fromEntries(
-                  Object.keys(localStorage)
+                  studioStorage.keys()
                     .filter(
                       (k) =>
                         browserKeys.some((v) => v === k) ||
                         /^highlight-[a-f0-9-]{36}$/.test(k),
                     )
-                    .map((k) => [k, localStorage.getItem(k)]),
+                    .map((k) => [k, studioStorage.getItem(k)]),
                 )
               : undefined,
         }),
@@ -128,7 +129,7 @@ export function RecoveryPanel({ projects }: { projects: Project[] }) {
               for (const [k, v] of Object.entries(
                 browserSettings(restoreSettings),
               ))
-                localStorage.setItem(k, v);
+                studioStorage.setItem(k, v);
               pendingRestore(null);
               msg("Preferences restored. Reload to apply them.");
             } catch (e) {

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { file, root } from "./store";
+import { file, workspaceRoot } from "./store";
 import type { Clip, Project } from "./types";
 export type Checkpoint = {
   version: 1;
@@ -47,13 +47,13 @@ export async function checkpoint(p: Project, c: Clip, name: string) {
   return value;
 }
 export async function checkpoints(p: Project, c: Clip) {
-  const keys = (await fs.readdir(path.join(root, "temp"))).filter(
+  const keys = (await fs.readdir(path.join(workspaceRoot(), "temp"))).filter(
     (n) => n.startsWith(p.id + ".") && n.endsWith(".checkpoint.json"),
   );
   const entries: Checkpoint[] = await Promise.all(
     keys.map((n) =>
       fs
-        .readFile(path.join(root, "temp", n), "utf8")
+        .readFile(path.join(workspaceRoot(), "temp", n), "utf8")
         .then((t) => JSON.parse(t)),
     ),
   );

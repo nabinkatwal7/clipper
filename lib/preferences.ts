@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { root } from "./store";
+import { workspaceRoot } from "./store";
 const buckets = [
   "collections",
   "workflows",
@@ -12,7 +12,7 @@ const buckets = [
 ] as const;
 function target(bucket: string) {
   if (!buckets.some((b) => b === bucket)) throw Error("Unknown settings group");
-  return path.join(root, bucket + ".json");
+  return path.join(workspaceRoot(), bucket + ".json");
 }
 export async function preferences(
   bucket: string,

@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useEffect, useState } from "react";
 import { RefreshCw, Plus, Star, Trash2 } from "lucide-react";
 import type { Project } from "@/lib/types";
@@ -23,13 +24,13 @@ type Channel = {
 const key = "studio-channels";
 function read(): Channel[] {
   try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
+    return JSON.parse(studioStorage.getItem(key) || "[]");
   } catch {
     return [];
   }
 }
 function write(rows: Channel[]) {
-  localStorage.setItem(key, JSON.stringify(rows));
+  studioStorage.setItem(key, JSON.stringify(rows));
   window.dispatchEvent(new Event(key));
 }
 function update(id: string, patch: Partial<Channel>) {

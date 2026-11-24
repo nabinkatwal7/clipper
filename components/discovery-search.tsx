@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
 import type { SearchOptions, SearchHit } from "@/lib/content-search";
@@ -27,11 +28,11 @@ export function DiscoverySearch({
       .then((r) => r.json())
       .then(saveCollections)
       .catch(() => {});
-    const preferred = localStorage.getItem("studio-embedding-model");
+    const preferred = studioStorage.getItem("studio-embedding-model");
     if (preferred) set((old) => ({ ...old, model: preferred }));
     try {
       setRecent(
-        JSON.parse(localStorage.getItem("studio-search-history") || "[]"),
+        JSON.parse(studioStorage.getItem("studio-search-history") || "[]"),
       );
     } catch {}
     fetch("/api/diagnostics")
@@ -72,7 +73,7 @@ export function DiscoverySearch({
           ...recent.filter((q) => q !== rule.query),
         ].slice(0, 20);
         setRecent(history);
-        localStorage.setItem("studio-search-history", JSON.stringify(history));
+        studioStorage.setItem("studio-search-history", JSON.stringify(history));
       }
       items(d.hits);
       count(d.total);

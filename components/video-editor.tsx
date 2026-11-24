@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Play, Check, LoaderCircle, Scissors } from "lucide-react";
 import { Modal } from "./modal";
@@ -66,7 +67,7 @@ export function VideoEditor({
     [inspector, setInspector] = useState(true),
     [panelWidth, setPanelWidth] = useState(340);
   useEffect(() => {
-    const n = Number(localStorage.getItem("studio-inspector"));
+    const n = Number(studioStorage.getItem("studio-inspector"));
     if (n >= 250 && n <= 480) setPanelWidth(n);
   }, []);
   const [fps, setFps] = useState<number | null>(null);
@@ -152,7 +153,7 @@ export function VideoEditor({
   function resizeInspector(width: number) {
     const next = Math.min(480, Math.max(250, Math.round(width)));
     setPanelWidth(next);
-    localStorage.setItem("studio-inspector", String(next));
+    studioStorage.setItem("studio-inspector", String(next));
   }
   function seek(t: number) {
     if (video.current) {

@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useDeferredValue, useEffect, useState } from "react";
 import {
   Ellipsis,
@@ -81,9 +82,9 @@ export function MediaLibrary({
   useEffect(() => {
     try {
       setFavorites(
-        JSON.parse(localStorage.getItem("studio-favorites") || "[]"),
+        JSON.parse(studioStorage.getItem("studio-favorites") || "[]"),
       );
-      setList(localStorage.getItem("studio-library") === "list");
+      setList(studioStorage.getItem("studio-library") === "list");
     } catch {}
   }, []);
   const [selected, setSelected] = useState<string[]>([]),
@@ -94,7 +95,7 @@ export function MediaLibrary({
     [message, setMessage] = useState("");
   useEffect(() => {
     try {
-      setPub(JSON.parse(localStorage.getItem("clipper-publishing") || "{}"));
+      setPub(JSON.parse(studioStorage.getItem("clipper-publishing") || "{}"));
     } catch {}
   }, []);
   const [stats, setStats] = useState<
@@ -117,7 +118,7 @@ export function MediaLibrary({
     for (const { c } of items)
       if (selected.includes(c.id)) next[c.editorialId || c.id] = value;
     setPub(next);
-    localStorage.setItem("clipper-publishing", JSON.stringify(next));
+    studioStorage.setItem("clipper-publishing", JSON.stringify(next));
     setSelected([]);
   }
   async function remove() {
@@ -150,7 +151,7 @@ export function MediaLibrary({
       ? favorites.filter((x) => x !== id)
       : [...favorites, id];
     setFavorites(next);
-    localStorage.setItem("studio-favorites", JSON.stringify(next));
+    studioStorage.setItem("studio-favorites", JSON.stringify(next));
   }
   const search = useDeferredValue(q.trim().toLowerCase());
   let items = projects
@@ -277,7 +278,7 @@ export function MediaLibrary({
             aria-label={list ? "Grid view" : "List view"}
             onClick={() => {
               setList(!list);
-              localStorage.setItem("studio-library", list ? "grid" : "list");
+              studioStorage.setItem("studio-library", list ? "grid" : "list");
             }}
           >
             {list ? <LayoutGrid size={16} /> : <Rows3 size={16} />}
@@ -452,7 +453,7 @@ export function Overview({
   useEffect(() => {
     try {
       setFavorites(
-        JSON.parse(localStorage.getItem("studio-channels") || "[]").filter(
+        JSON.parse(studioStorage.getItem("studio-channels") || "[]").filter(
           (c: { favorite: boolean }) => c.favorite,
         ),
       );

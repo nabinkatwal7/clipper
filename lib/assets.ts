@@ -4,7 +4,7 @@ import { pipeline } from "node:stream/promises";
 import { Readable, Transform } from "node:stream";
 import path from "node:path";
 import { bin, run } from "./process";
-import { file, root } from "./store";
+import { file, workspaceRoot } from "./store";
 export type Asset = {
   id: string;
   name: string;
@@ -22,7 +22,7 @@ export async function asset(id: string): Promise<Asset> {
   return JSON.parse(await fs.readFile(file("assets", id, "json"), "utf8"));
 }
 export async function assetList() {
-  const names = await fs.readdir(path.join(root, "assets"));
+  const names = await fs.readdir(path.join(workspaceRoot(), "assets"));
   return Promise.all(
     names.filter((n) => n.endsWith(".json")).map((n) => asset(n.slice(0, -5))),
   );

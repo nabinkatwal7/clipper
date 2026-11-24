@@ -1,12 +1,12 @@
 import { availableParallelism, freemem, totalmem } from "node:os";
 import { statfs } from "node:fs/promises";
 import { bin, run } from "./process";
-import { root, list } from "./store";
+import { workspaceRoot, list } from "./store";
 export async function diagnostics(signal: AbortSignal) {
   const [encoders, filters, disk, projects, tags] = await Promise.all([
     run(bin.ffmpeg, ["-hide_banner", "-encoders"], signal).catch(() => ""),
     run(bin.ffmpeg, ["-hide_banner", "-filters"], signal).catch(() => ""),
-    statfs(root).catch(() => null),
+    statfs(workspaceRoot()).catch(() => null),
     list(),
     fetch((process.env.OLLAMA_URL || "http://127.0.0.1:11434") + "/api/tags", {
       signal: AbortSignal.any([signal, AbortSignal.timeout(4000)]),

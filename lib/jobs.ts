@@ -1,3 +1,4 @@
+import {workspaceScope} from "./identity";
 import { evidence, windowEvidence } from "./activity-evidence";
 import { ledger } from "./production-store";
 import { compose } from "./composite-render";
@@ -34,6 +35,7 @@ import {
 import { importSourceSubtitles } from "./source-subtitles";
 import { readOllamaResponse } from "./ollama";
 type Task = {
+ scope?:string;
   id: string;
   controller: AbortController;
   work: (signal: AbortSignal) => Promise<void>;
@@ -57,7 +59,7 @@ export function cancel(id: string) {
 }
 export function enqueue(id: string, work: Task["work"]) {
   if (busy(id)) throw Error("Project already has a running job");
-  jobs.queue.push({ id, work, controller: new AbortController() });
+  const scope=workspaceScope.getStore();jobs.queue.push({id,work:signal=>scope?workspaceScope.run(scope,()=>work(signal)):work(signal),controller:new AbortController(),scope});
   void drain();
 }
 async function drain() {
@@ -69,7 +71,7 @@ async function drain() {
     await t.work(t.controller.signal);
   } catch (e) {
     try {
-      const p = await read(t.id);
+      const p = await (t.scope?workspaceScope.run(t.scope,()=>read(t.id)):read(t.id));
       p.status = t.controller.signal.aborted ? "cancelled" : "error";
       p.stage = p.status;
       p.error = t.controller.signal.aborted
@@ -80,7 +82,7 @@ async function drain() {
       p.detail = t.controller.signal.aborted
         ? "Processing cancelled. Existing files are available to retry."
         : "Processing stopped. Resolve the error and try again.";
-      await save(p);
+      await (t.scope?workspaceScope.run(t.scope,()=>save(p)):save(p));
     } catch {}
   } finally {
     jobs.active = undefined;
@@ -358,87 +360,7 @@ export async function transcribe(p: Project, signal: AbortSignal) {
     await save(p);
     return;
   } catch {}
-  const cachedAudio = await fs
-    .stat(file("audio", p.id, "wav"))
-    .catch(() => null);
-  if (!cachedAudio || cachedAudio.size < p.duration * 32000 - 32000) {
-    await stage(p, "extracting", "Extracting mono 16 kHz audio with FFmpeg…");
-    const extraction = reporter(p, "extracting");
-    await run(
-      bin.ffmpeg,
-      [
-        "-y",
-        "-protocol_whitelist",
-        "file,pipe",
-        "-i",
-        file("uploads", p.id, "mp4"),
-        "-vn",
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
-        "-c:a",
-        "pcm_s16le",
-        "-progress",
-        "pipe:1",
-        "-nostats",
-        file("audio", p.id, "wav"),
-      ],
-      signal,
-      (line) => {
-        const seconds = ffmpegSeconds(line);
-        if (seconds !== undefined)
-          extraction.update(
-            seconds,
-            p.duration,
-            "seconds",
-            `Extracting audio · ${Math.round(seconds)}s of ${Math.round(p.duration)}s`,
-          );
-      },
-    );
-    await extraction.flush();
-  } else {
-    beginProgress(
-      p,
-      "extracting",
-      "Reusing extracted audio",
-      p.duration,
-      "seconds",
-    );
-    completeProgress(p, "extracting");
-  }
-  await stage(
-    p,
-    "transcribing",
-    "Transcribing locally with Faster Whisper. First run may download the model.",
-  );
-  const transcription = reporter(p, "transcribing");
-  await run(
-    bin.python,
-    [
-      path.join(process.cwd(), "scripts", "transcribe.py"),
-      file("audio", p.id, "wav"),
-      file("transcripts", p.id, "json"),
-    ],
-    signal,
-    (line) => {
-      try {
-        const data = JSON.parse(line);
-        if (typeof data.seconds === "number") {
-          const detail =
-            data.phase === "loading"
-              ? "Loading the local speech model…"
-              : data.phase === "decoding"
-                ? `Transcribing ${Math.round(data.windowStart)}–${Math.round(data.windowEnd)}s · ${Math.round(data.seconds)}s of ${Math.round(p.duration)}s processed`
-                : `Transcribed ${Math.round(data.seconds)}s of ${Math.round(p.duration)}s · checkpoint saved`;
-          transcription.update(data.seconds, p.duration, "seconds", detail);
-        }
-      } catch {}
-    },
-  );
-  await transcription.flush();
-  completeProgress(p, "transcribing");
-  await save(p);
+  throw Error("No source transcript is available. Import a timed subtitle file in Transcript explorer, or use manual or fixed-duration clipping with captions disabled.");
 }
 export async function analyze(p: Project, signal: AbortSignal) {
   await stage(

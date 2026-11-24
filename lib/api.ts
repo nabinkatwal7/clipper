@@ -26,7 +26,7 @@ import { promises as fs, createWriteStream, createReadStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { ZipArchive } from "archiver";
-import { init, file, read, save, list, transcript, root, dirs } from "./store";
+import { init, file, read, save, list, transcript, workspaceRoot, dirs } from "./store";
 import { settings, validId } from "./validation";
 import { validateUrl } from "./network";
 import {
@@ -636,12 +636,12 @@ export async function handle(
       const usage = await Promise.all(
         dirs.map(async (name) => {
           const entries = (
-            await fs.readdir(root + "/" + name, { withFileTypes: true })
+            await fs.readdir(workspaceRoot() + "/" + name, { withFileTypes: true })
           ).filter((entry) => entry.isFile());
           const sizes = await Promise.all(
             entries.map((entry) =>
               fs
-                .stat(root + "/" + name + "/" + entry.name)
+                .stat(workspaceRoot() + "/" + name + "/" + entry.name)
                 .then((stat) => stat.size)
                 .catch(() => 0),
             ),
@@ -653,7 +653,7 @@ export async function handle(
           };
         }),
       );
-      const disk = await fs.statfs(root).catch(() => null);
+      const disk = await fs.statfs(workspaceRoot()).catch(() => null);
       return NextResponse.json(usage, {
         headers: disk
           ? { "X-Storage-Available": String(disk.bavail * disk.bsize) }

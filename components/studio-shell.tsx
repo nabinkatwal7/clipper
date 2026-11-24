@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   PanelsTopLeft,
@@ -105,16 +106,16 @@ export function StudioShell({
   const [shortcut,setShortcut]=useState("k");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    const restore=()=>{loadWorkspaceStyle();setShortcut(localStorage.getItem("studio-command-key")||"k");setCollapsed(localStorage.getItem("studio-sidebar")==="compact")};
+    const restore=()=>{loadWorkspaceStyle();setShortcut(studioStorage.getItem("studio-command-key")||"k");setCollapsed(studioStorage.getItem("studio-sidebar")==="compact")};
     restore();window.addEventListener("studio-arrangement",restore);
-    setLight(localStorage.getItem("studio-theme") === "light");return()=>window.removeEventListener("studio-arrangement",restore);
+    setLight(studioStorage.getItem("studio-theme") === "light");return()=>window.removeEventListener("studio-arrangement",restore);
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
   }, [light]);
   function theme() {
     setLight(!light);
-    localStorage.setItem("studio-theme", light ? "dark" : "light");
+    studioStorage.setItem("studio-theme", light ? "dark" : "light");
   }
   function palette() {
     setQuery("");
@@ -125,7 +126,7 @@ export function StudioShell({
     function key(e: KeyboardEvent) {
       if (
         (e.metaKey || e.ctrlKey) &&
-        e.key.toLowerCase() === (localStorage.getItem("studio-command-key")||"k") &&
+        e.key.toLowerCase() === (studioStorage.getItem("studio-command-key")||"k") &&
         !document.querySelector("[aria-modal=true]")
       ) {
         e.preventDefault();
@@ -148,7 +149,7 @@ export function StudioShell({
     if (dialog === "search")
       try {
         setChannels(
-          JSON.parse(localStorage.getItem("studio-channels") || "[]"),
+          JSON.parse(studioStorage.getItem("studio-channels") || "[]"),
         );
       } catch {}
   }, [dialog]);
@@ -226,7 +227,7 @@ export function StudioShell({
             className="desktop-collapse"
             onClick={() => {
               setCollapsed(!collapsed);
-              localStorage.setItem(
+              studioStorage.setItem(
                 "studio-sidebar",
                 collapsed ? "full" : "compact",
               );

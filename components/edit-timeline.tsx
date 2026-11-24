@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useEffect, useState } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
@@ -41,7 +42,7 @@ export function EditTimeline({
   const markerKey = "clipper-markers-" + project;
   useEffect(() => {
     try {
-      setMarkers(JSON.parse(localStorage.getItem(markerKey) || "[]"));
+      setMarkers(JSON.parse(studioStorage.getItem(markerKey) || "[]"));
     } catch {}
   }, [markerKey]);
   function mark() {
@@ -50,7 +51,7 @@ export function EditTimeline({
       ? markers.filter((m) => m !== at)
       : [...markers, at].sort((a, b) => a - b);
     setMarkers(next);
-    localStorage.setItem(markerKey, JSON.stringify(next));
+    studioStorage.setItem(markerKey, JSON.stringify(next));
   }
   function snapped(at: number) {
     if (!snap) return at;

@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useRef, useState, useEffect } from "react";
 import {
   Upload,
@@ -37,7 +38,7 @@ export function CreateClips({
           ...defaults,
           model:
             (typeof window !== "undefined" &&
-              localStorage.getItem("studio-text-model")) ||
+              studioStorage.getItem("studio-text-model")) ||
             defaults.model,
         },
     ),

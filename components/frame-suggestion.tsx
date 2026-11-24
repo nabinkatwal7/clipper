@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useEffect, useState } from "react";
 export function FrameSuggestion({
   project,
@@ -30,8 +31,8 @@ export function FrameSuggestion({
           .map((m: { name: string }) => m.name);
         list(names);
         select(
-          names.includes(localStorage.getItem("studio-vision-model"))
-            ? localStorage.getItem("studio-vision-model") || ""
+          names.includes(studioStorage.getItem("studio-vision-model"))
+            ? studioStorage.getItem("studio-vision-model") || ""
             : names[0] || "",
         );
       })

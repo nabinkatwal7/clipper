@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import {WorkspacePreferences} from "./workspace-preferences";
 import { useEffect, useState } from "react";
 import type { diagnostics } from "@/lib/diagnostics";
@@ -17,9 +18,9 @@ export function SetupOptions() {
       .then(async (r) => {
         if (!r.ok) throw Error("Diagnostics unavailable");
         setInfo(await r.json());
-        select(localStorage.getItem("studio-text-model") || "");
-        setVision(localStorage.getItem("studio-vision-model") || "");
-        choose(localStorage.getItem("studio-embedding-model") || "");
+        select(studioStorage.getItem("studio-text-model") || "");
+        setVision(studioStorage.getItem("studio-vision-model") || "");
+        choose(studioStorage.getItem("studio-embedding-model") || "");
       })
       .catch((e) => {
         if (!ctrl.signal.aborted) note(String(e));
@@ -63,7 +64,7 @@ export function SetupOptions() {
               value={model}
               onChange={(e) => {
                 select(e.target.value);
-                localStorage.setItem("studio-text-model", e.target.value);
+                studioStorage.setItem("studio-text-model", e.target.value);
               }}
             >
               <option value="">Application default</option>
@@ -82,7 +83,7 @@ export function SetupOptions() {
               value={vision}
               onChange={(e) => {
                 setVision(e.target.value);
-                localStorage.setItem("studio-vision-model", e.target.value);
+                studioStorage.setItem("studio-vision-model", e.target.value);
               }}
             >
               <option value="">Skip vision setup</option>
@@ -101,7 +102,7 @@ export function SetupOptions() {
               value={embedding}
               onChange={(e) => {
                 choose(e.target.value);
-                localStorage.setItem("studio-embedding-model", e.target.value);
+                studioStorage.setItem("studio-embedding-model", e.target.value);
               }}
             >
               <option value="">Skip semantic search setup</option>

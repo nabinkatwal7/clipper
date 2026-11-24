@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { ClipPlan } from "./clip-plan";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -23,7 +24,7 @@ export function Calendar({
     [view, setView] = useState("Month");
   useEffect(() => {
     try {
-      setPlan(JSON.parse(localStorage.getItem("studio-calendar") || "{}"));
+      setPlan(JSON.parse(studioStorage.getItem("studio-calendar") || "{}"));
     } catch {}
   }, []);
   const [notes, setNotes] = useState<Record<string, string>>({}),
@@ -33,17 +34,17 @@ export function Calendar({
   useEffect(() => {
     try {
       setNotes(
-        JSON.parse(localStorage.getItem("studio-publishing-notes") || "{}"),
+        JSON.parse(studioStorage.getItem("studio-publishing-notes") || "{}"),
       );
       setBrand(
-        JSON.parse(localStorage.getItem("studio-planned-brands") || "{}"),
+        JSON.parse(studioStorage.getItem("studio-planned-brands") || "{}"),
       );
       setBrands(
-        JSON.parse(localStorage.getItem("clipper-brands") || "[]").map(
+        JSON.parse(studioStorage.getItem("clipper-brands") || "[]").map(
           (p: { name: string }) => p.name,
         ),
       );
-      setWeekday(Number(localStorage.getItem("studio-weekday") ?? 1));
+      setWeekday(Number(studioStorage.getItem("studio-weekday") ?? 1));
     } catch {}
   }, []);
   const [platform, setPlatform] = useState("All platforms"),
@@ -52,9 +53,9 @@ export function Calendar({
     [publishing, setPublishing] = useState<Record<string, string>>({});
   useEffect(() => {
     try {
-      setTargets(JSON.parse(localStorage.getItem("studio-platforms") || "{}"));
+      setTargets(JSON.parse(studioStorage.getItem("studio-platforms") || "{}"));
       setPublishing(
-        JSON.parse(localStorage.getItem("clipper-publishing") || "{}"),
+        JSON.parse(studioStorage.getItem("clipper-publishing") || "{}"),
       );
     } catch {}
   }, []);
@@ -70,13 +71,13 @@ export function Calendar({
     if (!clips.some(({ c }) => (c.editorialId || c.id) === id)) return;
     const next = { ...plan, [id]: day };
     setPlan(next);
-    localStorage.setItem("studio-calendar", JSON.stringify(next));
+    studioStorage.setItem("studio-calendar", JSON.stringify(next));
   }
   function mark(id: string, status: string) {
     if (!clips.some(({ c }) => (c.editorialId || c.id) === id)) return;
     const next = { ...publishing, [id]: status };
     setPublishing(next);
-    localStorage.setItem("clipper-publishing", JSON.stringify(next));
+    studioStorage.setItem("clipper-publishing", JSON.stringify(next));
   }
   function nextSlot(id: string) {
     const used = new Set(Object.values(plan));
@@ -264,7 +265,7 @@ export function Calendar({
               used.add(dateKey(day));
             }
             setPlan(next);
-            localStorage.setItem("studio-calendar", JSON.stringify(next));
+            studioStorage.setItem("studio-calendar", JSON.stringify(next));
           }}
         />
         <label className="field">
@@ -273,7 +274,7 @@ export function Calendar({
             value={weekday}
             onChange={(e) => {
               setWeekday(+e.target.value);
-              localStorage.setItem("studio-weekday", e.target.value);
+              studioStorage.setItem("studio-weekday", e.target.value);
             }}
           >
             {[
@@ -379,7 +380,7 @@ export function Calendar({
                         [c.editorialId || c.id]: e.target.value,
                       };
                       setBrand(next);
-                      localStorage.setItem(
+                      studioStorage.setItem(
                         "studio-planned-brands",
                         JSON.stringify(next),
                       );
@@ -402,7 +403,7 @@ export function Calendar({
                       [c.editorialId || c.id]: e.target.value,
                     };
                     setNotes(next);
-                    localStorage.setItem(
+                    studioStorage.setItem(
                       "studio-publishing-notes",
                       JSON.stringify(next),
                     );
@@ -425,7 +426,7 @@ export function Calendar({
                   [c.editorialId || c.id]: e.target.value,
                 };
                 setTargets(next);
-                localStorage.setItem("studio-platforms", JSON.stringify(next));
+                studioStorage.setItem("studio-platforms", JSON.stringify(next));
               }}
             >
               <option value="">Choose platform</option>

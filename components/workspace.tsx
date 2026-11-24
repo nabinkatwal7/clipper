@@ -1,4 +1,5 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useCallback, useEffect, useState } from "react";
 import {
   Play,
@@ -86,9 +87,9 @@ export default function Workspace() {
       loaded &&
       !projects.length &&
       !error &&
-      !localStorage.getItem("studio-first-run-seen")
+      !studioStorage.getItem("studio-first-run-seen")
     ) {
-      localStorage.setItem("studio-first-run-seen", "1");
+      studioStorage.setItem("studio-first-run-seen", "1");
       setHealth(true);
     }
   }, [loaded, projects.length, error]);
@@ -128,7 +129,7 @@ export default function Workspace() {
   }, []);
   useEffect(() => {
     try {
-      setSelected(localStorage.getItem("clipper-project") || "");
+      setSelected(studioStorage.getItem("clipper-project") || "");
     } catch {}
     const route = () => {
       const hash = location.hash.slice(1);
@@ -199,7 +200,7 @@ export default function Workspace() {
   function select(id: string) {
     setSelected(id);
     try {
-      localStorage.setItem("clipper-project", id);
+      studioStorage.setItem("clipper-project", id);
     } catch {}
     setReview(null);
     setEditing(null);

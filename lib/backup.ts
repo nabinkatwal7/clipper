@@ -2,7 +2,7 @@ import { browserSettings } from "./browser-settings";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, promises as fs } from "node:fs";
 import path from "node:path";
-import { dirs, list, root } from "./store";
+import { dirs, list, workspaceRoot } from "./store";
 import { validId } from "./validation";
 import { busy } from "./jobs";
 type Entry = { path: string; bytes: number; sha256: string };
@@ -15,7 +15,7 @@ type Manifest = {
   files: Entry[];
   requirements: string[];
 };
-const backups = () => path.join(root, "backups");
+const backups = () => path.join(workspaceRoot(), "backups");
 async function hash(f: string) {
   const h = createHash("sha256");
   for await (const chunk of createReadStream(f)) h.update(chunk);
@@ -115,7 +115,7 @@ export async function snapshot(
   const files: string[] = [];
   for (const dir of dirs) {
     if (dir === "audio") continue;
-    for (const e of await fs.readdir(path.join(root, dir), {
+    for (const e of await fs.readdir(path.join(workspaceRoot(), dir), {
       withFileTypes: true,
     })) {
       const rel = dir + "/" + e.name,
@@ -146,7 +146,7 @@ export async function snapshot(
   }
   if (!project)
     for (const f of settingsFiles) {
-      if (await fs.stat(path.join(root, f)).catch(() => null)) files.push(f);
+      if (await fs.stat(path.join(workspaceRoot(), f)).catch(() => null)) files.push(f);
     }
   const id = randomUUID(),
     dest = path.join(backups(), id),
@@ -178,7 +178,7 @@ export async function snapshot(
   try {
     for (const rel of files) {
       signal.throwIfAborted();
-      const src = await plain(root, rel),
+      const src = await plain(workspaceRoot(), rel),
         dst = path.join(stage, rel);
       await fs.mkdir(path.dirname(dst), { recursive: true });
       await fs.copyFile(src, dst);
@@ -216,7 +216,7 @@ export async function inspectBackup(
 ) {
   const m = await manifest(id);
   const src = path.join(backups(), id);
-  const dest = path.join(root, "restored", randomUUID());
+  const dest = path.join(workspaceRoot(), "restored", randomUUID());
   const stage = dest + ".partial";
   try {
     for (const e of m.files) {

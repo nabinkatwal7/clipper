@@ -1,11 +1,12 @@
 "use client";
+import {studioStorage} from "@/lib/client-storage";
 import { useState, useEffect } from "react";
 import { defaults, type Settings } from "@/lib/types";
 import { SubtitleSettings } from "./clip-settings";
 type Profile = { name: string; style: Partial<Settings> };
 function profiles(): Profile[] {
   try {
-    return JSON.parse(localStorage.getItem("clipper-brands") || "[]");
+    return JSON.parse(studioStorage.getItem("clipper-brands") || "[]");
   } catch {
     return [];
   }
@@ -72,7 +73,7 @@ export function Branding() {
         },
       },
     ];
-    localStorage.setItem("clipper-brands", JSON.stringify(next));
+    studioStorage.setItem("clipper-brands", JSON.stringify(next));
     setData(next);
     setMessage("Profile saved. It is available in new project options.");
   }

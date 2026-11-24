@@ -3,9 +3,9 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { validId } from "./validation";
 import type { Project, Segment } from "./types";
-export const root = path.resolve(
-  process.env.CLIPPER_STORAGE_DIR || path.join(process.cwd(), "storage"),
-);
+import {workspaceRoot,storageBase} from "./identity";
+export {workspaceRoot};
+export const root=storageBase;
 export const dirs = [
   "uploads",
   "assets",
@@ -17,13 +17,13 @@ export const dirs = [
 ] as const;
 export async function init() {
   await Promise.all(
-    dirs.map((d) => fs.mkdir(path.join(root, d), { recursive: true })),
+    dirs.map((d) => fs.mkdir(path.join(workspaceRoot(), d), { recursive: true })),
   );
 }
 export function file(dir: (typeof dirs)[number], id: string, ext: string) {
   validId(id);
   if (!/^[a-z0-9.]+$/.test(ext)) throw Error("Invalid extension");
-  return path.join(root, dir, `${id}.${ext}`);
+  return path.join(workspaceRoot(), dir, `${id}.${ext}`);
 }
 const storeState = globalThis as unknown as {
   clipWrites?: Map<string, Promise<void>>;
@@ -73,7 +73,7 @@ export async function read(id: string): Promise<Project> {
 }
 export async function list() {
   await init();
-  const names = await fs.readdir(path.join(root, "projects"));
+  const names = await fs.readdir(path.join(workspaceRoot(), "projects"));
   const values = await Promise.all(
     names
       .filter((n) => /^[a-f0-9-]{36}\.json$/.test(n))
