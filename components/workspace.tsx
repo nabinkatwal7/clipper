@@ -27,6 +27,9 @@ import { PostCaption } from "./post-caption";
 import { JobProgress } from "./job-progress";
 import type { Project, Clip } from "@/lib/types";
 import { Channels, useChannelMonitor } from "./channels";
+import {RecoveryPanel} from "./recovery-panel";
+import {WorkflowPanel} from "./workflow-panel";
+import {DiscoverySearch} from "./discovery-search";
 import {CompilationBuilder} from "./compilation-builder";
 import {AssetLibrary} from "./asset-library";
 import {ProductionDesk} from "./production-desk";
@@ -427,6 +430,9 @@ export default function Workspace() {
               />
             )}
             {page === "Branding" && <Branding />}
+            {page==="Backup & recovery"&&<RecoveryPanel projects={projects}/>}
+            {page==="Workflow builder"&&<WorkflowPanel projects={projects}/>}
+            {page==="Discover"&&<DiscoverySearch projects={projects} open={openClip}/>}
             {page==="Compilations"&&<CompilationBuilder projects={projects} open={async id=>{await refresh();openProject(id)}}/>}
             {page==="Assets"&&<AssetLibrary projects={projects}/>}
             {page==="Production desk"&&<ProductionDesk projects={projects}/>}
@@ -909,7 +915,7 @@ export default function Workspace() {
               <p className="hint">Checking dependencies…</p>
             )}
             <p className="hint">
-              Installation and model settings are documented in README.md.
+              Installation and model settings are documented in README.md. <a className="inline-link" href="/api/diagnostics?export=1">Export sanitized diagnostics</a>
             </p>
           </div>
           <footer className="modal-footer">

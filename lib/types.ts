@@ -74,7 +74,7 @@ export type Project = {
   id: string;
   title: string;
   duration: number;
-  hasAudio?:boolean; width: number;
+  fingerprint?:string; hasAudio?:boolean; width: number;
   height: number;
   thumbnail?: string;
   source?: string;

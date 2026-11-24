@@ -1,3 +1,9 @@
+import {backupList,snapshot,inspectBackup} from "./backup";
+import {compileWorkflow} from "./workflow";
+import {diagnostics} from "./diagnostics";
+import {localize} from "./localization";
+import {searchContent} from "./content-search";
+import {preferences,preference} from "./preferences";
 import {compilation} from "./compilation";
 import {checkpoint,checkpoints} from "./checkpoints";
 import {assetList,importAsset,editAsset,asset} from "./assets";
@@ -6,7 +12,7 @@ import {ledger,updateLedger} from "./production-store";
 import {report,reportText,escapeHtml} from "./production";
 import {advise} from "./director";
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
+import { randomUUID,createHash } from "node:crypto";
 import { promises as fs, createWriteStream, createReadStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -53,6 +59,13 @@ export async function handle(
     guard(req);
     await init();
     const query = req.nextUrl.searchParams;
+    if(action==="backups"){if(req.method==="GET")return NextResponse.json(await backupList());if(req.method==="POST"){const b=await req.json();if(b.action==="create")return NextResponse.json(await snapshot(b.project,!!b.media,req.signal));if(["restore","validate"].includes(b.action))return NextResponse.json(await inspectBackup(b.id,b.action==="restore",req.signal));throw Error("Invalid backup operation")}}
+    if(action==="diagnostics"&&req.method==="GET")return NextResponse.json(await diagnostics(req.signal),{headers:query.has("export")?{"Content-Disposition":'attachment; filename="clipper-diagnostics.json"'}:{}});
+    if(action==="workflow"&&req.method==="POST"){const body=await req.json();const s=compileWorkflow(body.workflow);if(!body.project)return NextResponse.json({valid:true});const p=await read(body.project);if(busy(p.id)||!p.duration)throw Error("Project busy or source not yet imported");enqueue(p.id,async signal=>{p.settings=s;p.progress={};await generate(p,signal)});return NextResponse.json({queued:true},{status:202})}
+    if(req.method==="POST"&&action==="localize"){const b=await req.json(),p=await read(b.project),c=p.clips.find(c=>c.id===b.clip);if(!c)throw Error("Clip not found");return NextResponse.json(await localize(p.id,c,b.language,req.signal))}
+    if(req.method==="GET"&&action==="audio-export"){const p=await read(query.get("project")||""),c=p.clips.find(c=>c.id===query.get("clip"));if(!c)throw Error("Clip not found");const tmp=file("temp",randomUUID(),"m4a");try{await run(bin.ffmpeg,["-v","error","-i",file("clips",c.id,"mp4"),"-vn","-map","0:a:0","-c:a","copy",tmp],req.signal);return new Response(new Uint8Array(await fs.readFile(tmp)),{headers:{"Content-Type":"audio/mp4","Content-Disposition":'attachment; filename="clip-audio.m4a"'}})}finally{await fs.rm(tmp,{force:true})}}
+    if(req.method==="POST"&&action==="discover")return NextResponse.json(await searchContent(await req.json(),req.signal));
+    if(action==="preferences"){const group=query.get("group")||"";if(req.method==="GET")return NextResponse.json(await preferences(group));if(req.method==="POST"){const b=await req.json();return NextResponse.json(await preference(group,b.name,b.value))}}
     if(req.method==="POST"&&action==="compilation")return NextResponse.json(await compilation(await req.json()),{status:202});
     if(action==="checkpoints"){const p=await read(query.get("project")||"");const c=p.clips.find(c=>c.id===query.get("clip"));if(!c)throw Error("Clip not found");if(req.method==="GET")return NextResponse.json(await checkpoints(p,c));if(req.method==="POST")return NextResponse.json(await checkpoint(p,c,(await req.json()).name))}
     if(action==="assets"){
@@ -143,6 +156,8 @@ export async function handle(
       const p = await read(query.get("project") || "");
       const clip = p.clips.find((c) => c.id === query.get("clip"));
       if (!clip) throw Error("Clip not found");
+      const cache=file("temp",p.id,clip.id.replaceAll("-","")+".wave.png");
+      try{return new Response(new Uint8Array(await fs.readFile(cache)),{headers:{"Content-Type":"image/png","Cache-Control":"private,max-age=86400"}})}catch{}
       const png = file("temp", randomUUID(), "png");
       try {
         await run(
@@ -166,7 +181,8 @@ export async function handle(
           undefined,
           30000,
         );
-        return new Response(new Uint8Array(await fs.readFile(png)), {
+        const bytes=await fs.readFile(png);await fs.rename(png,cache).catch(()=>{});
+        return new Response(new Uint8Array(bytes), {
           headers: {
             "Content-Type": "image/png",
             "Cache-Control": "private, max-age=86400",
@@ -426,14 +442,14 @@ export async function handle(
       };
       if (upload) {
         if (!req.body) throw Error("Missing video");
-        let bytes = 0;
+        const digest=createHash("sha256");let bytes = 0;
         const limit = Number(process.env.MAX_UPLOAD_MB || 5120) * 1024 * 1024;
         try {
           await pipeline(
             Readable.fromWeb(req.body as never),
             new Transform({
               transform(chunk, _, cb) {
-                bytes += chunk.length;
+                digest.update(chunk);bytes += chunk.length;
                 cb(
                   bytes > limit ? Error("Video exceeds upload limit") : null,
                   chunk,
@@ -442,7 +458,7 @@ export async function handle(
             }),
             createWriteStream(file("uploads", id, "mp4"), { flags: "wx" }),
           );
-          if (!bytes) throw Error("Empty upload");
+          if (!bytes) throw Error("Empty upload");p.fingerprint=digest.digest("hex");
         } catch (e) {
           await fs.rm(file("uploads", id, "mp4"), { force: true });
           throw e;
@@ -450,27 +466,18 @@ export async function handle(
       }
       await save(p);
       enqueue(id, async (signal) => {
-        const cached = source
-          ? (await list()).find(
-              (other) =>
-                other.id !== id &&
-                other.source === source &&
-                other.duration > 0 &&
-                !busy(other.id),
-            )
-          : undefined;
-        if (cached) {
-          await fs.copyFile(
-            file("uploads", cached.id, "mp4"),
-            file("uploads", id, "mp4"),
-          );
+        const cached=(await list()).find(other=>other.id!==id&&other.duration>0&&!busy(other.id)&&(source?other.source===source&&other.settings.resolution===p.settings.resolution:!!p.fingerprint&&other.fingerprint===p.fingerprint));
+        if(cached){
+          const src=file("uploads",cached.id,"mp4"),dst=file("uploads",id,"mp4");
+          if(source)await fs.link(src,dst).catch(()=>fs.copyFile(src,dst));
+          else{const link=file("temp",id,"link");try{await fs.link(src,link);await fs.rename(link,dst)}catch{}finally{await fs.rm(link,{force:true})}}
           try {
             await fs.copyFile(
               file("transcripts", cached.id, "json"),
               file("transcripts", id, "json"),
             );
           } catch {}
-          p.title = cached.title;
+          if(source)p.title = cached.title;
           await probe(p, signal);
         } else if (source) await ingest(p, signal);
         else await probe(p, signal);

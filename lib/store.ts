@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { validId } from "./validation";
 import type { Project, Segment } from "./types";
-export const root = path.join(process.cwd(), "storage");
+export const root = path.resolve(process.env.CLIPPER_STORAGE_DIR || path.join(process.cwd(), "storage"));
 export const dirs = [
   "uploads",
   "assets",
@@ -74,7 +74,7 @@ export async function list() {
   const names = await fs.readdir(path.join(root, "projects"));
   const values = await Promise.all(
     names
-      .filter((n) => n.endsWith(".json"))
+      .filter((n) => /^[a-f0-9-]{36}\.json$/.test(n))
       .map(async (n) => {
         try {
           return await read(n.slice(0, -5));

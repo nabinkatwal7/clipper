@@ -17,6 +17,7 @@ export const editorTools = [
   ["media", "Media", Film],
   ["video", "Layout", PanelsTopLeft],
   ["text", "Text", Type],
+  ["localize","Translate",Type],
   ["subtitles", "Captions", Captions],
   ["audio", "Audio", Volume2],
   ["branding", "Branding", Palette],

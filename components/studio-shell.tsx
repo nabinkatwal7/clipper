@@ -36,7 +36,7 @@ export const sections = [
       ["Overview", PanelsTopLeft],
       ["New project", Plus],
       ["Projects", FolderClosed],
-      ["Clip library", Library],["Assets",FolderClosed],
+      ["Clip library", Library],["Assets",FolderClosed],["Discover",Search],
     ],
   ],
   [
@@ -53,7 +53,7 @@ export const sections = [
     [
       ["Streamers", Cpu],
       ["Processing queue", ListVideo],
-      ["Automatic clipping", Workflow],
+      ["Automatic clipping", Workflow],["Workflow builder",Workflow],
     ],
   ],
   [
@@ -61,7 +61,7 @@ export const sections = [
     [
       ["Production desk",SlidersHorizontal],["Content calendar", CalendarDays],
       ["Branding", SlidersHorizontal],
-      ["Storage", HardDrive],
+      ["Storage", HardDrive],["Backup & recovery",HardDrive],
     ],
   ],
 ] as const;
