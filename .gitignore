@@ -7,3 +7,4 @@ storage/
 .venv/
 .npm-cache/
 tools/
+.next-build/

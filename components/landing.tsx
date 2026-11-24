@@ -4,7 +4,6 @@ import { photo, photos, featurePhoto } from "@/lib/photos";
 
 export function Photo({ k, w = 1200, h = 800, className }: { k: keyof typeof photos; w?: number; h?: number; className?: string }) {
   const [id, alt] = photos[k];
-  // eslint-disable-next-line @next/next/no-img-element
   return <img className={className} src={photo(id, w, h)} width={w} height={h} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />;
 }
 

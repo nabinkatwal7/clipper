@@ -53,10 +53,10 @@ export function Journey() {
 
 export function SelfHost() {
   const cards = [
-    [Cpu, "Runs on your hardware", "CPU works out of the box. An NVIDIA GPU speeds up transcription, and Ollama uses supported GPUs automatically."],
+    [Cpu, "Runs on your hardware", "CPU works out of the box, and Ollama uses supported GPUs automatically."],
     [HardDrive, "Files, not a database", "Projects, transcripts and clips are plain files in a storage folder you can back up or move."],
     [Lock, "Accounts built in", "Sign-in with Argon2id password hashing, hashed sessions, per-user workspaces and recovery codes."],
-    [Globe2, "Windows, macOS and Linux", "Needs Node.js, FFmpeg, yt-dlp and Ollama, plus Python for local transcription."],
+    [Globe2, "Windows, macOS and Linux", "Needs Node.js, FFmpeg, yt-dlp and Ollama. Python is not required."],
   ] as const;
   return (
     <section className="lp-section selfhost" id="self-host">
@@ -77,7 +77,7 @@ export function SelfHost() {
 }
 
 export function TechStrip() {
-  const items = ["Next.js", "FFmpeg", "Ollama", "yt-dlp", "Faster Whisper", "Argon2id"];
+  const items = ["Next.js", "React", "FFmpeg", "Ollama", "yt-dlp", "Argon2id"];
   return (
     <section className="tech" aria-label="Built with">
       <p>Built on open tools</p>

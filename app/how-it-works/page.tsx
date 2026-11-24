@@ -4,7 +4,7 @@ export const metadata = { title: "How it works · Clipper Studio" };
 
 const steps = [
   ["Import a stream or video", "Upload a file or paste a link to a finished recording. The source is inspected for duration and formats first, and limits on size and length are enforced.", "Manual", "You choose the source and the quality budget."],
-  ["Analyze interesting moments", "The recording is transcribed or its subtitles are reused, then a local Ollama model proposes highlights. Audio and scene activity can add supporting evidence.", "AI-assisted", "Suggestions cite real timestamps and reasons. With no transcript, use manual and fixed-length clips instead."],
+  ["Analyze interesting moments", "The recording's subtitles (published with the video, or a file you import) are read, then a local Ollama model proposes highlights. Audio and scene activity can add supporting evidence.", "AI-assisted", "Suggestions cite real timestamps and reasons. With no transcript, use manual and fixed-length clips instead."],
   ["Generate vertical clips", "Turn suggestions, fixed durations or hand-picked ranges into 9:16 clips with reframing and a consistent look.", "Either", "Choose length, count, format and captions before rendering."],
   ["Edit and customize", "Open any clip in the timeline editor to trim, add layers and B-roll, mix audio, grade colour and apply effects.", "Manual", "Every change is yours, with history and checkpoints."],
   ["Translate or style captions", "Import or correct subtitles, translate with an installed model, and style original, translated or bilingual tracks.", "AI-assisted", "Machine translation is a draft. Review before export."],

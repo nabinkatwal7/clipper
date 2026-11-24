@@ -85,6 +85,5 @@ export function run(
 export const bin = {
   ffmpeg: process.env.FFMPEG_BIN || "ffmpeg",
   ffprobe: process.env.FFPROBE_BIN || "ffprobe",
-  python: process.env.PYTHON_BIN || "python",
   ytdlp: process.env.YTDLP_BIN || "yt-dlp",
 };

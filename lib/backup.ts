@@ -172,7 +172,6 @@ export async function snapshot(
             ),
           ),
         ].join(", "),
-      "Faster Whisper for speech transcription",
     ],
   };
   try {
