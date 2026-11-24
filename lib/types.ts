@@ -3,6 +3,7 @@ export type Settings = {
   instructions?: string;
   model?: string;
   captionColor?: string;
+  captionBackground?:boolean; captionAnimation?:"none"|"fade";
   outline?: number;
   shadow?: number;
   font?: string;

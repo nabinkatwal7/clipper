@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  ArrowUpRight,
+  Ellipsis,ArrowUpRight,
   ChevronRight,
   FolderClosed,
   Film,
@@ -349,6 +349,7 @@ export function MediaLibrary({
                 }
               />
             </button>
+            {!recent&&<details className="clip-actions-menu project-menu"><summary aria-label={"Actions for "+c.title} title="Clip actions"><Ellipsis size={16}/></summary><div><button onClick={()=>open(p.id,c.id)}>Open clip</button><a href={`/api/download?project=${p.id}&clip=${c.id}&kind=bundle`}>Download MP4 + TXT</a><button onClick={e=>{star(c.editorialId||c.id);e.currentTarget.closest("details")?.removeAttribute("open")}}>{favorites.includes(c.editorialId||c.id)?"Remove favorite":"Add to favorites"}</button></div></details>}
           </article>
         ))}
       </div>

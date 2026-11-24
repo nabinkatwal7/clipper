@@ -23,5 +23,13 @@ export function FrameStrip({project,left,span,onSelect}:{project:string;left:num
       if (++i < 10) v.currentTime = target();
     };
     v.src = "/api/download?project=" + project + "&kind=source";
+  return () => {
+      stopped = true;
+      v.onseeked = null;
+      v.onloadedmetadata = null;
+      v.removeAttribute("src");
+      v.load();
+    };
+  }, [project, left, span]);
     return <div className="frame-strip"><canvas ref={canvas} width={960} height={54} aria-label="Source frame samples"/>{onSelect&&<div className="frame-picks">{Array.from({length:10},(_,i)=><button key={i} aria-label={"Choose frame "+(i+1)} onClick={()=>onSelect(left+span*(i+.5)/10)}/>)}</div>}</div>
 }

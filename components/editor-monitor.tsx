@@ -6,12 +6,12 @@ export function EditorMonitor({
   video,
   settings,
   segments,
-  safe,
+  quality, safe,
 }: {
   video: RefObject<HTMLVideoElement | null>;
   settings: Settings;
   segments: Segment[];
-  safe: boolean;
+  quality:number; safe: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -19,7 +19,7 @@ export function EditorMonitor({
       c = ref.current;
     if (!v || !c) return;
     const [width, height] = dimensions(settings);
-    const factor = Math.min(1, 720 / Math.max(width, height));
+    const factor = Math.min(1, quality / Math.max(width, height));
     c.width = Math.round(width * factor);
     c.height = Math.round(height * factor);
     const ctx = c.getContext("2d");
@@ -118,6 +118,8 @@ export function EditorMonitor({
           ctx.save();
           ctx.translate(w / 2, y);
           ctx.scale(k, 1);
+          if(settings.captionAnimation==="fade"){const a=group[0]?.start??seg.start,b=group.at(-1)?.end??seg.end;ctx.globalAlpha=Math.min(1,Math.max(0,(at-a)/.075),Math.max(0,(b-at)/.06))}
+          if(settings.captionBackground){const tw=ctx.measureText(line).width;const th=Math.max(8,settings.fontSize*h/1920);ctx.fillStyle="#111";ctx.fillRect(-tw/2-3,-th,tw+6,th+4)}
           let x = -ctx.measureText(line).width / 2;
           words.forEach((word, i) => {
             ctx.shadowColor = "rgba(0,0,0,.7)";
@@ -165,7 +167,7 @@ export function EditorMonitor({
       v.removeEventListener("seeked", paint);
       v.removeEventListener("loadeddata", paint);
     };
-  }, [settings, segments, safe, video]);
+  }, [settings, segments, safe, video,quality]);
   return (
     <canvas
       className="monitor-canvas"

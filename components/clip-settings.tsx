@@ -193,6 +193,7 @@ export function SubtitleSettings({
               ["highlight", "Word highlight"],
             ]}
           />
+          <div className="field-grid"><Toggle label="Caption background" checked={!!value.captionBackground} onChange={v=>set("captionBackground",v)}/><Select label="Caption animation" value={value.captionAnimation||"none"} onChange={v=>set("captionAnimation",v as Settings["captionAnimation"])} options={[["none","None"],["fade","Fade in and out"]]}/></div>
           <div className="field-grid">
             <label className="field">
               Font

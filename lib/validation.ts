@@ -57,6 +57,8 @@ export function settings(input: unknown): Settings {
     !["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].includes(s.font)
   )
     throw Error("Invalid font");
+  if(s.captionAnimation && !["none","fade"].includes(s.captionAnimation))throw Error("Invalid caption animation");
+  if(s.captionBackground!==undefined && typeof s.captionBackground!=="boolean")throw Error("Invalid caption background");
   if (s.captionColor && !/^#[a-fA-F0-9]{6}$/.test(s.captionColor))
     throw Error("Invalid caption color");
   for (const [value, max] of [

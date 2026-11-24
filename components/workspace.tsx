@@ -32,7 +32,9 @@ import { Channels, useChannelMonitor } from "./channels";
 import { Branding } from "./brand-profiles";
 import { StudioShell,sections } from "./studio-shell";
 import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
-import { Calendar, StorageUsage, SourceTool } from "./studio-tools";
+import {Calendar} from "./content-calendar";
+import {StorageUsage} from "./storage-usage";
+import { SourceTool } from "./studio-tools";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
   const n = Math.max(0, Math.floor(s));

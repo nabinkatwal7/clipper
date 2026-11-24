@@ -48,14 +48,6 @@ export function EditTimeline({
     right = left + span;
   const pct = (v: number) =>
     Math.max(0, Math.min(100, ((v - left) / span) * 100));
-  return () => {
-      stopped = true;
-      v.onseeked = null;
-      v.onloadedmetadata = null;
-      v.removeAttribute("src");
-      v.load();
-    };
-  }, [project, left, span]);
   return (
     <section className="edit-timeline" aria-label="Editing timeline">
       <div className="section-row">

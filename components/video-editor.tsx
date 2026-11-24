@@ -160,7 +160,9 @@ export function VideoEditor({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   });
-  const close = useCallback(() => onClose(), [onClose]);
+  const [quality,setQuality]=useState(720);
+  const dirty=settings!==clip.settings||segments!==clip.segments||start!==clip.start||end!==clip.end||splitAt!==null;
+  const close = useCallback(()=>{if(!dirty||confirm("Discard unsaved clip changes?"))onClose()},[dirty,onClose]);
   async function save() {
     setSaving(true);
     setError("");
@@ -190,17 +192,17 @@ export function VideoEditor({
   return (
     <Modal
       title="Edit video"
-      description={clip.title}
+      description={project.title+" · "+clip.title}
       size="wide"
       onClose={close}
       busy={saving}
     >
       <div className="edit-toolbar">
         <span>
-          {settings.resolution}p <i> / </i> {settings.ratio}
+          {dirty?"Unsaved changes":"Saved render"} · {settings.resolution}p <i> / </i> {settings.ratio}
         </span>
         <div>
-          <button
+          <select className="preview-quality" aria-label="Preview quality" value={quality} onChange={e=>setQuality(+e.target.value)}><option value={360}>360p preview</option><option value={720}>720p preview</option></select><button
             title="Toggle inspector"
             aria-pressed={inspector}
             onClick={() => setInspector(!inspector)}
@@ -282,7 +284,7 @@ export function VideoEditor({
                 <LoaderCircle className="spin" size={15} /> Loading source frame
               </span>
             )}
-            <EditorMonitor
+            <EditorMonitor quality={quality}
               video={video}
               settings={settings}
               segments={segments}
