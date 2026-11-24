@@ -346,7 +346,7 @@ export async function ingest(p: Project, signal: AbortSignal) {
   }
   await probe(p, signal);
 }
-export async function transcribe(p: Project, signal: AbortSignal) {
+export async function transcribe(p: Project, signal: AbortSignal): Promise<boolean> {
   try {
     await transcript(p.id);
     beginProgress(
@@ -358,9 +358,13 @@ export async function transcribe(p: Project, signal: AbortSignal) {
     );
     completeProgress(p, "transcribing");
     await save(p);
-    return;
+    return true;
   } catch {}
-  throw Error("No source transcript is available. Import a timed subtitle file in Transcript explorer, or use manual or fixed-duration clipping with captions disabled.");
+  // No transcript: skip it instead of failing. Callers fall back to fixed-length clips without captions.
+  p.detail =
+    "No transcript available; continuing without one. Import a timed subtitle file in Transcript explorer to enable captions and AI highlights.";
+  await save(p);
+  return false;
 }
 export async function analyze(p: Project, signal: AbortSignal) {
   await stage(
@@ -691,8 +695,10 @@ export async function render(
 }
 export async function generate(p: Project, signal: AbortSignal) {
   const s = p.settings;
-  if (s.mode === "ai" || s.captions) await transcribe(p, signal);
-  if (s.mode === "ai") await analyze(p, signal);
+  const hasTranscript =
+    s.mode === "ai" || s.captions ? await transcribe(p, signal) : true;
+  // AI mode without a transcript falls through to explicit fixed-length splitting below.
+  if (s.mode === "ai" && hasTranscript) await analyze(p, signal);
   else if (s.mode === "manual") {
     if (s.manualEnd <= s.manualStart || s.manualEnd > p.duration)
       throw Error("Trim range must fit inside the source video");
@@ -723,7 +729,7 @@ export async function generate(p: Project, signal: AbortSignal) {
       });
     }
   }
-  const segments = s.captions ? await transcript(p.id) : [];
+  const segments = s.captions && hasTranscript ? await transcript(p.id) : [];
   const rendering = reporter(p, "rendering");
   for (let i = 0; i < p.highlights.length; i++) {
     signal.throwIfAborted();

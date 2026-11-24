@@ -50,6 +50,8 @@ import { transcriptAction } from "./transcript-actions";
 import { indexStream } from "./stream-index";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
+const noTranscript =
+  "No source transcript is available. Import a timed subtitle file in Transcript explorer, or use manual or fixed-duration clipping.";
 function guard(req: NextRequest) {
   const host = req.nextUrl.hostname;
   if (!["localhost", "127.0.0.1", "[::1]"].includes(host || ""))
@@ -970,7 +972,7 @@ export async function handle(
           await save(p);
           if (s.captions) {
             await transcribe(p, signal);
-            const original = await transcript(p.id);
+            const original = await transcript(p.id).catch(() => []);
             segments = [
               ...segments,
               ...original.filter(
@@ -1082,9 +1084,10 @@ export async function handle(
         }
         if (action === "generate") await generate(p, signal);
         else {
-          if (action === "transcribe") await transcribe(p, signal);
-          else {
-            await transcribe(p, signal);
+          if (action === "transcribe") {
+            if (!(await transcribe(p, signal))) throw Error(noTranscript);
+          } else {
+            if (!(await transcribe(p, signal))) throw Error(noTranscript);
             await analyze(p, signal);
           }
           p.status = "ready";
