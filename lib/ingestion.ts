@@ -13,6 +13,7 @@ export type VideoFormat = {
 export type VideoInfo = {
   title?: string;
   duration?: number;
+  subtitles?:Record<string,{ext:string}[]>;
   is_live?: boolean;
   live_status?: string;
   formats?: VideoFormat[];

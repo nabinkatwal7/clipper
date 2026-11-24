@@ -41,6 +41,35 @@ export function settings(input: unknown): Settings {
       throw new Error(`Invalid ${k}`);
   if (typeof s.captions !== "boolean")
     throw new Error("Invalid caption setting");
+  if (s.model && !/^[a-zA-Z0-9_.:/-]{1,100}$/.test(s.model))
+    throw Error("Invalid model name");
+  for (const [value, max] of [
+    [s.category, 60],
+    [s.instructions, 1200],
+  ] as const)
+    if (
+      value !== undefined &&
+      (typeof value !== "string" || value.length > max)
+    )
+      throw Error("Invalid clipping preferences");
+  if (
+    s.font &&
+    !["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].includes(s.font)
+  )
+    throw Error("Invalid font");
+  if (s.captionColor && !/^#[a-fA-F0-9]{6}$/.test(s.captionColor))
+    throw Error("Invalid caption color");
+  for (const [value, max] of [
+    [s.outline, 8],
+    [s.shadow, 8],
+    [s.volume, 2],
+  ] as const)
+    if (
+      value !== undefined &&
+      (!Number.isFinite(value) || value < 0 || value > max)
+    )
+      throw Error("Invalid render setting");
+  for(const [value,min,max] of [[s.scale,1,2],[s.rotation,-180,180],[s.opacity,0,1],[s.offsetY,0,100]] as const)if(value!==undefined&&(!Number.isFinite(value)||value<min||value>max))throw Error("Invalid transform setting");
   return s;
 }
 export function validateHighlights(

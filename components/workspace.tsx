@@ -28,6 +28,11 @@ import { VideoEditor } from "./video-editor";
 import { PostCaption } from "./post-caption";
 import { JobProgress } from "./job-progress";
 import type { Project, Clip } from "@/lib/types";
+import { Channels, useChannelMonitor } from "./channels";
+import { Branding } from "./brand-profiles";
+import { StudioShell,sections } from "./studio-shell";
+import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
+import { Calendar, StorageUsage, SourceTool } from "./studio-tools";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
   const n = Math.max(0, Math.floor(s));
@@ -49,6 +54,7 @@ const post = (action: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 export default function Workspace() {
+  useChannelMonitor();
   const [projects, setProjects] = useState<Project[]>([]),
     [selected, setSelected] = useState(""),
     [loaded, setLoaded] = useState(false),
@@ -65,9 +71,34 @@ export default function Workspace() {
     [error, setError] = useState(""),
     [working, setWorking] = useState(false),
     [notice, setNotice] = useState("");
+  const [page, setPage] = useState("Overview"),
+    [initialUrl, setInitialUrl] = useState(""),
+    [initialUpload, setInitialUpload] = useState(false);
+  function openProject(id: string) {
+    select(id);
+    go("Project",id);
+  }
+  function openClip(id: string, clipId: string) {
+    select(id);
+    setReview(clipId);
+  }
+  function go(next:string,id?:string) {
+    const hash="#"+(next==="Project"?"project/"+id:next.toLowerCase().replaceAll(" ","-"));
+    if(location.hash!==hash)history.pushState(null,"",hash);
+    window.scrollTo(0,0);setPage(next);
+    setSearch("");
+  }
   const refresh = useCallback(async () => {
     try {
-      setProjects(await api("/api/progress"));
+      const next: Project[] = await api("/api/progress");
+      setProjects((old) =>
+        old.length === next.length &&
+        old.every(
+          (p, i) => p.id === next[i].id && p.updatedAt === next[i].updatedAt,
+        )
+          ? old
+          : next,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -76,12 +107,11 @@ export default function Workspace() {
     try {
       setSelected(localStorage.getItem("clipper-project") || "");
     } catch {}
+    const route=()=>{const hash=location.hash.slice(1);if(hash.startsWith("project/")){select(hash.slice(8));setPage("Project")}else{setPage(sections.flatMap(([,items])=>items.map(([name])=>name)).find(name=>name.toLowerCase().replaceAll(" ","-")===hash)||"Overview")}setComposer(false);setHealth(false);setReview(null);setEditing(null);setLibrary(false);setSearch("")};route();window.addEventListener("popstate",route);
     void refresh().finally(() => setLoaded(true));
-    void api("/api/health")
-      .then(setChecks)
-      .catch(() => {});
+    void api("/api/health").then(setChecks).catch(()=>setChecks([{name:"Local engine",ok:false,detail:"Could not reach the dependency check. Use Check again to retry."}]));
     const timer = setInterval(() => void refresh(), 2500);
-    return () => clearInterval(timer);
+    return () => {clearInterval(timer);window.removeEventListener("popstate",route)};
   }, [refresh]);
   useEffect(() => {
     if (!notice) return;
@@ -121,7 +151,9 @@ export default function Workspace() {
     setLibrary(false);
     setError("");
   }
-  function create(existing?: Project) {
+  function create(existing?: Project, url = "", upload = false) {
+    setInitialUrl(url);
+    setInitialUpload(upload);
     setReuse(existing);
     setComposer(true);
   }
@@ -153,50 +185,16 @@ export default function Workspace() {
     ? project!.clips.findIndex((c) => c.id === clip.id)
     : -1;
   return (
-    <div className="workspace">
-      <header className="app-header">
-        <div className="header-inner">
-          <a href="/" className="brand" aria-label="Clipper AI workspace">
-            <span className="brand-mark">
-              <Play size={19} fill="currentColor" strokeWidth={0} />
-            </span>
-            Clipper<span className="brand-edition">AI</span>
-          </a>
-          <nav aria-label="Workspace navigation">
-            <button
-              className="header-projects"
-              onClick={() => {
-                setSearch("");
-                setLibrary(true);
-              }}
-            >
-              <FolderOpen size={17} />
-              Projects
-              {activeCount > 0 && (
-                <span className="active-count">{activeCount} active</span>
-              )}
-            </button>
-            <span className="header-divider" />
-            <button
-              className={`setup-button ${checks.length && checks.every((c) => c.ok) ? "ready" : ""}`}
-              aria-label="Local setup"
-              title="Local setup and dependencies"
-              onClick={() => setHealth(true)}
-            >
-              <Settings2 size={18} />
-              <span>
-                {checks.length && checks.every((c) => c.ok)
-                  ? "Local workspace"
-                  : "Setup"}
-              </span>
-            </button>
-            <Button variant="secondary" onClick={() => create()}>
-              <Plus size={17} />
-              New video
-            </Button>
-          </nav>
-        </div>
-      </header>
+    <StudioShell
+      page={page}
+      go={go}
+      projects={projects}
+      onProject={openProject}
+      onClip={openClip}
+      create={() => create()}
+      setup={() => setHealth(true)}
+      ollama={checks.find((c) => c.name === "Ollama")?.ok}
+    >
       <main className="workspace-main">
         {error && (
           <div className="alert" role="alert">
@@ -214,10 +212,182 @@ export default function Workspace() {
           </div>
         )}
         {!loaded ? (
-          <div className="loading-state">
-            <LoaderCircle className="spin" size={25} />
-            <p>Loading your workspace…</p>
+          <div
+            className="studio-skeleton"
+            role="status"
+            aria-label="Loading workspace"
+          >
+            <i />
+            <div />
+            <span />
+            <span />
+            <span />
           </div>
+        ) : page === "Overview" ? (
+          <Overview
+            projects={projects}
+            open={openClip}
+            openProject={openProject}
+            go={go}
+            create={(url, upload) => create(undefined, url, upload)}
+          />
+        ) : page !== "Project" ? (
+          <>
+            <div className="section-title">
+              <div>
+                <h1>{page}</h1>
+                <p>
+                  {
+                    (
+                      {
+                        Projects:
+                          "Source recordings and their generated clips.",
+                        "Clip library":
+                          "Browse and review clips across your projects.",
+                        "Processing queue":
+                          "Track local jobs and review their last reported stages.",
+                        "Video editor": "Choose a clip to trim and frame.",
+                        "Subtitle studio":
+                          "Choose a clip to edit its text and caption style.",
+                        "Transcript explorer":
+                          "Search dialogue and select highlights in the source video.",
+                        "Thumbnail studio":
+                          "Choose a source frame and compose a cover image.",
+                        "Content calendar":
+                          "Drag a clip onto a day or enter a publication date below.",
+                        Storage:
+                          "Disk usage for local project files and media.",
+                      } as Record<string, string>
+                    )[page]
+                  }
+                </p>
+              </div>
+            </div>
+            {page === "Projects" && (
+              <>
+                <label className="search-field">
+                  <Search size={16} />
+                  <input
+                    aria-label="Find project"
+                    placeholder="Find a project"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </label>
+                <ProjectRows
+                  projects={projects.filter((p) =>
+                    p.title.toLowerCase().includes(search.toLowerCase()),
+                  )}
+                  open={openProject}
+                />
+                {!projects.some((p) =>
+                  p.title.toLowerCase().includes(search.toLowerCase()),
+                ) && (
+                  <p className="studio-empty">
+                    No matching projects. Import a video or try another search.
+                  </p>
+                )}
+              </>
+            )}
+            {["Clip library", "Video editor", "Subtitle studio"].includes(
+              page,
+            ) && (
+              <MediaLibrary
+                projects={projects}
+                open={(pid, cid) => {
+                  if (page === "Clip library") openClip(pid, cid);
+                  else {
+                    select(pid);
+                    setEditing(
+                      projects
+                        .find((p) => p.id === pid)
+                        ?.clips.find((c) => c.id === cid) || null,
+                    );
+                  }
+                }}
+              />
+            )}
+            {page === "Processing queue" &&
+              (projects.length ? (
+                projects.map((p) => (
+                  <section className="studio-section" key={p.id}>
+                    <div className="section-row">
+                      <h2>{p.title}</h2>
+                      <button onClick={() => openProject(p.id)}>
+                        Open project
+                      </button>
+                    </div>
+                    <JobProgress
+                      project={p}
+                      onRefresh={refresh}
+                      onCancel={
+                        ["queued", "processing"].includes(p.status)
+                          ? () =>
+                              void action(
+                                () => post("cancel", { project: p.id }),
+                                "Processing cancelled",
+                              )
+                          : undefined
+                      }
+                    />
+                  </section>
+                ))
+              ) : (
+                <p className="studio-empty">
+                  No jobs yet. Import a video to start processing.
+                </p>
+              ))}
+            {["Thumbnail studio", "Transcript explorer"].includes(page) &&
+              (project ? (
+                <>
+                  <select
+                    className="source-select"
+                    aria-label="Source project"
+                    value={project.id}
+                    onChange={(e) => select(e.target.value)}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
+                  <SourceTool
+                    key={page + project.id}
+                    project={project}
+                    thumbnail={page === "Thumbnail studio"}
+                    generate={(a, b) =>
+                      create({
+                        ...project,
+                        settings: {
+                          ...project.settings,
+                          mode: "manual",
+                          manualStart: a,
+                          manualEnd: b,
+                        },
+                      })
+                    }
+                  />
+                </>
+              ) : (
+                <p className="studio-empty">
+                  Import a source video to use this workspace.
+                </p>
+              ))}
+            {page === "Content calendar" && (
+              <Calendar projects={projects} open={openClip} />
+            )}
+            {["Streamers", "Automatic clipping"].includes(page) && (
+              <Channels
+                automation={page === "Automatic clipping"}
+                projects={projects}
+                open={openProject}
+                create={(url) => create(undefined, url)}
+              />
+            )}
+            {page === "Branding" && <Branding />}
+            {page === "Storage" && <StorageUsage />}
+          </>
         ) : !project ? (
           <section className="welcome">
             <div className="welcome-icon">
@@ -452,12 +622,15 @@ export default function Workspace() {
                           aria-label={`Review ${c.title}`}
                           onClick={() => setReview(c.id)}
                         >
-                          <video
-                            muted
-                            playsInline
-                            preload="metadata"
-                            poster={project.thumbnail}
-                            src={`/api/download?project=${project.id}&clip=${c.id}#t=0.1`}
+                          <img
+                            loading="lazy"
+                            alt=""
+                            src={`/api/download?project=${project.id}&clip=${c.id}&kind=poster`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
                           />
                           <span className="clip-number">
                             {String(index + 1).padStart(2, "0")}
@@ -563,13 +736,6 @@ export default function Workspace() {
               ))}
           </>
         )}
-        <footer className="workspace-footer">
-          <span>
-            <ShieldCheck size={14} />
-            Made on your machine.
-          </span>
-          <span>Your videos stay yours.</span>
-        </footer>
       </main>
       {notice && (
         <div className="toast" role="status">
@@ -579,10 +745,12 @@ export default function Workspace() {
       )}
       {composer && (
         <CreateClips
+          initialUrl={initialUrl}
+          initialUpload={initialUpload}
           reuse={reuse}
           onClose={() => setComposer(false)}
           onCreated={async (id) => {
-            select(id);
+            openProject(id);
             await refresh();
             setNotice(
               reuse
@@ -618,7 +786,7 @@ export default function Workspace() {
                   <button
                     key={p.id}
                     className={`project-list-item ${p.id === project?.id ? "chosen" : ""}`}
-                    onClick={() => select(p.id)}
+                    onClick={() => openProject(p.id)}
                   >
                     {p.thumbnail ? (
                       <img src={p.thumbnail} alt="" />
@@ -816,6 +984,7 @@ export default function Workspace() {
       )}
       {editing && project && (
         <VideoEditor
+          subtitleTab={page === "Subtitle studio"}
           key={editing.id}
           clip={editing}
           project={project}
@@ -826,6 +995,6 @@ export default function Workspace() {
           }}
         />
       )}
-    </div>
+    </StudioShell>
   );
 }

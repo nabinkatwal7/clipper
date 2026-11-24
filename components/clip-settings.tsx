@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Settings } from "@/lib/types";
 export function Select({
@@ -193,6 +194,45 @@ export function SubtitleSettings({
             ]}
           />
           <div className="field-grid">
+            <label className="field">
+              Font
+              <input
+                list="studio-fonts"
+                value={value.font || "Arial"}
+                onChange={(e) => set("font", e.target.value)}
+              />
+              <datalist id="studio-fonts">
+                {["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].map(
+                  (f) => (
+                    <option key={f}>{f}</option>
+                  ),
+                )}
+              </datalist>
+            </label>
+            <label className="field">
+              Text color
+              <input
+                type="color"
+                value={value.captionColor || "#ffffff"}
+                onChange={(e) => set("captionColor", e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="field-grid">
+            {(["outline", "shadow"] as const).map((key) => (
+              <label key={key} className="field">
+                {key === "outline" ? "Outline" : "Shadow"}
+                <input
+                  type="range"
+                  min="0"
+                  max="8"
+                  value={value[key] ?? (key === "outline" ? 3 : 1)}
+                  onChange={(e) => set(key, +e.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="field-grid">
             <Select
               label="Subtitle position"
               value={value.captionPosition}
@@ -231,6 +271,13 @@ export function AdvancedSettings({
   value: Settings;
   onChange: (s: Settings) => void;
 }) {
+  const [models, setModels] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/models")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setModels)
+      .catch(() => {});
+  }, []);
   return (
     <div className="advanced-settings">
       <Select
@@ -243,6 +290,56 @@ export function AdvancedSettings({
           ["split", "Split into equal segments"],
         ]}
       />
+      {value.mode === "ai" && (
+        <>
+          <div className="field-grid">
+            <label className="field">
+              Content category
+              <select
+                value={value.category || ""}
+                onChange={(e) =>
+                  onChange({ ...value, category: e.target.value })
+                }
+              >
+                <option value="">General</option>
+                {[
+                  "Gaming",
+                  "Interview",
+                  "Sports",
+                  "Education",
+                  "Comedy",
+                  "Commentary",
+                ].map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Ollama model
+              <select
+                value={value.model || ""}
+                onChange={(e) => onChange({ ...value, model: e.target.value })}
+              >
+                <option value="">Workspace default</option>
+                {models.map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="field">
+            Clipping instructions
+            <textarea
+              maxLength={1200}
+              value={value.instructions || ""}
+              onChange={(e) =>
+                onChange({ ...value, instructions: e.target.value })
+              }
+              placeholder="Describe the moments to prioritize"
+            />
+          </label>
+        </>
+      )}
       {value.mode === "manual" && (
         <div className="field-grid">
           <label className="field">

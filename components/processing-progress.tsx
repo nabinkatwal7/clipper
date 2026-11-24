@@ -8,7 +8,7 @@ import {
   Square,
 } from "lucide-react";
 import type { Project, ProcessingStage, StageProgress } from "@/lib/types";
-const steps: { id: ProcessingStage; label: string }[] = [
+const pipeline: { id: ProcessingStage; label: string }[] = [
   { id: "importing", label: "Import video" },
   { id: "extracting", label: "Extract audio" },
   { id: "transcribing", label: "Transcribe" },
@@ -47,6 +47,7 @@ export function JobProgress({
   onRefresh: () => void;
   onCancel?: () => void;
 }) {
+  const steps=project.progress?.indexing && project.stage==="indexing"?[{id:"indexing" as const,label:"Index source"}]:project.progress?.["source-subtitles"]?[pipeline[0],{id:"source-subtitles" as const,label:"Read subtitles"},...pipeline.slice(1)]:pipeline;
   const running = ["queued", "processing"].includes(project.status);
   const active = steps.some((s) => s.id === project.stage)
     ? (project.stage as ProcessingStage)
@@ -61,9 +62,10 @@ export function JobProgress({
     if (active) setSelected(active);
   }, [active]);
   useEffect(() => {
+    if(!running)return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [running]);
   const value = percent(data),
     age = Math.max(
       0,

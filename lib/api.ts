@@ -4,7 +4,7 @@ import { promises as fs, createWriteStream, createReadStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { ZipArchive } from "archiver";
-import { init, file, read, save, list, transcript } from "./store";
+import { init, file, read, save, list, transcript, root, dirs } from "./store";
 import { settings, validId } from "./validation";
 import { validateUrl } from "./network";
 import {
@@ -23,6 +23,11 @@ import { beginProgress, completeProgress, reporter } from "./progress";
 import type { Project, Segment } from "./types";
 import { captionFile, clipBasename } from "./post-captions";
 import { readOllamaResponse } from "./ollama";
+import { run, bin } from "./process";
+import { transcriptAction } from "./transcript-actions";
+import {indexStream} from "./stream-index";
+import { poster } from "./clip-poster";
+import { sourceInfo } from "./source-info";
 function guard(req: NextRequest) {
   const host = req.nextUrl.hostname;
   if (!["localhost", "127.0.0.1", "[::1]"].includes(host || ""))
@@ -41,6 +46,166 @@ export async function handle(
     guard(req);
     await init();
     const query = req.nextUrl.searchParams;
+    if(action==="source-index"){
+      const project=await read(query.get("project")||"");
+      if(req.method==="GET"){try{return NextResponse.json(JSON.parse(await fs.readFile(file("temp",project.id,"index.json"),"utf8")))}catch(e){if((e as NodeJS.ErrnoException).code==="ENOENT")return NextResponse.json(null);throw e}}
+      if(req.method==="POST"){if(busy(project.id))throw Error("Wait for the current job to finish.");if(!project.duration)throw Error("Import the source first.");enqueue(project.id,signal=>indexStream(project,signal));return NextResponse.json({ok:true},{status:202})}
+    }
+    if (req.method === "POST" && action === "transcript") {
+      return NextResponse.json(
+        await transcriptAction(await req.json(), req.signal),
+      );
+    }
+    if (req.method === "GET" && action === "media-info") {
+      const project = await read(query.get("project") || "");
+      const raw = await run(
+        bin.ffprobe,
+        [
+          "-v",
+          "error",
+          "-protocol_whitelist",
+          "file,pipe",
+          "-select_streams",
+          "v:0",
+          "-show_entries",
+          "stream=avg_frame_rate",
+          "-of",
+          "csv=p=0",
+          file("uploads", project.id, "mp4"),
+        ],
+        req.signal,
+        undefined,
+        20000,
+      );
+      const [num, den] = raw.trim().split("/").map(Number);
+      return NextResponse.json({
+        fps: den && num / den > 0 ? num / den : null,
+      });
+    }
+    if (req.method === "GET" && action === "waveform") {
+      const p = await read(query.get("project") || "");
+      const clip = p.clips.find((c) => c.id === query.get("clip"));
+      if (!clip) throw Error("Clip not found");
+      const png = file("temp", randomUUID(), "png");
+      try {
+        await run(
+          bin.ffmpeg,
+          [
+            "-loglevel",
+            "error",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-i",
+            file("clips", clip.id, "mp4"),
+            "-filter_complex",
+            "aformat=channel_layouts=mono,showwavespic=s=960x36:colors=0x8d91c4",
+            "-frames:v",
+            "1",
+            "-threads",
+            "1",
+            png,
+          ],
+          req.signal,
+          undefined,
+          30000,
+        );
+        return new Response(new Uint8Array(await fs.readFile(png)), {
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "private, max-age=86400",
+          },
+        });
+      } finally {
+        await fs.rm(png, { force: true });
+      }
+    }
+    if (req.method === "POST" && action === "inspect") {
+      const body = await req.json();
+      return NextResponse.json(
+        await sourceInfo(body.url, body.channel === true, req.signal),
+      );
+    }
+    if (req.method === "GET" && action === "models") {
+      const response = await fetch(
+        (process.env.OLLAMA_URL || "http://127.0.0.1:11434") + "/api/tags",
+        { signal: AbortSignal.timeout(4000) },
+      );
+      if (!response.ok) throw Error("Ollama could not list installed models.");
+      const data = await response.json();
+      return NextResponse.json(
+        data.models.map((m: { name: string }) => m.name),
+      );
+    }
+    if (req.method === "GET" && action === "export") {
+      const ids = query.getAll("clip");
+      if (!Array.isArray(ids) || !ids.length || ids.length > 500)
+        throw Error("Select 1 to 500 clips");
+      const selected = new Set<string>(
+        ids.map((id: string) => {
+          validId(id);
+          return id;
+        }),
+      );
+      const clips = (await list())
+        .flatMap((p) => p.clips)
+        .filter((c) => selected.has(c.id));
+      if (clips.length !== selected.size)
+        throw Error(
+          "Selection changed. Refresh the library and select the clips again.",
+        );
+      const zip = new ZipArchive({ zlib: { level: 0 } });
+      for (const c of clips) {
+        const path = file("clips", c.id, "mp4");
+        await fs.access(path);
+        zip.file(path, { name: clipBasename(c) + ".mp4" });
+        zip.append(captionFile(c), { name: clipBasename(c) + ".txt" });
+      }
+      const stream = Readable.toWeb(zip) as ReadableStream;
+      void zip.finalize().catch((e) => zip.destroy(e));
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": 'attachment; filename="selected-clips.zip"',
+        },
+      });
+    }
+    if (req.method === "GET" && action === "transcript") {
+      const project = await read(query.get("project") || "");
+      try {
+        return NextResponse.json(await transcript(project.id));
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "ENOENT")
+          return NextResponse.json([]);
+        throw e;
+      }
+    }
+    if(req.method==="GET"&&action==="clip-stats"){
+      const clips=(await list()).flatMap(p=>p.clips);const records=await Promise.all(clips.map(async c=>{const stat=await fs.stat(file("clips",c.id,"mp4")).catch(()=>null);return [c.id,stat?{bytes:stat.size,date:stat.birthtime.toISOString()}:null]}));
+      return NextResponse.json(Object.fromEntries(records))
+    }
+    if (req.method === "GET" && action === "storage") {
+      const usage = await Promise.all(
+        dirs.map(async (name) => {
+          const entries = (
+            await fs.readdir(root + "/" + name, { withFileTypes: true })
+          ).filter((entry) => entry.isFile());
+          const sizes = await Promise.all(
+            entries.map((entry) =>
+              fs
+                .stat(root + "/" + name + "/" + entry.name)
+                .then((stat) => stat.size)
+                .catch(() => 0),
+            ),
+          );
+          return {
+            name,
+            count: entries.length,
+            bytes: sizes.reduce((a, b) => a + b, 0),
+          };
+        }),
+      );
+      return NextResponse.json(usage);
+    }
     if (req.method === "GET" && action === "health")
       return NextResponse.json(await health());
     if (req.method === "POST" && action === "caption") {
@@ -278,6 +443,8 @@ export async function handle(
           end - start > 600
         )
           throw Error("Choose a valid trim range up to 10 minutes");
+        const splitAt=body.splitAt;
+        if(splitAt!=null&&(!Number.isFinite(splitAt)||splitAt<=start+.04||splitAt>=end-.04))throw Error("Place the split inside the selected range.");
         let segments: Segment[] = body.segments ?? clip.segments;
         if (
           !Array.isArray(segments) ||
@@ -341,26 +508,21 @@ export async function handle(
           );
           const editProgress = reporter(p, "rendering");
           await save(p);
-          const updated = await render(
-            p,
-            { ...clip, start, end },
-            s,
-            segments,
-            signal,
-            randomUUID(),
-            (seconds) =>
-              editProgress.update(
-                seconds,
-                end - start,
-                "seconds",
-                `Rendering your changes · ${Math.round(seconds)}s encoded`,
-              ),
+          const boundaries:number[]=splitAt==null?[start,end]:[start,splitAt,end];
+          const parts:Project["clips"]=[];let committed=false;
+          try{
+            for(let i=0;i<boundaries.length-1;i++){
+              const from=boundaries[i],to=boundaries[i+1];
+              parts.push(await render(p,{...clip,editorialId:i===0?clip.editorialId||clip.id:randomUUID(),title:splitAt==null?clip.title:clip.title+" · Part "+(i+1),start:from,end:to},s,segments.filter(seg=>seg.end>from&&seg.start<to),signal,randomUUID(),seconds=>editProgress.update(from-start+seconds,end-start,"seconds",`Rendering changes · ${Math.round(from-start+seconds)}s encoded`)));
+            }
+            await editProgress.flush();completeProgress(p,"rendering");
+            p.clips=p.clips.flatMap(c=>c.id===clip.id?parts:[c]);await save(p);committed=true;
+          } finally {if(!committed)await Promise.all(parts.map(c=>fs.rm(file("clips",c.id,"mp4"),{force:true})))}
+          await Promise.all(
+            ["mp4", "jpg"].map((ext) =>
+              fs.rm(file("clips", clip.id, ext), { force: true }),
+            ),
           );
-          await editProgress.flush();
-          completeProgress(p, "rendering");
-          p.clips = p.clips.map((c) => (c.id === clip.id ? updated : c));
-          await save(p);
-          await fs.rm(file("clips", clip.id, "mp4"), { force: true });
           p.status = "ready";
           p.stage = "complete";
           p.detail = "Updated clip ready";
@@ -418,12 +580,20 @@ export async function handle(
       if (clip) {
         validId(clip);
         if (!p.clips.some((c) => c.id === clip)) throw Error("Clip not found");
-        await fs.rm(file("clips", clip, "mp4"), { force: true });
+        await Promise.all(
+          ["mp4", "jpg"].map((ext) =>
+            fs.rm(file("clips", clip, ext), { force: true }),
+          ),
+        );
         p.clips = p.clips.filter((c) => c.id !== clip);
         await save(p);
       } else {
         for (const c of p.clips)
-          await fs.rm(file("clips", c.id, "mp4"), { force: true });
+          await Promise.all(
+            ["mp4", "jpg"].map((ext) =>
+              fs.rm(file("clips", c.id, ext), { force: true }),
+            ),
+          );
         for (const dir of [
           "uploads",
           "audio",
@@ -450,6 +620,16 @@ export async function handle(
     if (req.method === "GET" && action === "download") {
       const p = await read(query.get("project") || "");
       const kind = query.get("kind");
+      if (kind === "poster") {
+        const c = p.clips.find((c) => c.id === query.get("clip"));
+        if (!c) throw Error("Clip not found");
+        return new Response(await poster(c.id, c.end - c.start), {
+          headers: {
+            "Content-Type": "image/jpeg",
+            "Cache-Control": "private,max-age=86400",
+          },
+        });
+      }
       if (kind === "caption") {
         const clip = p.clips.find((c) => c.id === query.get("clip"));
         if (!clip) throw Error("Clip not found");

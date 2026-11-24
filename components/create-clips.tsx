@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useState,useEffect } from "react";
 import {
   Upload,
   Link2,
@@ -10,27 +10,35 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
+import { ProfilePicker } from "./brand-profiles";
+import { SourceInspection } from "./source-inspection";
 import { Modal } from "./modal";
 import { BasicSettings, AdvancedSettings } from "./clip-settings";
 import { Button } from "./ui/button";
 import { defaults, type Project } from "@/lib/types";
 export function CreateClips({
+  initialUrl = "",
+  initialUpload = false,
   reuse,
   onClose,
   onCreated,
 }: {
+  initialUrl?: string;
+  initialUpload?: boolean;
   reuse?: Project;
   onClose: () => void;
   onCreated: (id: string) => Promise<void>;
 }) {
-  const [tab, setTab] = useState("link"),
-    [url, setUrl] = useState(""),
+  const [tab, setTab] = useState(initialUpload ? "upload" : "link"),
+    [url, setUrl] = useState(initialUrl),
     [file, setFile] = useState<File | null>(null),
     [settings, setSettings] = useState(reuse?.settings ?? defaults),
     [working, setWorking] = useState(false),
     [uploadProgress, setUploadProgress] = useState<number | null>(null),
     [error, setError] = useState(""),
     [dragging, setDragging] = useState(false);
+  const [preview,setPreview]=useState(""),[fileMeta,setFileMeta]=useState("");
+  useEffect(()=>{setFileMeta("");if(!file){setPreview("");return}const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url)},[file]);
   const input = useRef<HTMLInputElement>(null),
     request = useRef<XMLHttpRequest | null>(null);
   function choose(file: File | undefined) {
@@ -131,7 +139,7 @@ export function CreateClips({
   }
   return (
     <Modal
-      title={reuse ? "Create more clips" : "Create clips"}
+      title={reuse ? "Create more clips" : "Generate clips"}
       description={
         reuse
           ? reuse.title
@@ -193,8 +201,27 @@ export function CreateClips({
                     />
                   </label>
                   <p className="hint">
-                    YouTube, Twitch, Kick, or a direct video link.
+                    YouTube, Twitch, Kick, or a direct video link.{" "}
+                    <button
+                      type="button"
+                      className="inline-link"
+                      disabled={working}
+                      onClick={async () => {
+                        try {
+                          setUrl(await navigator.clipboard.readText());
+                        } catch {
+                          setError(
+                            "Paste the link into the video URL field using Ctrl or Cmd + V.",
+                          );
+                        }
+                      }}
+                    >
+                      Paste from clipboard
+                    </button>
                   </p>
+                  {url.trim() && (
+                    <SourceInspection key={url.trim()} url={url.trim()} />
+                  )}
                 </div>
               ) : (
                 <>
@@ -210,12 +237,10 @@ export function CreateClips({
                   />
                   {file ? (
                     <div className="selected-file">
-                      <span className="file-symbol">
-                        <Film size={23} />
-                      </span>
+                      {preview&&<video className="upload-preview" preload="metadata" muted src={preview+"#t=0.1"} onLoadedMetadata={e=>{const v=e.currentTarget;setFileMeta(v.videoWidth+" × "+v.videoHeight+" · "+Math.floor(v.duration/60)+":"+String(Math.floor(v.duration)%60).padStart(2,"0"))}}/>}
                       <div>
                         <strong>{file.name}</strong>
-                        <span>{(file.size / 1024 ** 2).toFixed(1)} MB</span>
+                        <span>{(file.size / 1024 ** 2).toFixed(1)} MB · {fileMeta||"Reading video metadata…"}</span>
                       </div>
                       <button
                         type="button"
@@ -272,6 +297,9 @@ export function CreateClips({
                 More options
                 <ChevronDown size={16} />
               </summary>
+              <ProfilePicker
+                apply={(profile) => setSettings({ ...settings, ...profile })}
+              />
               <AdvancedSettings value={settings} onChange={setSettings} />
             </details>
           </fieldset>
@@ -316,7 +344,7 @@ export function CreateClips({
               ? uploadProgress !== null
                 ? "Uploading…"
                 : "Starting…"
-              : "Create clips"}
+              : "Generate clips"}
           </Button>
         </footer>
       </form>

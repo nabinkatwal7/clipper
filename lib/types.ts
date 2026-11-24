@@ -1,4 +1,13 @@
 export type Settings = {
+  category?: string;
+  instructions?: string;
+  model?: string;
+  captionColor?: string;
+  outline?: number;
+  shadow?: number;
+  font?: string;
+  volume?: number;
+  scale?:number; rotation?:number; opacity?:number; offsetY?:number;
   duration: "15-30" | "30-60" | "60-90";
   count: number;
   ratio: "9:16" | "1:1" | "4:5" | "16:9";
@@ -36,6 +45,7 @@ export type Segment = {
   words: Word[];
 };
 export type Highlight = {
+  editorialId?: string;
   start: number;
   end: number;
   title: string;
@@ -69,7 +79,7 @@ export type Project = {
   progress?: Partial<Record<ProcessingStage, StageProgress>>;
 };
 export type ProcessingStage =
-  "importing" | "extracting" | "transcribing" | "analyzing" | "rendering";
+  "source-subtitles" | "indexing" | "importing" | "extracting" | "transcribing" | "analyzing" | "rendering";
 export type StageProgress = {
   current: number;
   total: number;

@@ -16,7 +16,9 @@ export function captions(
 ) {
   const alignment =
     s.captionPosition === "top" ? 8 : s.captionPosition === "middle" ? 5 : 2;
-  const header = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${w}\nPlayResY: ${h}\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,${(s.fontSize * h) / 1920},&H00FFFFFF,&H0000FFFF,&H00111111,&H80000000,${s.style === "minimal" ? 0 : -1},0,0,0,100,100,0,0,1,3,1,${alignment},40,40,${Math.round(h * 0.09)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+  const hex = (s.captionColor || "#ffffff").slice(1);
+  const primary = hex.slice(4, 6) + hex.slice(2, 4) + hex.slice(0, 2);
+  const header = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${w}\nPlayResY: ${h}\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,${s.font || "Arial"},${(s.fontSize * h) / 1920},&H00${primary},&H0000FFFF,&H00111111,&H80000000,${s.style === "minimal" ? 0 : -1},0,0,0,100,100,0,0,1,${s.outline ?? 3},${s.shadow ?? 1},${alignment},40,40,${Math.round(h * 0.09)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
   let lines = "";
   const event = (a: number, b: number, text: string) => {
     if (b > a)
@@ -35,7 +37,7 @@ export function captions(
               group
                 .map(
                   (x, k) =>
-                    `${k === j ? "{\\c&H0000FFFF&}" : "{\\c&H00FFFFFF&}"}${clean(x.word.trim())}`,
+                    `${k === j ? "{\\c&H0000FFFF&}" : `{\\c&H00${primary}&}`}${clean(x.word.trim())}`,
                 )
                 .join(" "),
             );
@@ -48,7 +50,7 @@ export function captions(
                 (x, k) =>
                   (s.style === "bold" && k === 0
                     ? "{\\c&H0000FFFF&}"
-                    : "{\\c&H00FFFFFF&}") + clean(x.word.trim()),
+                    : `{\\c&H00${primary}&}`) + clean(x.word.trim()),
               )
               .join(" "),
           );
