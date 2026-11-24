@@ -5,6 +5,7 @@ import { Modal } from "./modal";
 import { FormatSettings, SubtitleSettings } from "./clip-settings";
 import { Button } from "./ui/button";
 import type { Clip, Project, Segment } from "@/lib/types";
+import {HistoryPanel} from "./history-panel";
 import {LayersPanel} from "./layers-panel";
 import {GradePanel} from "./grade-panel";
 import {DirectorPanel} from "./director-panel";
@@ -483,7 +484,7 @@ export function VideoEditor({
               <label className="field">Clip title<input maxLength={160} value={title} onChange={e=>setTitle(e.target.value)}/></label>
               <FormatSettings value={settings} onChange={setSettings} />
             </div>
-          ) : tab==="layers"?<LayersPanel s={settings} change={setSettings} at={now-start} length={end-start} seek={n=>seek(start+n)}/>:tab==="grade"||tab==="audio"? <GradePanel settings={settings} change={setSettings} project={project.id} clip={clip.id} start={start} end={end} audio={tab==="audio"}/> : tab==="director"? <DirectorPanel clip={clip.id} project={project.id} apply={p=>{if(p.kind==="title")setTitle(p.title);if(p.kind==="zoom")setSettings({...settings,scale:p.scale});if(p.kind==="layout")setSettings({...settings,layout:p.layout});if(p.kind==="range"){setStartText(timecode(p.start));setEndText(timecode(p.end));seek(p.start)}}}/> : tab !== "subtitles" ? (
+          ) : tab==="history"?<HistoryPanel project={project.id} clip={clip} restore={v=>{setTitle(v.title);setSettings(v.settings);setSegments(v.segments);setStartText(timecode(v.start));setEndText(timecode(v.end));setSplitAt(null)}}/>:tab==="layers"?<LayersPanel s={settings} change={setSettings} at={now-start} length={end-start} seek={n=>seek(start+n)}/>:tab==="grade"||tab==="audio"? <GradePanel settings={settings} change={setSettings} project={project.id} clip={clip.id} start={start} end={end} audio={tab==="audio"}/> : tab==="director"? <DirectorPanel clip={clip.id} project={project.id} apply={p=>{if(p.kind==="title")setTitle(p.title);if(p.kind==="zoom")setSettings({...settings,scale:p.scale});if(p.kind==="layout")setSettings({...settings,layout:p.layout});if(p.kind==="range"){setStartText(timecode(p.start));setEndText(timecode(p.end));seek(p.start)}}}/> : tab !== "subtitles" ? (
             <EditorInspector
               tab={tab}
               settings={settings}

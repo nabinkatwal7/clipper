@@ -42,7 +42,7 @@ export const sections = [
   [
     "Creation",
     [
-      ["Video editor", Scissors],
+      ["Video editor", Scissors],["Compilations",ListVideo],
       ["Transcript explorer", ScanText],
       ["Subtitle studio", Captions],
       ["Thumbnail studio", ImageIcon],

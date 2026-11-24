@@ -22,6 +22,7 @@ export const editorTools = [
   ["branding", "Branding", Palette],
   ["grade","Grading",Palette],
   ["effects", "Effects", SlidersHorizontal],
+  ["history","History",LayoutTemplate],
   ["templates", "Templates", LayoutTemplate],
 ] as const;
 export function EditorInspector({

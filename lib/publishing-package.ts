@@ -3,7 +3,6 @@ import {randomUUID} from "node:crypto";
 import {pipeline} from "node:stream/promises";
 import {ZipArchive} from "archiver";
 import type {Project,Clip,Segment} from "./types";
-import {bin,run} from "./process";
 import {file,save} from "./store";
 import {render} from "./jobs";
 import {clipBasename,captionFile} from "./post-captions";
@@ -12,7 +11,7 @@ import {ledger} from "./production-store";
 import {beginProgress,completeProgress,reporter} from "./progress";
 function stamp(n:number,vtt:boolean){const ms=Math.round(Math.max(n,0)*1000);return [Math.floor(ms/3600000),Math.floor(ms/60000)%60,Math.floor(ms/1000)%60].map(v=>String(v).padStart(2,"0")).join(":")+(vtt?".":",")+String(ms%1000).padStart(3,"0")}
 export function subtitleTrack(rows:Segment[],start:number,end:number,vtt=false){return (vtt?"WEBVTT\n\n":"")+rows.filter(r=>r.start<end&&r.end>start&&r.text.trim()).map((r,i)=>(i+1)+"\n"+stamp(Math.max(0,r.start-start),vtt)+" --> "+stamp(Math.min(end,r.end)-start,vtt)+"\n"+r.text.trim()).join("\n\n")+"\n"}
-export function packageLocation(p:string,c?:string){return file("temp",p,(c||"project")+".publish.zip")}
+export function packageLocation(p:string,c?:string){return file("temp",p,(c||"project").replaceAll("-","")+".publish.zip")}
 export async function buildPackage(p:Project,clips:Clip[],single:boolean,signal:AbortSignal){
  const rights=(await ledger(p.id)).rights;const dest=packageLocation(p.id,single?clips[0].id:undefined),tmp=dest+"."+randomUUID()+".tmp";const zip=new ZipArchive({zlib:{level:0}});const active=pipeline(zip,createWriteStream(tmp,{flags:"wx"}),{signal});active.catch(()=>{});const scratch:string[]=[];
  try{p.status="processing";p.stage="rendering";p.detail="Building publishing package";beginProgress(p,"rendering",p.detail,clips.length,"clips");await save(p);const progress=reporter(p,"rendering");

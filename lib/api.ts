@@ -1,3 +1,5 @@
+import {compilation} from "./compilation";
+import {checkpoint,checkpoints} from "./checkpoints";
 import {assetList,importAsset,editAsset,asset} from "./assets";
 import {buildPackage,packageLocation} from "./publishing-package";
 import {ledger,updateLedger} from "./production-store";
@@ -51,6 +53,8 @@ export async function handle(
     guard(req);
     await init();
     const query = req.nextUrl.searchParams;
+    if(req.method==="POST"&&action==="compilation")return NextResponse.json(await compilation(await req.json()),{status:202});
+    if(action==="checkpoints"){const p=await read(query.get("project")||"");const c=p.clips.find(c=>c.id===query.get("clip"));if(!c)throw Error("Clip not found");if(req.method==="GET")return NextResponse.json(await checkpoints(p,c));if(req.method==="POST")return NextResponse.json(await checkpoint(p,c,(await req.json()).name))}
     if(action==="assets"){
       if(req.method==="POST"&&req.headers.get("content-type")==="application/octet-stream")return NextResponse.json(await importAsset(req));
       if(req.method==="POST"){const b=await req.json();return NextResponse.json(await editAsset(b.id,b))}
@@ -557,6 +561,7 @@ export async function handle(
         p.status = "queued";
         p.stage = "queued";
         p.detail = "Edit queued";
+        await checkpoint(p,clip,"Before edit");
         await save(p);
         enqueue(p.id, async (signal) => {
           p.status = "processing";

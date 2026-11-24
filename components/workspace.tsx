@@ -27,6 +27,7 @@ import { PostCaption } from "./post-caption";
 import { JobProgress } from "./job-progress";
 import type { Project, Clip } from "@/lib/types";
 import { Channels, useChannelMonitor } from "./channels";
+import {CompilationBuilder} from "./compilation-builder";
 import {AssetLibrary} from "./asset-library";
 import {ProductionDesk} from "./production-desk";
 import { Branding } from "./brand-profiles";
@@ -426,6 +427,7 @@ export default function Workspace() {
               />
             )}
             {page === "Branding" && <Branding />}
+            {page==="Compilations"&&<CompilationBuilder projects={projects} open={async id=>{await refresh();openProject(id)}}/>}
             {page==="Assets"&&<AssetLibrary projects={projects}/>}
             {page==="Production desk"&&<ProductionDesk projects={projects}/>}
             {page === "Storage" && <StorageUsage />}
