@@ -1,9 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Search,
-  Download,
-} from "lucide-react";
+import { Search, Download } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
 import { StreamIndex } from "./stream-index";
 import { duration } from "./studio-media";

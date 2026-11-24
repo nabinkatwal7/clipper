@@ -158,3 +158,20 @@ Open the local app at `http://127.0.0.1:4000`. Studio overview shows recent proj
 - **Streamers** accepts a public channel recordings feed. **Automatic clipping** checks enabled feeds while the studio is open. The first successful check records a baseline. Subsequent checks queue newly discovered recordings.
 - **Content calendar** stores editorial plans in this browser. Dates, publishing labels, and platform selections are planning metadata. Publishing to a platform is a separate manual step.
 - Media and transcripts are stored on disk. Theme, sidebar preferences, favorites, branding profiles, calendar entries, and channel monitoring settings are stored in the browser for this local origin.
+
+## Local automation
+
+Start the studio with `npm run dev`. Its local CLI uses the same API and processing queue as the browser. See [the feature inventory](FEATURE_MATRIX.md) for implementation status and coverage.
+
+| CLI command after `npm run clipper --` | Operation |
+| --- | --- |
+| `health`, `jobs` | Read dependency health or project job state |
+| `import URL` | Import a recording URL and return its project ID |
+| `analyze PROJECT`, `generate PROJECT` | Queue highlight discovery or clip generation |
+| `render PROJECT EDIT_JSON` | Queue an edit using its clip ID, source range and settings |
+| `cancel PROJECT` | Cancel a queued or running project |
+| `report PROJECT`, `export PROJECT FILE.zip` | Read a source report or save a project archive |
+
+The server binds to loopback on port 4000. Read project data with `GET /api/projects` and dependency state with `GET /api/health`. Send edit parameters to `POST /api/edit` as JSON. The request includes `project`, `clip`, numeric `start` and `end` in source seconds, and `settings`. Set `variation` to true to keep both versions. Read the clip using `GET /api/download?project=ID&clip=ID`. Run `npm run clipper --` for the CLI argument list.
+
+For media integration checks, set `FFMPEG_BIN` and `FFPROBE_BIN` to your installed executables and run `npx tsx scripts/expansion-smoke.ts`. Set `TEST_OLLAMA=1` to exercise the local model. The fixture uses a temporary filesystem workspace. To check browser layouts, run `node scripts/visual-regression.mjs` with the dev server running and Playwright available through `PLAYWRIGHT_MODULE`. By default it launches the Edge channel and writes screenshots under `tools/visual-regression`.

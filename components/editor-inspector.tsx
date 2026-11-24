@@ -1,6 +1,7 @@
 "use client";
 import {
-  Sparkles, Film,
+  Sparkles,
+  Film,
   PanelsTopLeft,
   Type,
   Captions,
@@ -12,18 +13,18 @@ import {
 import type { Project, Settings } from "@/lib/types";
 import { ProfilePicker } from "./brand-profiles";
 export const editorTools = [
-  ["director","Director",Sparkles],
-  ["layers","Layers",PanelsTopLeft],
+  ["director", "Director", Sparkles],
+  ["layers", "Layers", PanelsTopLeft],
   ["media", "Media", Film],
   ["video", "Layout", PanelsTopLeft],
   ["text", "Text", Type],
-  ["localize","Translate",Type],
+  ["localize", "Translate", Type],
   ["subtitles", "Captions", Captions],
   ["audio", "Audio", Volume2],
   ["branding", "Branding", Palette],
-  ["grade","Grading",Palette],
+  ["grade", "Grading", Palette],
   ["effects", "Effects", SlidersHorizontal],
-  ["history","History",LayoutTemplate],
+  ["history", "History", LayoutTemplate],
   ["templates", "Templates", LayoutTemplate],
 ] as const;
 export function EditorInspector({

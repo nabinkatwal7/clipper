@@ -345,10 +345,74 @@ export function AdvancedSettings({
               </select>
             </label>
           </div>
-          <div className="field-grid"><Select label="Analysis depth" value={value.analysisDepth||"balanced"} onChange={v=>onChange({...value,analysisDepth:v as Settings["analysisDepth"]})} options={[["fast","Fast · wider windows"],["balanced","Balanced"],["deep","Deep · second review"]]}/><label className="field">Minimum score<input type="number" min="0" max="100" value={value.minimumScore??0} onChange={e=>onChange({...value,minimumScore:+e.target.value})}/></label></div>
-<div className="field-grid">{(["analysisFrom","analysisTo"] as const).map(k=><label className="field" key={k}>{k==="analysisFrom"?"Analyze from (seconds)":"Analyze to (seconds)"}<input type="number" min="0" placeholder={k==="analysisFrom"?"Start":"End of recording"} value={value[k]??""} onChange={e=>onChange({...value,[k]:e.target.value===""?undefined:+e.target.value})}/></label>)}</div>
-<div className="field-grid">{(["includeWords","excludeWords"] as const).map(k=><label className="field" key={k}>{k==="includeWords"?"Include any keyword":"Exclude keywords"}<input placeholder="Comma-separated" value={value[k]||""} maxLength={500} onChange={e=>onChange({...value,[k]:e.target.value})}/></label>)}</div>
-<label className="field">
+          <div className="field-grid">
+            <Select
+              label="Analysis depth"
+              value={value.analysisDepth || "balanced"}
+              onChange={(v) =>
+                onChange({
+                  ...value,
+                  analysisDepth: v as Settings["analysisDepth"],
+                })
+              }
+              options={[
+                ["fast", "Fast · wider windows"],
+                ["balanced", "Balanced"],
+                ["deep", "Deep · second review"],
+              ]}
+            />
+            <label className="field">
+              Minimum score
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={value.minimumScore ?? 0}
+                onChange={(e) =>
+                  onChange({ ...value, minimumScore: +e.target.value })
+                }
+              />
+            </label>
+          </div>
+          <div className="field-grid">
+            {(["analysisFrom", "analysisTo"] as const).map((k) => (
+              <label className="field" key={k}>
+                {k === "analysisFrom"
+                  ? "Analyze from (seconds)"
+                  : "Analyze to (seconds)"}
+                <input
+                  type="number"
+                  min="0"
+                  placeholder={
+                    k === "analysisFrom" ? "Start" : "End of recording"
+                  }
+                  value={value[k] ?? ""}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      [k]: e.target.value === "" ? undefined : +e.target.value,
+                    })
+                  }
+                />
+              </label>
+            ))}
+          </div>
+          <div className="field-grid">
+            {(["includeWords", "excludeWords"] as const).map((k) => (
+              <label className="field" key={k}>
+                {k === "includeWords"
+                  ? "Include any keyword"
+                  : "Exclude keywords"}
+                <input
+                  placeholder="Comma-separated"
+                  value={value[k] || ""}
+                  maxLength={500}
+                  onChange={(e) => onChange({ ...value, [k]: e.target.value })}
+                />
+              </label>
+            ))}
+          </div>
+          <label className="field">
             Clipping instructions
             <textarea
               maxLength={1200}

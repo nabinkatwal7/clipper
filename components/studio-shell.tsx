@@ -36,13 +36,16 @@ export const sections = [
       ["Overview", PanelsTopLeft],
       ["New project", Plus],
       ["Projects", FolderClosed],
-      ["Clip library", Library],["Assets",FolderClosed],["Discover",Search],
+      ["Clip library", Library],
+      ["Assets", FolderClosed],
+      ["Discover", Search],
     ],
   ],
   [
     "Creation",
     [
-      ["Video editor", Scissors],["Compilations",ListVideo],
+      ["Video editor", Scissors],
+      ["Compilations", ListVideo],
       ["Transcript explorer", ScanText],
       ["Subtitle studio", Captions],
       ["Thumbnail studio", ImageIcon],
@@ -53,15 +56,18 @@ export const sections = [
     [
       ["Streamers", Cpu],
       ["Processing queue", ListVideo],
-      ["Automatic clipping", Workflow],["Workflow builder",Workflow],
+      ["Automatic clipping", Workflow],
+      ["Workflow builder", Workflow],
     ],
   ],
   [
     "Management",
     [
-      ["Production desk",SlidersHorizontal],["Content calendar", CalendarDays],
+      ["Production desk", SlidersHorizontal],
+      ["Content calendar", CalendarDays],
       ["Branding", SlidersHorizontal],
-      ["Storage", HardDrive],["Backup & recovery",HardDrive],
+      ["Storage", HardDrive],
+      ["Backup & recovery", HardDrive],
     ],
   ],
 ] as const;

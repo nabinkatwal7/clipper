@@ -1,12 +1,112 @@
-export type Ease="linear"|"in"|"out"|"in-out"|"hold";
-export type Keyframe={time:number;value:number;ease:Ease};
-export type Track={id:string;name:string;asset:string;type:"video"|"image"|"audio";at:number;length:number;slip:number;x:number;y:number;size:number;opacity:number;volume:number;visible:boolean;muted:boolean;locked:boolean;solo:boolean;loop:boolean;fade:number;keys:Partial<Record<"x"|"y"|"volume",Keyframe[]>>};
-export type Composition={version:1;tracks:Track[]};
-const within=(n:unknown,min:number,max:number)=>typeof n==="number"&&Number.isFinite(n)&&n>=min&&n<=max;
-export function validateComposition(v:Composition){if(v.version!==1||!Array.isArray(v.tracks)||v.tracks.length>16)throw Error("Unsupported composition or more than 16 tracks");const ids=new Set();for(const t of v.tracks){if(!t||typeof t.name!=="string"||t.name.length>100||![t.id,t.asset].every(v=>typeof v==="string"&&/^[a-f0-9-]{36}$/.test(v))||ids.has(t.id)||!["audio","image","video"].includes(t.type))throw Error("Invalid timeline track");ids.add(t.id);for(const n of ["visible","muted","locked","solo","loop"] as const)if(typeof t[n]!=="boolean")throw Error("Invalid track switch");
- for(const [k,min,max] of [["at",0,600],["length",.04,600],["slip",0,43200],["size",.05,1],["x",0,1],["y",0,1],["opacity",0,1],["volume",0,2],["fade",0,10]] as const)if(!within(t[k],min,max))throw Error("Invalid track "+k);
- if(!t.keys||typeof t.keys!=="object")throw Error("Invalid keyframes");for(const [k,keys] of Object.entries(t.keys)){if(!["x","y","volume"].includes(k)||!Array.isArray(keys)||keys.length>48)throw Error("Unsupported animation");let previous=-1;for(const key of keys){if(!within(key.time,0,t.length)||key.time<=previous||!within(key.value,0,k==="volume"?2:1)||!["linear","in","out","in-out","hold"].includes(key.ease))throw Error("Invalid animation point");previous=key.time}}
- }return v}
-export function curve(keys:Keyframe[]|undefined,value:number,offset:number){if(!keys?.length)return String(value);let expr=String(keys.at(-1)!.value);for(let i=keys.length-2;i>=0;i--){const a=keys[i],b=keys[i+1],t=`((t-${offset+a.time})/${b.time-a.time})`;const eased=a.ease==="hold"?"0":a.ease==="in"?`(${t}*${t})`:a.ease==="out"?`(1-(1-${t})*(1-${t}))`:a.ease==="in-out"?`(${t}*${t}*(3-2*${t}))`:t;expr=`if(lt(t,${offset+b.time}),${a.value}+(${b.value-a.value})*${eased},${expr})`}return `if(lt(t,${keys[0].time+offset}),${keys[0].value},${expr})`}
-export function enabledTracks(c:Composition|undefined){const tracks=c?validateComposition(c).tracks:[];const solo=tracks.some(t=>t.solo);return tracks.filter(t=>(!solo||t.solo)&&(t.visible&&t.type!=="audio"||!t.muted))}
-
+export type Ease = "linear" | "in" | "out" | "in-out" | "hold";
+export type Keyframe = { time: number; value: number; ease: Ease };
+export type Track = {
+  id: string;
+  name: string;
+  asset: string;
+  type: "video" | "image" | "audio";
+  at: number;
+  length: number;
+  slip: number;
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+  volume: number;
+  visible: boolean;
+  muted: boolean;
+  locked: boolean;
+  solo: boolean;
+  loop: boolean;
+  fade: number;
+  keys: Partial<Record<"x" | "y" | "volume", Keyframe[]>>;
+};
+export type Composition = { version: 1; tracks: Track[] };
+const within = (n: unknown, min: number, max: number) =>
+  typeof n === "number" && Number.isFinite(n) && n >= min && n <= max;
+export function validateComposition(v: Composition) {
+  if (v.version !== 1 || !Array.isArray(v.tracks) || v.tracks.length > 16)
+    throw Error("Unsupported composition or more than 16 tracks");
+  const ids = new Set();
+  for (const t of v.tracks) {
+    if (
+      !t ||
+      typeof t.name !== "string" ||
+      t.name.length > 100 ||
+      ![t.id, t.asset].every(
+        (v) => typeof v === "string" && /^[a-f0-9-]{36}$/.test(v),
+      ) ||
+      ids.has(t.id) ||
+      !["audio", "image", "video"].includes(t.type)
+    )
+      throw Error("Invalid timeline track");
+    ids.add(t.id);
+    for (const n of ["visible", "muted", "locked", "solo", "loop"] as const)
+      if (typeof t[n] !== "boolean") throw Error("Invalid track switch");
+    for (const [k, min, max] of [
+      ["at", 0, 600],
+      ["length", 0.04, 600],
+      ["slip", 0, 43200],
+      ["size", 0.05, 1],
+      ["x", 0, 1],
+      ["y", 0, 1],
+      ["opacity", 0, 1],
+      ["volume", 0, 2],
+      ["fade", 0, 10],
+    ] as const)
+      if (!within(t[k], min, max)) throw Error("Invalid track " + k);
+    if (!t.keys || typeof t.keys !== "object") throw Error("Invalid keyframes");
+    for (const [k, keys] of Object.entries(t.keys)) {
+      if (
+        !["x", "y", "volume"].includes(k) ||
+        !Array.isArray(keys) ||
+        keys.length > 48
+      )
+        throw Error("Unsupported animation");
+      let previous = -1;
+      for (const key of keys) {
+        if (
+          !within(key.time, 0, t.length) ||
+          key.time <= previous ||
+          !within(key.value, 0, k === "volume" ? 2 : 1) ||
+          !["linear", "in", "out", "in-out", "hold"].includes(key.ease)
+        )
+          throw Error("Invalid animation point");
+        previous = key.time;
+      }
+    }
+  }
+  return v;
+}
+export function curve(
+  keys: Keyframe[] | undefined,
+  value: number,
+  offset: number,
+) {
+  if (!keys?.length) return String(value);
+  let expr = String(keys.at(-1)!.value);
+  for (let i = keys.length - 2; i >= 0; i--) {
+    const a = keys[i],
+      b = keys[i + 1],
+      t = `((t-${offset + a.time})/${b.time - a.time})`;
+    const eased =
+      a.ease === "hold"
+        ? "0"
+        : a.ease === "in"
+          ? `(${t}*${t})`
+          : a.ease === "out"
+            ? `(1-(1-${t})*(1-${t}))`
+            : a.ease === "in-out"
+              ? `(${t}*${t}*(3-2*${t}))`
+              : t;
+    expr = `if(lt(t,${offset + b.time}),${a.value}+(${b.value - a.value})*${eased},${expr})`;
+  }
+  return `if(lt(t,${keys[0].time + offset}),${keys[0].value},${expr})`;
+}
+export function enabledTracks(c: Composition | undefined) {
+  const tracks = c ? validateComposition(c).tracks : [];
+  const solo = tracks.some((t) => t.solo);
+  return tracks.filter(
+    (t) => (!solo || t.solo) && ((t.visible && t.type !== "audio") || !t.muted),
+  );
+}

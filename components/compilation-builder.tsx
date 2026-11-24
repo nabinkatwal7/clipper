@@ -1,6 +1,151 @@
 "use client";
-import {useState} from "react";
-import type {Project} from "@/lib/types";
-export function CompilationBuilder({projects,open}:{projects:Project[];open:(id:string)=>void}){const clips=projects.flatMap(p=>p.clips.map(c=>({p,c})));const [order,setOrder]=useState<string[]>([]),[title,setTitle]=useState(""),[transition,trans]=useState("Cut"),[seconds,setSeconds]=useState(.5),[ratio,setRatio]=useState("9:16"),[normalize,setNorm]=useState(true),[error,msg]=useState(""),[busy,setBusy]=useState(false);
- return <div className="tool-layout"><section><h2>Source clips</h2>{clips.map(({p,c})=><button className="event-row" key={c.id} disabled={order.length>=12} onClick={()=>setOrder([...order,c.id])}>{c.title}<small>{p.title} · Add</small></button>)}</section><section><h2>Compilation sequence</h2><label className="field">Title<input value={title} maxLength={160} onChange={e=>setTitle(e.target.value)}/></label>{order.map((id,i)=><div className="section-row" key={i}><span>{i+1}. {clips.find(v=>v.c.id===id)?.c.title}</span><div><button disabled={!i} onClick={()=>{const next=[...order];[next[i-1],next[i]]=[next[i],next[i-1]];setOrder(next)}}>Move up</button><button onClick={()=>setOrder(order.filter((_,j)=>i!==j))}>Remove</button></div></div>)}<label className="field">Transition<select value={transition} onChange={e=>trans(e.target.value)}>{["Cut","Dissolve","Fade through black","Fade through white","Slide left","Slide right","Wipe left","Wipe right","Smooth zoom","Push","Blur"].map(v=><option key={v}>{v}</option>)}</select></label>{transition!=="Cut"&&<label className="field">Transition duration (s)<input type="number" min=".05" max="2" step=".05" value={seconds} onChange={e=>setSeconds(+e.target.value)}/></label>}<label className="field">Output ratio<select value={ratio} onChange={e=>setRatio(e.target.value)}>{["9:16","1:1","4:5","16:9"].map(v=><option key={v}>{v}</option>)}</select></label><label className="check-row"><input type="checkbox" checked={normalize} onChange={e=>setNorm(e.target.checked)}/>Normalize audio across clips</label><button className="button primary" disabled={busy||!title.trim()||order.length<2} onClick={async()=>{setBusy(true);try{const r=await fetch("/api/compilation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({clips:order,title,transition,seconds,ratio,normalize})});const d=await r.json();if(!r.ok)throw Error(d.error);open(d.id)}catch(e){msg(String(e))}finally{setBusy(false)}}}>Render compilation</button><p role="status">{error}</p></section></div>
+import { useState } from "react";
+import type { Project } from "@/lib/types";
+export function CompilationBuilder({
+  projects,
+  open,
+}: {
+  projects: Project[];
+  open: (id: string) => void;
+}) {
+  const clips = projects.flatMap((p) => p.clips.map((c) => ({ p, c })));
+  const [order, setOrder] = useState<string[]>([]),
+    [title, setTitle] = useState(""),
+    [transition, trans] = useState("Cut"),
+    [seconds, setSeconds] = useState(0.5),
+    [ratio, setRatio] = useState("9:16"),
+    [normalize, setNorm] = useState(true),
+    [error, msg] = useState(""),
+    [busy, setBusy] = useState(false);
+  return (
+    <div className="tool-layout">
+      <section>
+        <h2>Source clips</h2>
+        {clips.map(({ p, c }) => (
+          <button
+            className="event-row"
+            key={c.id}
+            disabled={order.length >= 12}
+            onClick={() => setOrder([...order, c.id])}
+          >
+            {c.title}
+            <small>{p.title} · Add</small>
+          </button>
+        ))}
+      </section>
+      <section>
+        <h2>Compilation sequence</h2>
+        <label className="field">
+          Title
+          <input
+            value={title}
+            maxLength={160}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        {order.map((id, i) => (
+          <div className="section-row" key={i}>
+            <span>
+              {i + 1}. {clips.find((v) => v.c.id === id)?.c.title}
+            </span>
+            <div>
+              <button
+                disabled={!i}
+                onClick={() => {
+                  const next = [...order];
+                  [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                  setOrder(next);
+                }}
+              >
+                Move up
+              </button>
+              <button onClick={() => setOrder(order.filter((_, j) => i !== j))}>
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        <label className="field">
+          Transition
+          <select value={transition} onChange={(e) => trans(e.target.value)}>
+            {[
+              "Cut",
+              "Dissolve",
+              "Fade through black",
+              "Fade through white",
+              "Slide left",
+              "Slide right",
+              "Wipe left",
+              "Wipe right",
+              "Smooth zoom",
+              "Push",
+              "Blur",
+            ].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </select>
+        </label>
+        {transition !== "Cut" && (
+          <label className="field">
+            Transition duration (s)
+            <input
+              type="number"
+              min=".05"
+              max="2"
+              step=".05"
+              value={seconds}
+              onChange={(e) => setSeconds(+e.target.value)}
+            />
+          </label>
+        )}
+        <label className="field">
+          Output ratio
+          <select value={ratio} onChange={(e) => setRatio(e.target.value)}>
+            {["9:16", "1:1", "4:5", "16:9"].map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </select>
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={normalize}
+            onChange={(e) => setNorm(e.target.checked)}
+          />
+          Normalize audio across clips
+        </label>
+        <button
+          className="button primary"
+          disabled={busy || !title.trim() || order.length < 2}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const r = await fetch("/api/compilation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  clips: order,
+                  title,
+                  transition,
+                  seconds,
+                  ratio,
+                  normalize,
+                }),
+              });
+              const d = await r.json();
+              if (!r.ok) throw Error(d.error);
+              open(d.id);
+            } catch (e) {
+              msg(String(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Render compilation
+        </button>
+        <p role="status">{error}</p>
+      </section>
+    </div>
+  );
 }
