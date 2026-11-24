@@ -5,6 +5,9 @@ import { Modal } from "./modal";
 import { FormatSettings, SubtitleSettings } from "./clip-settings";
 import { Button } from "./ui/button";
 import type { Clip, Project, Segment } from "@/lib/types";
+import {LayersPanel} from "./layers-panel";
+import {GradePanel} from "./grade-panel";
+import {DirectorPanel} from "./director-panel";
 import { EditorMonitor } from "./editor-monitor";
 import { EditorInspector, editorTools } from "./editor-inspector";
 import { EditTimeline } from "./edit-timeline";
@@ -77,7 +80,8 @@ export function VideoEditor({
     end <= project.duration &&
     end - start <= 600;
   const [splitAt, setSplitAt] = useState<number | null>(null);
-  const snapshot = { settings, startText, endText, segments, splitAt };
+  const [title,setTitle]=useState(clip.title),[variation,setVariation]=useState(false);
+  const snapshot = {title, settings, startText, endText, segments, splitAt };
   const history = useRef<{
     past: (typeof snapshot)[];
     future: (typeof snapshot)[];
@@ -88,7 +92,7 @@ export function VideoEditor({
   useEffect(() => {
     const old = previous.current;
     if (
-      old.settings === settings &&
+      old.title===title && old.settings === settings &&
       old.startText === startText &&
       old.endText === endText &&
       old.segments === segments &&
@@ -105,15 +109,15 @@ export function VideoEditor({
       history.current.past.length,
       history.current.future.length,
     ]);
-    previous.current = { settings, startText, endText, segments, splitAt };
-  }, [settings, startText, endText, segments, splitAt]);
+    previous.current = { title,settings, startText, endText, segments, splitAt };
+  }, [title,settings, startText, endText, segments, splitAt]);
   function restore(redo: boolean) {
     const { past, future } = history.current;
     const next = (redo ? future : past).pop();
     if (!next) return;
     (redo ? past : future).push(snapshot);
     restoring.current = true;
-    setSettings(next.settings);
+    setTitle(next.title);setSettings(next.settings);
     setStartText(next.startText);
     setEndText(next.endText);
     setSegments(next.segments);
@@ -186,7 +190,7 @@ export function VideoEditor({
   });
   const [quality, setQuality] = useState(720);
   const dirty =
-    settings !== clip.settings ||
+    title!==clip.title || settings !== clip.settings ||
     segments !== clip.segments ||
     start !== clip.start ||
     end !== clip.end ||
@@ -203,7 +207,7 @@ export function VideoEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           project: project.id,
-          clip: clip.id,
+          clip: clip.id,title,variation,
           start,
           end,
           settings,
@@ -476,9 +480,10 @@ export function VideoEditor({
               <p className="hint">
                 Use minutes:seconds or hours:minutes:seconds.
               </p>
+              <label className="field">Clip title<input maxLength={160} value={title} onChange={e=>setTitle(e.target.value)}/></label>
               <FormatSettings value={settings} onChange={setSettings} />
             </div>
-          ) : tab !== "subtitles" ? (
+          ) : tab==="layers"?<LayersPanel s={settings} change={setSettings} at={now-start} length={end-start} seek={n=>seek(start+n)}/>:tab==="grade"||tab==="audio"? <GradePanel settings={settings} change={setSettings} project={project.id} clip={clip.id} start={start} end={end} audio={tab==="audio"}/> : tab==="director"? <DirectorPanel clip={clip.id} project={project.id} apply={p=>{if(p.kind==="title")setTitle(p.title);if(p.kind==="zoom")setSettings({...settings,scale:p.scale});if(p.kind==="layout")setSettings({...settings,layout:p.layout});if(p.kind==="range"){setStartText(timecode(p.start));setEndText(timecode(p.end));seek(p.start)}}}/> : tab !== "subtitles" ? (
             <EditorInspector
               tab={tab}
               settings={settings}
@@ -554,7 +559,7 @@ export function VideoEditor({
           {error}
         </p>
       )}
-      <footer className="modal-footer">
+      <footer className="modal-footer"><label className="check-row"><input type="checkbox" checked={variation} onChange={e=>setVariation(e.target.checked)}/>Save as variation</label>
         <span className="muted">
           {valid
             ? `${Math.max(0, end - start).toFixed(1)} seconds selected`
@@ -576,7 +581,7 @@ export function VideoEditor({
           ) : (
             <Check size={16} />
           )}
-          {splitAt === null ? "Save changes" : "Save two clips"}
+          {variation?"Render variation":splitAt === null ? "Save changes" : "Save two clips"}
         </Button>
       </footer>
     </Modal>

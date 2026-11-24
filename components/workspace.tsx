@@ -27,6 +27,8 @@ import { PostCaption } from "./post-caption";
 import { JobProgress } from "./job-progress";
 import type { Project, Clip } from "@/lib/types";
 import { Channels, useChannelMonitor } from "./channels";
+import {AssetLibrary} from "./asset-library";
+import {ProductionDesk} from "./production-desk";
 import { Branding } from "./brand-profiles";
 import { StudioShell, sections } from "./studio-shell";
 import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
@@ -424,6 +426,8 @@ export default function Workspace() {
               />
             )}
             {page === "Branding" && <Branding />}
+            {page==="Assets"&&<AssetLibrary projects={projects}/>}
+            {page==="Production desk"&&<ProductionDesk projects={projects}/>}
             {page === "Storage" && <StorageUsage />}
           </>
         ) : !project ? (
@@ -970,6 +974,7 @@ export default function Workspace() {
                 disabled={processing}
                 onUpdated={refresh}
               />
+              {clip.qa&&<details className="clip-context"><summary>Export inspection</summary><p>{clip.qa.width} × {clip.qa.height} · {clip.qa.fps.toFixed(2)} fps · {clip.qa.duration.toFixed(2)} seconds · {(clip.qa.bytes/1048576).toFixed(1)} MB</p><p>{clip.qa.audio?"Audio present":"Video only"}{clip.qa.peakDb!==undefined?` · Peak ${clip.qa.peakDb} dBFS`:""}</p>{clip.qa.warnings.length?clip.qa.warnings.map(w=><p key={w}>{w}</p>):<p>Decode and stream checks passed.</p>}</details>}
               <details className="clip-context">
                 <summary>About this moment</summary>
                 <p>{clip.reason}</p>

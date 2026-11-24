@@ -6,6 +6,7 @@ import type { Project, Segment } from "./types";
 export const root = path.join(process.cwd(), "storage");
 export const dirs = [
   "uploads",
+  "assets",
   "audio",
   "transcripts",
   "projects",

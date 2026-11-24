@@ -1,3 +1,5 @@
+import {validateComposition} from "./composition";
+import {gradeValue,mixFilters} from "./grading";
 import { defaults, type Settings, type Highlight } from "./types";
 import ipaddr from "ipaddr.js";
 export function publicAddress(address: string) {
@@ -97,6 +99,13 @@ export function settings(input: unknown): Settings {
     (!Number.isFinite(s.overlayY) || s.overlayY < 8 || s.overlayY > 90)
   )
     throw Error("Invalid overlay position");
+  if(s.analysisDepth&&!["fast","balanced","deep"].includes(s.analysisDepth))throw Error("Invalid analysis depth");
+  for(const n of [s.analysisFrom,s.analysisTo])if(n!==undefined&&(!Number.isFinite(n)||n<0||n>43200))throw Error("Invalid analysis range");
+  if(s.analysisTo!==undefined&&s.analysisTo<=(s.analysisFrom??0))throw Error("Analysis end must follow its start");
+  if(s.minimumScore!==undefined&&(!Number.isFinite(s.minimumScore)||s.minimumScore<0||s.minimumScore>100))throw Error("Minimum score must be 0–100");
+  for(const words of [s.includeWords,s.excludeWords])if(words!==undefined&&(typeof words!=="string"||words.length>500))throw Error("Keyword list exceeds 500 characters");
+  if(s.composition)validateComposition(s.composition);
+  if(s.grade)gradeValue(s.grade);if(s.mix)mixFilters(s.mix,60);
   return s;
 }
 export function validateHighlights(

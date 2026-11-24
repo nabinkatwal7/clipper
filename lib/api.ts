@@ -1,3 +1,8 @@
+import {assetList,importAsset,editAsset,asset} from "./assets";
+import {buildPackage,packageLocation} from "./publishing-package";
+import {ledger,updateLedger} from "./production-store";
+import {report,reportText,escapeHtml} from "./production";
+import {advise} from "./director";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { promises as fs, createWriteStream, createReadStream } from "node:fs";
@@ -46,6 +51,36 @@ export async function handle(
     guard(req);
     await init();
     const query = req.nextUrl.searchParams;
+    if(action==="assets"){
+      if(req.method==="POST"&&req.headers.get("content-type")==="application/octet-stream")return NextResponse.json(await importAsset(req));
+      if(req.method==="POST"){const b=await req.json();return NextResponse.json(await editAsset(b.id,b))}
+      if(req.method==="GET"&&query.has("id")){const a=await asset(query.get("id")||"");return new Response(Readable.toWeb(createReadStream(file("assets",a.id,a.ext))) as ReadableStream,{headers:{"Content-Type":a.kind+"/"+({mp4:"mp4",mov:"quicktime",mp3:"mpeg",jpg:"jpeg"}[a.ext]||a.ext),"Content-Length":String(a.bytes),"X-Content-Type-Options":"nosniff"}})}
+      if(req.method==="GET")return NextResponse.json(await assetList())
+    }
+    if(action==="publish-package"){
+      const p=await read(query.get("project")||"");const id=query.get("clip")||undefined;const clips=id?p.clips.filter(c=>c.id===id):p.clips;if(!clips.length)throw Error("No completed clips available.");
+      const target=packageLocation(p.id,id);
+      if(req.method==="POST"){if(busy(p.id))throw Error("Project is busy");enqueue(p.id,signal=>buildPackage(p,clips,!!id,signal));return NextResponse.json({queued:true},{status:202})}
+      const info=await fs.stat(target).catch(()=>null);if(query.has("status"))return NextResponse.json({available:!!info,updated:info?.mtime.toISOString()});
+      if(!info)throw Error("Build the publishing package first.");return new Response(Readable.toWeb(createReadStream(target)) as ReadableStream,{headers:{"Content-Type":"application/zip","Content-Length":String(info.size),"Content-Disposition":'attachment; filename="publishing-package.zip"'}})
+    }
+    if(req.method==="POST"&&action==="render-preview"){
+      const b=await req.json();const p=await read(b.project),c=p.clips.find(c=>c.id===b.clip);if(!c)throw Error("Clip not found");
+      const start=Number(b.start),end=Math.min(start+3,Number(b.end),p.duration);if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start)throw Error("Invalid preview range");
+      const s=settings(b.settings);const state=globalThis as typeof globalThis & {previewActive?:boolean};if(state.previewActive||busy(p.id))return NextResponse.json({error:"A render is already running. Try again when it finishes."},{status:409});
+      const id=randomUUID();state.previewActive=true;try{const clip=await render(p,{...c,start,end},s,c.segments,req.signal,id);return new Response(new Uint8Array(await fs.readFile(file("clips",clip.id,"mp4"))),{headers:{"Content-Type":"video/mp4","Cache-Control":"no-store"}})}finally{state.previewActive=false;await fs.rm(file("clips",id,"mp4"),{force:true})}
+    }
+    if(action==="production"||action==="report"){
+      const id=query.get("project")||"";const p=await read(id);
+    if(action==="production"&&req.method==="POST")return NextResponse.json(await updateLedger(id,await req.json()));
+      if(req.method!=="GET")return new Response(null,{status:405});
+      const d=await ledger(id);if(action==="production")return NextResponse.json(d);
+      const idx=await fs.readFile(file("temp",id,"index.json"),"utf8").then(t=>JSON.parse(t)).catch(()=>undefined);
+      const r=report(p,await transcript(id).catch(()=>[]),d,idx);const fmt=query.get("format");
+      if(fmt==="md"||fmt==="html"){const md=reportText(r);return new Response(fmt==="md"?md:"<!doctype html><meta charset=utf-8><title>"+escapeHtml(p.title)+"</title><style>body{max-width:72ch;margin:3em auto;font:16px/1.5 system-ui}pre{white-space:pre-wrap;font:inherit}</style><pre>"+escapeHtml(md)+"</pre>",{headers:{"Content-Type":fmt==="md"?"text/markdown; charset=utf-8":"text/html; charset=utf-8",...(fmt==="md"?{"Content-Disposition":'attachment; filename="stream-report.md"'}:{})}})}
+      return NextResponse.json(r,{headers:fmt==="json"?{"Content-Disposition":'attachment; filename="stream-report.json"'}:{}})
+    }
+    if(req.method==="POST"&&action==="director"){const b=await req.json();const project=await read(b.project);const clip=project.clips.find(c=>c.id===b.clip);if(!clip)throw Error("Clip not found");return NextResponse.json(await advise(project.id,clip,await transcript(project.id).catch(()=>clip.segments),project.duration,b.instruction,req.signal))}
     if (action === "source-index") {
       const project = await read(query.get("project") || "");
       if (req.method === "GET") {
@@ -479,6 +514,9 @@ export async function handle(
           end - start > 600
         )
           throw Error("Choose a valid trim range up to 10 minutes");
+        const variation=body.variation===true;
+        const title=body.title===undefined?clip.title:body.title;
+        if(typeof title!=="string"||!title.trim()||title.length>160)throw Error("Enter a clip title of up to 160 characters.");
         const splitAt = body.splitAt;
         if (
           splitAt != null &&
@@ -564,11 +602,11 @@ export async function handle(
                   {
                     ...clip,
                     editorialId:
-                      i === 0 ? clip.editorialId || clip.id : randomUUID(),
+                      !variation && i === 0 ? clip.editorialId || clip.id : randomUUID(),
                     title:
                       splitAt == null
-                        ? clip.title
-                        : clip.title + " · Part " + (i + 1),
+                        ? title
+                        : title + " · Part " + (i + 1),
                     start: from,
                     end: to,
                   },
@@ -588,7 +626,7 @@ export async function handle(
             }
             await editProgress.flush();
             completeProgress(p, "rendering");
-            p.clips = p.clips.flatMap((c) => (c.id === clip.id ? parts : [c]));
+            p.clips = variation?[...p.clips,...parts]:p.clips.flatMap((c) => (c.id === clip.id ? parts : [c]));
             await save(p);
             committed = true;
           } finally {
@@ -599,7 +637,7 @@ export async function handle(
                 ),
               );
           }
-          await Promise.all(
+          if(!variation)await Promise.all(
             ["mp4", "jpg"].map((ext) =>
               fs.rm(file("clips", clip.id, ext), { force: true }),
             ),
@@ -692,6 +730,7 @@ export async function handle(
           ["uploads", "jpg"],
           ["audio", "wav"],
           ["transcripts", "json"],
+          ["projects", "production.json"],
           ["projects", "json"],
         ] as const)
           await fs.rm(file(dir, p.id, ext), { force: true });

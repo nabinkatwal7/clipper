@@ -1,6 +1,9 @@
 export type Settings = {
+  grade?:Partial<import("./grading").Grade>; mix?:Partial<import("./grading").Mix>;
+  composition?:import("./composition").Composition;
   category?: string;
   instructions?: string;
+  analysisDepth?:"fast"|"balanced"|"deep";analysisFrom?:number;analysisTo?:number;minimumScore?:number;includeWords?:string;excludeWords?:string;
   model?: string;
   captionColor?: string;
   captionBackground?: boolean;
@@ -52,7 +55,7 @@ export type Segment = {
   words: Word[];
 };
 export type Highlight = {
-  editorialId?: string;
+  editorialId?: string; familyId?:string;
   start: number;
   end: number;
   title: string;
@@ -61,6 +64,7 @@ export type Highlight = {
   postCaption?: string;
 };
 export type Clip = Highlight & {
+  qa?:import("./export-qa").ExportCheck;
   id: string;
   file: string;
   settings: Settings;
@@ -70,7 +74,7 @@ export type Project = {
   id: string;
   title: string;
   duration: number;
-  width: number;
+  hasAudio?:boolean; width: number;
   height: number;
   thumbnail?: string;
   source?: string;

@@ -36,7 +36,7 @@ export const sections = [
       ["Overview", PanelsTopLeft],
       ["New project", Plus],
       ["Projects", FolderClosed],
-      ["Clip library", Library],
+      ["Clip library", Library],["Assets",FolderClosed],
     ],
   ],
   [
@@ -59,7 +59,7 @@ export const sections = [
   [
     "Management",
     [
-      ["Content calendar", CalendarDays],
+      ["Production desk",SlidersHorizontal],["Content calendar", CalendarDays],
       ["Branding", SlidersHorizontal],
       ["Storage", HardDrive],
     ],
