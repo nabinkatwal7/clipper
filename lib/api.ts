@@ -525,6 +525,7 @@ export async function handle(
           end - start > 600
         )
           throw Error("Choose a valid trim range up to 10 minutes");
+        if(body.postCaption!==undefined&&(typeof body.postCaption!=="string"||body.postCaption.length>2200))throw Error("Post caption exceeds 2200 characters.");
         const variation=body.variation===true;
         const title=body.title===undefined?clip.title:body.title;
         if(typeof title!=="string"||!title.trim()||title.length>160)throw Error("Enter a clip title of up to 160 characters.");
@@ -613,6 +614,8 @@ export async function handle(
                   p,
                   {
                     ...clip,
+                    familyId:clip.familyId||clip.editorialId||clip.id,
+                    postCaption:body.postCaption??clip.postCaption,
                     editorialId:
                       !variation && i === 0 ? clip.editorialId || clip.id : randomUUID(),
                     title:

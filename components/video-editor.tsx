@@ -83,7 +83,8 @@ export function VideoEditor({
     end - start <= 600;
   const [splitAt, setSplitAt] = useState<number | null>(null);
   const [title,setTitle]=useState(clip.title),[variation,setVariation]=useState(false);
-  const snapshot = {title, settings, startText, endText, segments, splitAt };
+  const [postCaption,setPostCaption]=useState(clip.postCaption);
+  const snapshot = {postCaption,title, settings, startText, endText, segments, splitAt };
   const history = useRef<{
     past: (typeof snapshot)[];
     future: (typeof snapshot)[];
@@ -94,7 +95,7 @@ export function VideoEditor({
   useEffect(() => {
     const old = previous.current;
     if (
-      old.title===title && old.settings === settings &&
+      old.postCaption===postCaption && old.title===title && old.settings === settings &&
       old.startText === startText &&
       old.endText === endText &&
       old.segments === segments &&
@@ -111,15 +112,15 @@ export function VideoEditor({
       history.current.past.length,
       history.current.future.length,
     ]);
-    previous.current = { title,settings, startText, endText, segments, splitAt };
-  }, [title,settings, startText, endText, segments, splitAt]);
+    previous.current = { postCaption,title,settings, startText, endText, segments, splitAt };
+  }, [postCaption,title,settings, startText, endText, segments, splitAt]);
   function restore(redo: boolean) {
     const { past, future } = history.current;
     const next = (redo ? future : past).pop();
     if (!next) return;
     (redo ? past : future).push(snapshot);
     restoring.current = true;
-    setTitle(next.title);setSettings(next.settings);
+    setPostCaption(next.postCaption);setTitle(next.title);setSettings(next.settings);
     setStartText(next.startText);
     setEndText(next.endText);
     setSegments(next.segments);
@@ -209,7 +210,7 @@ export function VideoEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           project: project.id,
-          clip: clip.id,title,variation,
+          clip: clip.id,title,postCaption,variation,
           start,
           end,
           settings,
@@ -485,7 +486,7 @@ export function VideoEditor({
               <label className="field">Clip title<input maxLength={160} value={title} onChange={e=>setTitle(e.target.value)}/></label>
               <FormatSettings value={settings} onChange={setSettings} />
             </div>
-          ) : tab==="localize"?<LocalizationPanel project={project.id} clip={clip} apply={(title,rows)=>{setTitle(title);setSegments(rows);setSettings({...settings,captions:true})}}/>:tab==="history"?<HistoryPanel project={project.id} clip={clip} restore={v=>{setTitle(v.title);setSettings(v.settings);setSegments(v.segments);setStartText(timecode(v.start));setEndText(timecode(v.end));setSplitAt(null)}}/>:tab==="layers"?<LayersPanel s={settings} change={setSettings} at={now-start} length={end-start} seek={n=>seek(start+n)}/>:tab==="grade"||tab==="audio"? <GradePanel settings={settings} change={setSettings} project={project.id} clip={clip.id} start={start} end={end} audio={tab==="audio"}/> : tab==="director"? <DirectorPanel clip={clip.id} project={project.id} apply={p=>{if(p.kind==="title")setTitle(p.title);if(p.kind==="zoom")setSettings({...settings,scale:p.scale});if(p.kind==="layout")setSettings({...settings,layout:p.layout});if(p.kind==="range"){setStartText(timecode(p.start));setEndText(timecode(p.end));seek(p.start)}}}/> : tab !== "subtitles" ? (
+          ) : tab==="localize"?<LocalizationPanel project={project.id} clip={clip} apply={(title,rows,description)=>{setPostCaption(description);setTitle(title);setSegments(rows);setSettings({...settings,captions:true})}}/>:tab==="history"?<HistoryPanel project={project.id} clip={clip} restore={v=>{setTitle(v.title);setSettings(v.settings);setSegments(v.segments);setStartText(timecode(v.start));setEndText(timecode(v.end));setSplitAt(null)}}/>:tab==="layers"?<LayersPanel s={settings} change={setSettings} at={now-start} length={end-start} seek={n=>seek(start+n)}/>:tab==="grade"||tab==="audio"? <GradePanel settings={settings} change={setSettings} project={project.id} clip={clip.id} start={start} end={end} audio={tab==="audio"}/> : tab==="director"? <DirectorPanel clip={clip.id} project={project.id} apply={p=>{if(p.kind==="title")setTitle(p.title);if(p.kind==="zoom")setSettings({...settings,scale:p.scale});if(p.kind==="layout")setSettings({...settings,layout:p.layout});if(p.kind==="range"){setStartText(timecode(p.start));setEndText(timecode(p.end));seek(p.start)}}}/> : tab !== "subtitles" ? (
             <EditorInspector
               tab={tab}
               settings={settings}

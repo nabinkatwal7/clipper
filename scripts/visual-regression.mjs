@@ -17,6 +17,7 @@ try {
  await page.getByRole('button',{name,exact:true}).click();
  await page.getByRole('heading',{name,exact:true}).first().waitFor();
  await page.evaluate(()=>document.fonts.ready);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))console.log(await page.evaluate(()=>[...document.body.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).slice(0,12).map(e=>[e.tagName,e.className,e.clientWidth])));
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),name+' overflow at '+width);
  await page.screenshot({path:dest+'/'+width+'-'+name.replace(/[^a-z0-9]+/gi,'-')+'.png',animations:'disabled'});
  }

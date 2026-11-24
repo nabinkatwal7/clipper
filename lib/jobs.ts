@@ -579,7 +579,7 @@ export async function render(
   const master=["volume="+(s.volume??1),...(s.mix?mixFilters(s.mix,h.end-h.start):[])].join(",");
   let sourceAudio=p.hasAudio;
   if(s.composition?.tracks.length&&sourceAudio===undefined){const streams=await run(bin.ffprobe,["-v","error","-select_streams","a:0","-show_entries","stream=index","-of","csv=p=0",file("uploads",p.id,"mp4")],signal);sourceAudio=!!streams.trim()}
-  const comp=await compose(s.composition,w,height,h.end-h.start,!!sourceAudio,master);
+  const comp=await compose(s.composition,w,height,h.end-h.start,!!sourceAudio,master,!!s.mix?.duck);
   const filter=[layoutFilter(s,w,height),"[formatted]"+(transforms.join(",")||"null")+"[base]",...comp.graph,`[${comp.video}]${finalOverlay}[out]`].join(";");
   const temporary = file("temp", id, "mp4");
   try {

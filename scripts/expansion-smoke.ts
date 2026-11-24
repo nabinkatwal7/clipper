@@ -24,8 +24,8 @@ async function main(){
  const {randomUUID}=await import("node:crypto");
  const track={id:randomUUID(),name:"Inset",asset:a.id,type:"video",at:0,length:1,slip:0,x:0,y:0,size:.4,opacity:.8,volume:.3,visible:true,muted:false,locked:false,solo:false,loop:false,fade:.1,keys:{x:[{time:0,value:0,ease:"linear"},{time:.8,value:1,ease:"hold"}]}};
  const original=project.clips[0];
- const variant=await req("edit","","POST",{project:id,clip:original.id,variation:true,title:"Inset variation",start:0,end:1,settings:{...original.settings,composition:{version:1,tracks:[track]},grade:{effect:"sepia",amount:.5,from:0,to:.8},mix:{normalize:true}}});
- assert.equal(variant.status,202,await variant.text());project=await wait();assert.equal(project.clips.length,3);assert.ok(project.clips.some(c=>c.id===original.id));const v=project.clips.find(c=>c.title==="Inset variation")!;assert.ok(v.qa);
+ const variant=await req("edit","","POST",{project:id,clip:original.id,variation:true,title:"Inset variation",start:0,end:1,settings:{...original.settings,composition:{version:1,tracks:[track]},grade:{effect:"sepia",amount:.5,from:0,to:.8},mix:{normalize:true,duck:true}}});
+ assert.equal(variant.status,202,await variant.text());project=await wait();assert.equal(project.clips.length,3);assert.ok(project.clips.some(c=>c.id===original.id));const v=project.clips.find(c=>c.title==="Inset variation")!;assert.ok(v.qa);assert.equal(v.familyId,original.familyId||original.editorialId||original.id);
  const {buildPackage,packageLocation}=await import("../lib/publishing-package");await buildPackage(project,[v],true,signal);assert.equal((await fs.readFile(packageLocation(id,v.id))).subarray(0,2).toString(),"PK");
  const {compilation}=await import("../lib/compilation");const compiled=await compilation({clips:[v.id,original.id],title:"Compilation check",transition:"Dissolve",seconds:.2,ratio:"16:9",normalize:true});
  const until=Date.now()+90000;while(busy(compiled.id)&&Date.now()<until)await new Promise(r=>setTimeout(r,100));const output=await read(compiled.id);assert.equal(output.status,"ready",output.error);assert.ok(output.clips[0].qa);

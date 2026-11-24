@@ -23,3 +23,10 @@ test("composition versioning and interpolation enforce explicit timeline offsets
  assert.deepEqual(validateComposition({version:1,tracks:[]}).tracks,[]);assert.throws(()=>validateComposition({version:2 as 1,tracks:[]}));
  assert.equal(curve([],0.25,4),"0.25");assert.match(curve([{time:0,value:0,ease:"linear"},{time:2,value:1,ease:"hold"}],0,3),/lt\(t,5\)/);
 });
+
+import {importMeasurements} from "../lib/metrics-csv";
+test("CSV preserves zero, accepts quoted numbers and rejects bad rows before import",()=>{
+ assert.deepEqual(importMeasurements('clip,views,likes\na,"1,234",0'),[{clip:"a",values:{views:1234,likes:0}}]);
+ assert.throws(()=>importMeasurements("clip,completionPercent\na,110"));
+ assert.throws(()=>importMeasurements("clip,views\na,1\na,2"));
+});
