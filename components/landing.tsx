@@ -1,5 +1,12 @@
 import { Scissors, Languages, ShieldCheck, ArrowRight } from "lucide-react";
 import { features, groups, type Feature } from "@/lib/site-features";
+import { photo, photos, featurePhoto } from "@/lib/photos";
+
+export function Photo({ k, w = 1200, h = 800, className }: { k: keyof typeof photos; w?: number; h?: number; className?: string }) {
+  const [id, alt] = photos[k];
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className={className} src={photo(id, w, h)} width={w} height={h} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />;
+}
 
 export function ProductPreview() {
   const rows = [
@@ -63,10 +70,11 @@ export function FactStrip() {
 
 function FeaturePreview({ f }: { f: Feature }) {
   return (
-    <div className="fp" role="img" aria-label={`Sample of ${f.title}`}>
+    <div className="fp">
+      <Photo k={featurePhoto[f.id]} w={900} h={460} className="fp-img" />
       <div className="fp-bar"><i /><i /><i /><span>{f.title}</span></div>
       <dl>{f.sample.map(([k, v]) => <div key={k}><dt>{k}</dt><dd lang={/[ऀ-ॿ]/.test(v) ? "ne" : undefined}>{v}</dd></div>)}</dl>
-      <p>Sample data</p>
+      <p>Sample interface data · stock photo</p>
     </div>
   );
 }
@@ -128,6 +136,7 @@ export function PrivacyBand() {
 export function ClosingCta({ href, label, title }: { href: string; label: string; title: string }) {
   return (
     <section className="lp-section cta">
+      <Photo k="timeline" w={1600} h={600} className="cta-bg" />
       <Scissors size={28} />
       <h2>{title}</h2>
       <a className="site-button big" href={href}>{label}</a>

@@ -5,6 +5,7 @@ export function run(
   signal?: AbortSignal,
   onLine?: (line: string) => void,
   timeout = 6 * 60 * 60 * 1000,
+  maxOutput = 400_000_000, // characters kept; large yt-dlp metadata JSON can exceed tens of MB
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     signal?.throwIfAborted();
@@ -14,10 +15,12 @@ export function run(
       detached: process.platform !== "win32",
       env: { ...process.env, PYTHONUNBUFFERED: "1" },
     });
-    let output = "",
+    const chunks: string[] = [];
+    let size = 0,
       error = "";
     const pending = { stdout: "", stderr: "" };
     const lines = (stream: keyof typeof pending, chunk: string) => {
+      if (!onLine) return; // avoids re-splitting huge single-line output
       pending[stream] += chunk;
       const parts = pending[stream].split(/[\r\n]+/);
       pending[stream] = parts.pop() || "";
@@ -50,7 +53,10 @@ export function run(
       signal?.removeEventListener("abort", kill);
     };
     child.stdout.on("data", (b) => {
-      output = (output + b.toString()).slice(-8_000_000);
+      const text = b.toString();
+      chunks.push(text);
+      size += text.length;
+      while (size > maxOutput && chunks.length > 1) size -= chunks.shift()!.length;
       lines("stdout", b.toString());
     });
     child.stderr.on("data", (b) => {
@@ -65,7 +71,7 @@ export function run(
       for (const line of Object.values(pending)) if (line) onLine?.(line);
       cleanup();
       code === 0 && !signal?.aborted
-        ? resolve(output)
+        ? resolve(chunks.join(""))
         : reject(
             Error(
               signal?.aborted

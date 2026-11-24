@@ -1,16 +1,18 @@
 import { SiteHeader, SiteFooter } from "./public-site";
 import { webUser, webLocale } from "@/lib/web-session";
-import { ClosingCta } from "./landing";
+import { ClosingCta, Photo } from "./landing";
+import type { PhotoKey } from "@/lib/photos";
 
-export async function PageShell({ eyebrow, title, lead, children, cta = true }: { eyebrow: string; title: string; lead: string; children: React.ReactNode; cta?: boolean }) {
+export async function PageShell({ eyebrow, title, lead, children, cta = true, image = "monitor" }: { image?: PhotoKey; eyebrow: string; title: string; lead: string; children: React.ReactNode; cta?: boolean }) {
   const [u, l] = await Promise.all([webUser(), webLocale()]);
   return (
     <main className="public-site">
       <SiteHeader locale={l} logged={!!u} />
       <header className="page-hero">
-        <p className="eyebrow">{eyebrow}</p>
+        <div><p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        <p className="lead">{lead}</p>
+        <p className="lead">{lead}</p></div>
+        <Photo k={image} w={900} h={640} className="page-hero-img" />
       </header>
       {children}
       {cta && <ClosingCta href={u ? "/app" : "/register"} label={u ? "Open studio" : "Create your account"} title="Your next great clip is already in the footage." />}

@@ -1,11 +1,12 @@
 import {NextRequest,NextResponse} from "next/server";
 import {ZodError} from "zod";
+import {sameOrigin} from "@/lib/origin";
 import {audit,cookieName,issue,login,logout,manage,rate,recover,register,session} from "@/lib/auth";
 export const runtime="nodejs";
 const loopback=(h:string)=>["localhost","127.0.0.1","[::1]"].includes(h);
 export async function POST(req:NextRequest,ctx:{params:Promise<{operation:string}>}){
- const {operation}=await ctx.params;const host=req.nextUrl.host;
- if(req.headers.get("origin")!==req.nextUrl.origin||req.headers.get("host")!==host||!req.headers.get("content-type")?.startsWith("application/json"))return NextResponse.json({error:"Invalid request origin."},{status:403});
+ const {operation}=await ctx.params;
+ if(!sameOrigin(req)||!req.headers.get("content-type")?.startsWith("application/json"))return NextResponse.json({error:"Invalid request origin."},{status:403});
  try{const text=await req.text();if(text.length>8192)throw Error("Request too large.");const b=JSON.parse(text);const current=req.cookies.get(cookieName)?.value;
  if(operation==="logout"){await logout(current);const r=NextResponse.json({ok:true});r.cookies.delete(cookieName);return r}
  if(operation==="manage"){const user=await session(current);if(!user)return NextResponse.json({error:"Sign in required"},{status:401});rate("manage:"+user.id,16);return NextResponse.json({result:await manage(user,b)})}

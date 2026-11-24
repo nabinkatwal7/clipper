@@ -10,9 +10,9 @@ export default async function AppPage() {
   const u = await webUser();
   if (!u) redirect("/login?next=/app");
   return (
-    <>
+    <div data-workspace-user={u.id} style={{ display: "contents" }}>
       <Workspace />
       <AccountBar name={u.name} role={u.role} />
-    </>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Wordmark } from "./public-site";
 import { Check } from "lucide-react";
+import { ThemeToggle } from "./theme-toggle";
 
 const points = [
   "Find highlights in long recordings with local AI",
@@ -11,7 +12,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="auth-shell">
       <div className="auth-main">
-        <Wordmark />
+        <div className="auth-top"><Wordmark /><ThemeToggle /></div>
         <div className="auth-slot">{children}</div>
         <p className="auth-foot"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/">Back to home</a></p>
       </div>
