@@ -1,3 +1,4 @@
+import {suggestBroll} from "./broll";
 import { backupList, snapshot, inspectBackup } from "./backup";
 import { compileWorkflow } from "./workflow";
 import { diagnostics } from "./diagnostics";
@@ -97,12 +98,12 @@ export async function handle(
       });
       return NextResponse.json({ queued: true }, { status: 202 });
     }
-    if (req.method === "POST" && action === "localize") {
+    if (req.method === "POST" && (action === "localize"||action==="suggest-broll")) {
       const b = await req.json(),
         p = await read(b.project),
         c = p.clips.find((c) => c.id === b.clip);
       if (!c) throw Error("Clip not found");
-      return NextResponse.json(await localize(p.id, c, b.language, req.signal));
+      return NextResponse.json(action==="suggest-broll"?await suggestBroll(p.id,c,req.signal):await localize(p.id, c, b.language, req.signal));
     }
     if (req.method === "GET" && action === "audio-export") {
       const p = await read(query.get("project") || ""),

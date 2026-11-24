@@ -9,14 +9,17 @@ export function LayersPanel({
   change,
   at,
   length,
-  seek,
+  seek,project,clip,
 }: {
+  project:string;clip:string;
   s: Settings;
   change: (s: Settings) => void;
   at: number;
   length: number;
   seek: (n: number) => void;
 }) {
+  const [suggestions,setSuggestions]=useState<{asset:Asset;reason:string}[]>([]),[message,setMessage]=useState(""),[finding,setFinding]=useState(false);
+  async function suggest(){setFinding(true);setMessage("");try{const r=await fetch("/api/suggest-broll",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project,clip})});const data=await r.json();if(!r.ok)throw Error(data.error);setSuggestions(data);if(!data.length)setMessage("No matching local footage found.")}catch(e){setMessage(String(e))}finally{setFinding(false)}}
   const tracks = s.composition?.tracks || [],
     [id, setId] = useState(""),
     [param, setParam] = useState<"x" | "y" | "volume">("x"),
@@ -67,8 +70,12 @@ export function LayersPanel({
       <details>
         <summary className="inline-link">Add media track</summary>
         <AssetLibrary insert={insert} />
+        <button className="tool" disabled={finding} onClick={suggest}>{finding?"Checking local assets…":"Suggest B-roll with Ollama"}</button>
+        {suggestions.map(({asset,reason})=><button key={asset.id} className="event-row" onClick={()=>insert(asset)}>Insert {asset.name}<small>{reason}</small></button>)}
       </details>
-      <div className="layer-stack">
+      {message&&<p role="status">{message}</p>}
+      <div className="layer-stack" onDragOver={e=>{if(e.dataTransfer.types.includes("application/x-clipper-asset"))e.preventDefault()}} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData("application/x-clipper-asset");if(!id)return;try{const r=await fetch("/api/assets");if(!r.ok)throw Error("Could not load the asset library");const a=(await r.json() as Asset[]).find(a=>a.id===id);if(!a)throw Error("Asset is unavailable");insert(a)}catch(err){setMessage(String(err))}}}>
+        <small>Drop a library asset here to insert it at the playhead.</small>
         {tracks.map((v, i) => (
           <button
             key={v.id}

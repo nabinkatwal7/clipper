@@ -284,7 +284,7 @@ Test coverage — MP4 import fixture.
 
 Runtime dependencies — Assets, FFmpeg.
 
-Insert a supplied video as an overlay with size, timing, audio and fade controls. No AI asset matching.
+Insert a supplied video as an overlay with size, timing, audio and fade controls. Ollama can suggest supplied visual assets from their names, descriptions, tags and the current clip transcript. Users choose each insertion.
 
 Test coverage — Animated inset render fixture.
 

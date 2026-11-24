@@ -543,7 +543,7 @@ export function VideoEditor({
               }}
             />
           ) : tab === "layers" ? (
-            <LayersPanel
+            <LayersPanel project={project.id} clip={clip.id}
               s={settings}
               change={setSettings}
               at={now - start}
