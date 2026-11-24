@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import {FrameStrip} from "./frame-strip";
 import {StreamIndex} from "./stream-index";
 import { duration } from "./studio-media";
 import type { Project, Segment } from "@/lib/types";
@@ -268,6 +269,7 @@ export function SourceTool({
             onChange={(e) => seek(+e.target.value)}
           />
         </label>
+        {thumbnail&&<FrameStrip project={project.id} left={0} span={project.duration} onSelect={seek}/>}
         {!thumbnail && kind === "Highlights" && (
           <div className="highlight-rail">
             {project.highlights.map((h, i) => (

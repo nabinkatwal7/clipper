@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Film, Captions, ZoomIn, ZoomOut } from "lucide-react";
+import {FrameStrip} from "./frame-strip";
 import { duration } from "./studio-media";
 import type { Segment } from "@/lib/types";
 export function EditTimeline({
@@ -38,7 +39,7 @@ export function EditTimeline({
   useEffect(()=>{try{setMarkers(JSON.parse(localStorage.getItem(markerKey)||"[]"))}catch{}},[markerKey]);
   function mark(){const at=Math.round(now*100)/100;const next=markers.includes(at)?markers.filter(m=>m!==at):[...markers,at].sort((a,b)=>a-b);setMarkers(next);localStorage.setItem(markerKey,JSON.stringify(next))}
   function snapped(at:number){if(!snap)return at;const points=[originalStart,originalEnd,...markers,...segments.flatMap(s=>[s.start,s.end])];let best=at,delta=.12;for(const p of points){if(Math.abs(at-p)<delta){delta=Math.abs(at-p);best=p}}return best}
-  const canvas = useRef<HTMLCanvasElement>(null);
+
   const span = Math.min(
       length,
       Math.max(5, ((originalEnd - originalStart || 30) * 1.7) / zoom),
@@ -47,28 +48,7 @@ export function EditTimeline({
     right = left + span;
   const pct = (v: number) =>
     Math.max(0, Math.min(100, ((v - left) / span) * 100));
-  useEffect(() => {
-    const c = canvas.current;
-    if (!c || !span) return;
-    let stopped = false;
-    const v = document.createElement("video");
-    v.muted = true;
-    v.preload = "metadata";
-    let i = 0;
-    const ctx = c.getContext("2d");
-    ctx?.clearRect(0, 0, c.width, c.height);
-    const target = () =>
-      Math.min(v.duration - 0.01, left + (span * (i + 0.5)) / 10);
-    v.onloadedmetadata = () => {
-      if (!stopped) v.currentTime = target();
-    };
-    v.onseeked = () => {
-      if (stopped) return;
-      ctx?.drawImage(v, i * 96, 0, 96, 54);
-      if (++i < 10) v.currentTime = target();
-    };
-    v.src = "/api/download?project=" + project + "&kind=source";
-    return () => {
+  return () => {
       stopped = true;
       v.onseeked = null;
       v.onloadedmetadata = null;
@@ -105,7 +85,7 @@ export function EditTimeline({
       </div>
       {markers.some(m=>m>=left&&m<=right)&&<div className="marker-lane">{markers.filter(m=>m>=left&&m<=right).map(m=><button key={m} title={"Marker "+duration(m)} style={{left:pct(m)+"%"}} onClick={()=>seek(m)}>◆</button>)}</div>}<div className="timeline-bed">
         <div className="frame-track">
-          <canvas ref={canvas} width={960} height={54} />
+          <FrameStrip project={project} left={left} span={span}/><b className="track-label">Video</b>
           <span
             className="range-band"
             style={{
@@ -114,7 +94,7 @@ export function EditTimeline({
             }}
           />
         </div>
-        <div className="audio-track">
+        <div className="audio-track"><b className="track-label">Audio</b>
           <img
             alt="Clip audio waveform"
             src={`/api/waveform?project=${project}&clip=${clip}`}
@@ -125,7 +105,7 @@ export function EditTimeline({
             }}
           />
         </div>
-        <div className="caption-track">
+        <div className="caption-track"><b className="track-label">Subtitles</b>
           {segments
             .filter((s) => s.end > left && s.start < right)
             .map((s, i) => (
