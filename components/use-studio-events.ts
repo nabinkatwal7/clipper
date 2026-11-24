@@ -1,3 +1,4 @@
+import {studioStorage} from "@/lib/client-storage";
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
@@ -11,9 +12,9 @@ export function useStudioEvents(projects: Project[]) {
       history: Event[] = [];
     try {
       previous ??= JSON.parse(
-        localStorage.getItem("studio-event-states") || "{}",
+        studioStorage.getItem("studio-event-states") || "{}",
       );
-      history = JSON.parse(localStorage.getItem("studio-events") || "[]");
+      history = JSON.parse(studioStorage.getItem("studio-events") || "[]");
     } catch {}
     const next: Record<string, string> = {};
     const added: Event[] = [];
@@ -39,11 +40,11 @@ export function useStudioEvents(projects: Project[]) {
         added.push({ project: p.id, title: p.title, detail, at: p.updatedAt });
     }
     snapshot.current = next;
-    localStorage.setItem("studio-event-states", JSON.stringify(next));
+    studioStorage.setItem("studio-event-states", JSON.stringify(next));
     const all = [...added, ...history]
       .sort((a, b) => b.at.localeCompare(a.at))
       .slice(0, 100);
-    localStorage.setItem("studio-events", JSON.stringify(all));
+    studioStorage.setItem("studio-events", JSON.stringify(all));
     setEvents(all);
   }, [projects]);
   return events;
