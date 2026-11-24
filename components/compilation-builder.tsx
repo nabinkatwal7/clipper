@@ -1,4 +1,5 @@
 "use client";
+import { ClipPlan } from "./clip-plan";
 import { useState } from "react";
 import type { Project } from "@/lib/types";
 export function CompilationBuilder({
@@ -35,6 +36,14 @@ export function CompilationBuilder({
       </section>
       <section>
         <h2>Compilation sequence</h2>
+        <ClipPlan
+          kind="compilation"
+          clips={clips.map((v) => v.c)}
+          apply={(v) => {
+            setOrder(v.ids);
+            setTitle(v.title);
+          }}
+        />
         <label className="field">
           Title
           <input

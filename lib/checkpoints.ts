@@ -10,7 +10,10 @@ export type Checkpoint = {
   name: string;
   source: string;
   family: string;
-  clip: Pick<Clip, "title" | "start" | "end" | "settings" | "segments">;
+  clip: Pick<
+    Clip,
+    "title" | "start" | "end" | "settings" | "segments" | "postCaption"
+  >;
 };
 export async function checkpoint(p: Project, c: Clip, name: string) {
   if (typeof name !== "string" || !name.trim() || name.length > 120)
@@ -26,6 +29,7 @@ export async function checkpoint(p: Project, c: Clip, name: string) {
     family: c.editorialId || c.id,
     clip: {
       title: c.title,
+      postCaption: c.postCaption,
       start: c.start,
       end: c.end,
       settings: c.settings,

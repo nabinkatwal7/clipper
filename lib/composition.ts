@@ -2,7 +2,7 @@ export type Ease = "linear" | "in" | "out" | "in-out" | "hold";
 export type Keyframe = { time: number; value: number; ease: Ease };
 export type Track = {
   id: string;
-  name: string;
+  name: string;group?:string;
   asset: string;
   type: "video" | "image" | "audio";
   at: number;
@@ -36,7 +36,7 @@ export function validateComposition(v: Composition) {
       ![t.id, t.asset].every(
         (v) => typeof v === "string" && /^[a-f0-9-]{36}$/.test(v),
       ) ||
-      ids.has(t.id) ||
+      (t.group!==undefined && !/^[a-f0-9-]{36}$/.test(t.group)) || ids.has(t.id) ||
       !["audio", "image", "video"].includes(t.type)
     )
       throw Error("Invalid timeline track");
@@ -88,7 +88,7 @@ export function curve(
   for (let i = keys.length - 2; i >= 0; i--) {
     const a = keys[i],
       b = keys[i + 1],
-      t = `((t-${offset + a.time})/${b.time - a.time})`;
+      t = `((t-(${offset + a.time}))/${b.time - a.time})`;
     const eased =
       a.ease === "hold"
         ? "0"

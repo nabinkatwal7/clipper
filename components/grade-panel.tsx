@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { RenderPreview } from "./render-preview";
+import { useState } from "react";
 import type { Settings } from "@/lib/types";
 import { dry, neutral, effects, looks, gradeRanges } from "@/lib/grading";
 export function GradePanel({
@@ -19,40 +20,9 @@ export function GradePanel({
   end: number;
   audio: boolean;
 }) {
-  const [busy, setBusy] = useState(false),
-    [url, setUrl] = useState(""),
-    [error, setError] = useState("");
-  useEffect(
-    () => () => {
-      if (url) URL.revokeObjectURL(url);
-    },
-    [url],
-  );
+  const [error, setError] = useState("");
   const grade = { ...neutral, ...s.grade },
     mix = { ...dry, ...s.mix };
-  async function preview(bypass: boolean) {
-    setBusy(true);
-    setError("");
-    try {
-      const r = await fetch("/api/render-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project,
-          clip,
-          start,
-          end,
-          settings: bypass ? { ...s, grade: undefined, mix: undefined } : s,
-        }),
-      });
-      if (!r.ok) throw Error((await r.json()).error);
-      setUrl(URL.createObjectURL(await r.blob()));
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <div className="editor-fields">
       <h3>{audio ? "Audio mixer" : "Color & effects"}</h3>
@@ -122,6 +92,65 @@ export function GradePanel({
         </>
       ) : (
         <>
+          <label className="field">
+            Import 3D LUT (.cube)
+            <input
+              type="file"
+              accept=".cube"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                try {
+                  const r = await fetch("/api/lut", {
+                    method: "POST",
+                    body: f,
+                  });
+                  const data = await r.json();
+                  if (!r.ok) throw Error(data.error);
+                  change({
+                    ...s,
+                    grade: {
+                      ...grade,
+                      lut: data.id,
+                      lutName: f.name,
+                      lutIntensity: 1,
+                    },
+                  });
+                } catch (e) {
+                  setError(String(e));
+                }
+              }}
+            />
+          </label>
+          {grade.lut && (
+            <label className="field">
+              {grade.lutName || "LUT"} intensity
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step=".01"
+                value={grade.lutIntensity ?? 1}
+                onChange={(e) =>
+                  change({
+                    ...s,
+                    grade: { ...grade, lutIntensity: +e.target.value },
+                  })
+                }
+              />
+              <button
+                className="tool"
+                onClick={() =>
+                  change({
+                    ...s,
+                    grade: { ...grade, lut: undefined, lutName: undefined },
+                  })
+                }
+              >
+                Remove LUT
+              </button>
+            </label>
+          )}
           <label className="field">
             Look
             <select
@@ -202,20 +231,15 @@ export function GradePanel({
           )}
         </>
       )}
-      <div className="candidate-actions">
-        <button disabled={busy} className="tool" onClick={() => preview(true)}>
-          Preview original
-        </button>
-        <button
-          disabled={busy}
-          className="button primary"
-          onClick={() => preview(false)}
-        >
-          {busy ? "Rendering…" : "Preview adjustment"}
-        </button>
-      </div>
+      <RenderPreview
+        settings={s}
+        project={project}
+        clip={clip}
+        start={start}
+        end={end}
+        compare
+      />
       {error && <p role="alert">{error}</p>}
-      {url && <video className="source-monitor" controls autoPlay src={url} />}
     </div>
   );
 }

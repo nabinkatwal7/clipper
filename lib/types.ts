@@ -1,4 +1,6 @@
 export type Settings = {
+  encodeProfile?: "fast" | "balanced" | "quality";
+  cropPoints?: import("./reframe").CropPoint[];
   grade?: Partial<import("./grading").Grade>;
   mix?: Partial<import("./grading").Mix>;
   composition?: import("./composition").Composition;
@@ -13,7 +15,7 @@ export type Settings = {
   model?: string;
   captionColor?: string;
   captionBackground?: boolean;
-  captionAnimation?: "none" | "fade";
+  captionAnimation?: "none" | "fade" | "pop" | "slide" | "scale";
   outline?: number;
   shadow?: number;
   font?: string;
@@ -61,6 +63,7 @@ export type Segment = {
   words: Word[];
 };
 export type Highlight = {
+ category?:string;
   editorialId?: string;
   familyId?: string;
   start: number;

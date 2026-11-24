@@ -31,9 +31,24 @@ export async function localize(
       JSON.stringify(group);
     const result = await cachedText(
       project,
-      "translate-lines-v1",
+      "translate-lines-v2",
       [model, prompt],
-      () => ollamaJson(model, prompt, signal),
+      async () => {
+        const raw = await ollamaJson(model, prompt, signal, {
+          type: "object",
+          properties: {
+            lines: {
+              type: "array",
+              items: { type: "string" },
+              minItems: group.length,
+              maxItems: group.length,
+            },
+          },
+          required: ["lines"],
+        });
+        validatedLines(JSON.parse(raw).lines, group.length);
+        return raw;
+      },
     );
     text.push(...validatedLines(JSON.parse(result).lines, group.length));
   }
@@ -43,8 +58,15 @@ export async function localize(
     '. Preserve meaning and localize existing hashtags. Return JSON {"title":"...","description":"..."}. Source data: ' +
     JSON.stringify({ title: c.title, description: c.postCaption || c.title });
   const meta = JSON.parse(
-    await cachedText(project, "translate-meta-v1", [model, prompt], () =>
-      ollamaJson(model, prompt, signal),
+    await cachedText(project, "translate-meta-v2", [model, prompt], () =>
+      ollamaJson(model, prompt, signal, {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+        },
+        required: ["title", "description"],
+      }),
     ),
   );
   if (typeof meta.title !== "string" || typeof meta.description !== "string")

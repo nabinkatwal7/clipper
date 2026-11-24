@@ -126,6 +126,16 @@ export function FormatSettings({
         />
       </div>
       <Select
+        label="Encoding profile"
+        value={value.encodeProfile || "fast"}
+        onChange={(v) => set("encodeProfile", v as Settings["encodeProfile"])}
+        options={[
+          ["fast", "Fast"],
+          ["balanced", "Balanced"],
+          ["quality", "Maximum quality"],
+        ]}
+      />
+      <Select
         label="Video layout"
         value={value.layout}
         onChange={(v) =>
@@ -208,6 +218,9 @@ export function SubtitleSettings({
               options={[
                 ["none", "None"],
                 ["fade", "Fade in and out"],
+                ["pop", "Pop in"],
+                ["slide", "Slide up"],
+                ["scale", "Scale in"],
               ]}
             />
           </div>
@@ -313,24 +326,7 @@ export function AdvancedSettings({
           <div className="field-grid">
             <label className="field">
               Content category
-              <select
-                value={value.category || ""}
-                onChange={(e) =>
-                  onChange({ ...value, category: e.target.value })
-                }
-              >
-                <option value="">General</option>
-                {[
-                  "Gaming",
-                  "Interview",
-                  "Sports",
-                  "Education",
-                  "Comedy",
-                  "Commentary",
-                ].map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
+              <input list="highlight-categories" value={value.category||""} maxLength={60} placeholder="General or custom category" onChange={e=>onChange({...value,category:e.target.value})}/><datalist id="highlight-categories">{["Gaming","Interview","Sports","Education","Comedy","Commentary"].map(c=><option key={c}>{c}</option>)}</datalist>
             </label>
             <label className="field">
               Ollama model

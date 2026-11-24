@@ -12,6 +12,9 @@ export const effects = [
   "letterbox",
 ] as const;
 export type Grade = {
+  lut?: string;
+  lutName?: string;
+  lutIntensity?: number;
   brightness: number;
   contrast: number;
   gamma: number;
@@ -71,6 +74,21 @@ export const gradeRanges = {
 } as const;
 export function gradeValue(input: Partial<Grade>): Grade {
   const v = { ...neutral, ...input };
+  if (
+    v.lut !== undefined &&
+    (typeof v.lut !== "string" ||
+      !/^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/.test(
+        v.lut,
+      ))
+  )
+    throw Error("Invalid LUT asset");
+  if (
+    v.lutIntensity !== undefined &&
+    (!Number.isFinite(v.lutIntensity) ||
+      v.lutIntensity < 0 ||
+      v.lutIntensity > 1)
+  )
+    throw Error("Invalid LUT intensity");
   if (!effects.includes(v.effect)) throw Error("Unsupported effect");
   for (const [k, [lo, hi]] of Object.entries(gradeRanges)) {
     const n = v[k as keyof typeof gradeRanges];

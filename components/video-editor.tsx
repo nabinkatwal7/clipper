@@ -7,6 +7,8 @@ import { Button } from "./ui/button";
 import type { Clip, Project, Segment } from "@/lib/types";
 import { LocalizationPanel } from "./localization-panel";
 import { HistoryPanel } from "./history-panel";
+import { FrameSuggestion } from "./frame-suggestion";
+import { RenderPreview } from "./render-preview";
 import { LayersPanel } from "./layers-panel";
 import { GradePanel } from "./grade-panel";
 import { DirectorPanel } from "./director-panel";
@@ -508,6 +510,94 @@ export function VideoEditor({
               <p className="hint">
                 Use minutes:seconds or hours:minutes:seconds.
               </p>
+              <details>
+                <summary>Animate crop position</summary>
+                <FrameSuggestion
+                  project={project.id}
+                  at={now}
+                  apply={(point) => {
+                    const time = Math.round(point.time * 1000) / 1000;
+                    const points = (settings.cropPoints || []).filter(
+                      (p) => p.time !== time,
+                    );
+                    if (points.length >= 64) {
+                      setError("Remove a crop keyframe before adding another.");
+                      return;
+                    }
+                    setSettings({
+                      ...settings,
+                      cropPoints: [...points, { ...point, time }].sort(
+                        (a, b) => a.time - b.time,
+                      ),
+                    });
+                  }}
+                />
+                <p className="hint">
+                  Set the horizontal and vertical subject position at the
+                  playhead. The crop moves linearly between saved positions.
+                </p>
+                {(["crop", "offsetY"] as const).map((k, i) => (
+                  <label className="field" key={k}>
+                    {i ? "Vertical" : "Horizontal"} subject position
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={settings[k] ?? 50}
+                      onChange={(e) =>
+                        setSettings({ ...settings, [k]: +e.target.value })
+                      }
+                    />
+                  </label>
+                ))}
+                <button
+                  className="tool"
+                  disabled={
+                    (settings.cropPoints?.length || 0) >= 64 ||
+                    now < start ||
+                    now > end
+                  }
+                  onClick={() => {
+                    const time = Math.round(now * 1000) / 1000;
+                    const points = (settings.cropPoints || []).filter(
+                      (p) => p.time !== time,
+                    );
+                    setSettings({
+                      ...settings,
+                      cropPoints: [
+                        ...points,
+                        {
+                          time,
+                          x: settings.crop / 100,
+                          y: (settings.offsetY ?? 50) / 100,
+                        },
+                      ].sort((a, b) => a.time - b.time),
+                    });
+                  }}
+                >
+                  Set crop at playhead
+                </button>
+                {settings.cropPoints?.map((p) => (
+                  <div key={p.time} className="candidate-actions">
+                    <button onClick={() => seek(p.time)}>
+                      {timecode(p.time)} · {Math.round(p.x * 100)}%,{" "}
+                      {Math.round(p.y * 100)}%
+                    </button>
+                    <button
+                      onClick={() =>
+                        setSettings({
+                          ...settings,
+                          cropPoints: settings.cropPoints?.filter(
+                            (v) => v.time !== p.time,
+                          ),
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </details>
               <label className="field">
                 Clip title
                 <input
@@ -535,6 +625,7 @@ export function VideoEditor({
               clip={clip}
               restore={(v) => {
                 setTitle(v.title);
+                if (v.postCaption !== undefined) setPostCaption(v.postCaption);
                 setSettings(v.settings);
                 setSegments(v.segments);
                 setStartText(timecode(v.start));
@@ -543,13 +634,24 @@ export function VideoEditor({
               }}
             />
           ) : tab === "layers" ? (
-            <LayersPanel project={project.id} clip={clip.id}
-              s={settings}
-              change={setSettings}
-              at={now - start}
-              length={end - start}
-              seek={(n) => seek(start + n)}
-            />
+            <>
+              <RenderPreview
+                settings={settings}
+                project={project.id}
+                clip={clip.id}
+                start={start}
+                end={end}
+              />
+              <LayersPanel
+                project={project.id}
+                clip={clip.id}
+                s={settings}
+                change={setSettings}
+                at={now - start}
+                length={end - start}
+                seek={(n) => seek(start + n)}
+              />
+            </>
           ) : tab === "grade" || tab === "audio" ? (
             <GradePanel
               settings={settings}
@@ -627,7 +729,7 @@ export function VideoEditor({
         </div>
       </div>
       <EditTimeline
-        overlay={settings.overlayText}
+        tracks={settings.composition?.tracks} overlay={settings.overlayText}
         clip={clip.id}
         originalStart={clip.start}
         originalEnd={clip.end}

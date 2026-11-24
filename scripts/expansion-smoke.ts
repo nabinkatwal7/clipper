@@ -11,6 +11,25 @@ async function main() {
     { run, bin } = await import("../lib/process"),
     { busy } = await import("../lib/jobs"),
     { file, read } = await import("../lib/store");
+  const { effects, gradeFilters } = await import("../lib/grading");
+  for (const effect of effects) {
+    const filters = gradeFilters({ effect, from: 0.1, to: 0.4 }, 128, 96);
+    if (filters.length)
+      await run(bin.ffmpeg, [
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=128x96:rate=12:duration=0.5",
+        "-vf",
+        filters.join(","),
+        "-f",
+        "null",
+        "-",
+      ]);
+  }
+  console.log("PASS time-limited FFmpeg effects");
   const fixture = path.join(tmp, "sample.mp4");
   await run(bin.ffmpeg, [
     "-hide_banner",
@@ -176,6 +195,13 @@ async function main() {
     },
   };
   const original = project.clips[0];
+  const { importCube } = await import("../lib/lut");
+  const cube = await importCube(
+    new Request("http://localhost/", {
+      method: "POST",
+      body: "LUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1",
+    }),
+  );
   const variant = await req("edit", "", "POST", {
     project: id,
     clip: original.id,
@@ -185,8 +211,19 @@ async function main() {
     end: 1,
     settings: {
       ...original.settings,
+      cropPoints: [
+        { time: 0, x: 0, y: 0.5 },
+        { time: 0.8, x: 1, y: 0 },
+      ],
       composition: { version: 1, tracks: [track] },
-      grade: { effect: "sepia", amount: 0.5, from: 0, to: 0.8 },
+      grade: {
+        lut: cube.id,
+        lutIntensity: 0.7,
+        effect: "sepia",
+        amount: 0.5,
+        from: 0,
+        to: 0.8,
+      },
       mix: { normalize: true, duck: true },
     },
   });
@@ -207,6 +244,20 @@ async function main() {
     (await fs.readFile(packageLocation(id, v.id))).subarray(0, 2).toString(),
     "PK",
   );
+  const zipBytes = await fs.readFile(packageLocation(id, v.id));
+  for (const name of [
+    "video.mp4",
+    "clean.mp4",
+    "caption.txt",
+    "publishing.json",
+    "thumbnail.jpg",
+    "subtitles.srt",
+    "subtitles.vtt",
+  ])
+    assert.ok(zipBytes.includes(Buffer.from("/" + name)), name);
+  const qa = await req("pipeline-test", "", "POST");
+  assert.equal(qa.status, 200, await qa.clone().text());
+  assert.equal((await qa.json()).width, 320);
   const { compilation } = await import("../lib/compilation");
   const compiled = await compilation({
     clips: [v.id, original.id],
@@ -236,6 +287,21 @@ async function main() {
       postCaption: "Hello everyone",
       segments: [{ start: 0, end: 1, text: "Hello everyone", words: [] }],
     };
+    const { searchContent } = await import("../lib/content-search");
+    const semantic = await searchContent(
+      {
+        query: "greeting",
+        model: "all-minilm",
+        mode: "semantic",
+        project: id,
+        scope: "transcripts",
+      },
+      signal,
+    );
+    assert.ok(
+      semantic.hits.length && Number.isFinite(semantic.hits[0].similarity),
+    );
+    console.log("PASS Ollama embedding search");
     const translated = await localize(id, spoken, "Spanish", signal);
     assert.equal(translated.segments.length, 1);
     assert.equal(translated.segments[0].start, 0);

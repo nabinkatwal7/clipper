@@ -7,6 +7,10 @@ export type SearchOptions = {
   mode: "exact" | "fuzzy" | "semantic";
   model?: string;
   minScore?: number;
+  maxScore?: number;
+  minDuration?: number;
+  favorite?: boolean;
+  missingCaptions?: boolean;
   maxDuration?: number;
   after?: string;
   before?: string;
@@ -94,6 +98,11 @@ export async function searchContent(s: SearchOptions, signal: AbortSignal) {
       for (const c of p.clips) {
         const rev = d.reviews[c.editorialId || c.id];
         if (
+          (s.favorite && !rev?.favorite) ||
+          (s.missingCaptions && c.segments.length > 0 && c.settings.captions) ||
+          (s.maxScore !== undefined &&
+            (c.score === null || c.score > s.maxScore)) ||
+          (s.minDuration !== undefined && c.end - c.start < s.minDuration) ||
           (s.minScore ?? 0) > (c.score ?? 0) ||
           (s.maxDuration && c.end - c.start > s.maxDuration) ||
           (s.status && s.status !== (rev?.status || "unreviewed"))
@@ -109,14 +118,21 @@ export async function searchContent(s: SearchOptions, signal: AbortSignal) {
             p.title,
             c.reason,
             c.postCaption,
-            c.settings.category,
+            c.category,c.settings.category,
             rev?.notes,
           ]
             .filter(Boolean)
             .join(" · "),
         });
       }
-    if (s.scope !== "clips" && !s.status && !s.minScore) {
+    if (
+      s.scope !== "clips" &&
+      !s.status &&
+      !s.minScore &&
+      s.maxScore === undefined &&
+      !s.favorite &&
+      !s.missingCaptions
+    ) {
       const rows = await transcript(p.id).catch(() => []);
       for (let i = 0; i < rows.length;) {
         const start = rows[i].start;
@@ -130,7 +146,10 @@ export async function searchContent(s: SearchOptions, signal: AbortSignal) {
           text.length < 650 &&
           rows[i].start - start < 60
         );
-        if (!s.maxDuration || end - start <= s.maxDuration)
+        if (
+          (!s.maxDuration || end - start <= s.maxDuration) &&
+          (!s.minDuration || end - start >= s.minDuration)
+        )
           hits.push({
             project: p.id,
             title: p.title,

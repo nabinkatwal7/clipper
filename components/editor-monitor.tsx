@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, type RefObject } from "react";
+import { cropAt } from "@/lib/reframe";
 import { dimensions } from "@/lib/captions";
 import type { Settings, Segment } from "@/lib/types";
 export function EditorMonitor({
@@ -34,6 +35,7 @@ export function EditorMonitor({
         h = c.height,
         sw = v.videoWidth,
         sh = v.videoHeight;
+      const framing = cropAt(settings.cropPoints || [], v.currentTime);
       function fill(
         x: number,
         y: number,
@@ -50,8 +52,8 @@ export function EditorMonitor({
           ch = bh / k;
         ctx.drawImage(
           v,
-          sx + ((iw - cw) * settings.crop) / 100,
-          sy + (ih - ch) / 2,
+          sx + (iw - cw) * (framing?.x ?? settings.crop / 100),
+          sy + (ih - ch) * (framing?.y ?? (settings.offsetY ?? 50) / 100),
           cw,
           ch,
           x,
@@ -73,7 +75,7 @@ export function EditorMonitor({
           0,
           w,
           h * 0.3,
-          ((sw - sw * 0.4) * settings.crop) / 100,
+          (sw - sw * 0.4) * (framing?.x ?? settings.crop / 100),
           0,
           sw * 0.4,
           sh * 0.4,
@@ -143,7 +145,19 @@ export function EditorMonitor({
                 : h * 0.51;
           ctx.save();
           ctx.translate(w / 2, y);
-          ctx.scale(k, 1);
+          const age = Math.max(0, at - (group[0]?.start ?? seg.start)),
+            t = Math.min(1, age / 0.16);
+          const scale =
+            settings.captionAnimation === "scale"
+              ? 0.7 + 0.3 * t
+              : settings.captionAnimation === "pop"
+                ? age < 0.09
+                  ? 0.75 + (0.37 * age) / 0.09
+                  : 1.12 - 0.12 * Math.min(1, (age - 0.09) / 0.07)
+                : 1;
+          if (settings.captionAnimation === "slide")
+            ctx.translate(0, h * 0.025 * (1 - t));
+          ctx.scale(k * scale, scale);
           if (settings.captionAnimation === "fade") {
             const a = group[0]?.start ?? seg.start,
               b = group.at(-1)?.end ?? seg.end;

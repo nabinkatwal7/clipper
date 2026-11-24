@@ -31,7 +31,16 @@ export function CreateClips({
   const [tab, setTab] = useState(initialUpload ? "upload" : "link"),
     [url, setUrl] = useState(initialUrl),
     [file, setFile] = useState<File | null>(null),
-    [settings, setSettings] = useState(reuse?.settings ?? defaults),
+    [settings, setSettings] = useState(
+      () =>
+        reuse?.settings ?? {
+          ...defaults,
+          model:
+            (typeof window !== "undefined" &&
+              localStorage.getItem("studio-text-model")) ||
+            defaults.model,
+        },
+    ),
     [working, setWorking] = useState(false),
     [uploadProgress, setUploadProgress] = useState<number | null>(null),
     [error, setError] = useState(""),

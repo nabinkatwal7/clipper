@@ -9,6 +9,8 @@ import {
   type Rights,
   type report,
 } from "@/lib/production";
+import { performanceSummary } from "@/lib/performance";
+import { TranscriptInsights } from "./transcript-insights";
 const blankReview: Review = {
   status: "unreviewed",
   notes: "",
@@ -154,11 +156,50 @@ function Desk({ project: p }: { project: Project }) {
               .map((t) => t.term + " (" + t.count + ")")
               .join(", ") || "No transcript terms available."}
           </p>
+          <ActivityChart
+            title="Audio intensity"
+            values={r.audioActivity}
+            duration={p.duration}
+          />
+          <ActivityChart
+            title="Chat activity"
+            values={r.chatActivity}
+            duration={p.duration}
+          />
+          <label className="field">
+            Import chat timestamps (JSON array of recording seconds)
+            <input
+              type="file"
+              accept=".json"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                try {
+                  if (f.size > 3000000)
+                    throw Error("Choose a JSON file under 3 MB");
+                  const resp = await fetch("/api/chat-activity" + base, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: await f.text(),
+                  });
+                  const values = await resp.json();
+                  if (!resp.ok) throw Error(values.error);
+                  const refreshed = await fetch("/api/report" + base);
+                  if (!refreshed.ok) throw Error("Could not refresh report");
+                  setReport(await refreshed.json());
+                  setMessage("Imported chat activity.");
+                } catch (err) {
+                  setMessage(String(err));
+                }
+              }}
+            />
+          </label>
+          <TranscriptInsights project={p} />
           <h3>Selected moments</h3>
           {r.moments.map((m, i) => (
             <details className="clip-context" key={i}>
               <summary>
-                {m.start.toFixed(1)}s · {m.title}
+                {m.start.toFixed(1)}s · {m.title} {m.category&&"· "+m.category}
               </summary>
               <p>{m.reason}</p>
               {m.quote && <blockquote>“{m.quote}”</blockquote>}
@@ -201,15 +242,18 @@ function Desk({ project: p }: { project: Project }) {
               permission={data.rights.permission}
             />
           ) : tab === "Performance" ? (
-            <Performance
-              key={key + JSON.stringify(data.analytics[key])}
-              clipId={c.id}
-              importCsv={(text) => save("analyticsCsv", text)}
-              value={data.analytics[key] || {}}
-              score={c.score}
-              save={(v) => save("analytics", v)}
-              busy={posting}
-            />
+            <>
+              <PerformanceSummary project={p} ledger={data} />
+              <Performance
+                key={key + JSON.stringify(data.analytics[key])}
+                clipId={c.id}
+                importCsv={(text) => save("analyticsCsv", text)}
+                value={data.analytics[key] || {}}
+                score={c.score}
+                save={(v) => save("analytics", v)}
+                busy={posting}
+              />
+            </>
           ) : tab === "Compare" ? (
             <Comparison key={c.id} p={p} c={c} />
           ) : (
@@ -280,6 +324,73 @@ function RightsForm({
         Save provenance
       </button>
     </div>
+  );
+}
+function PerformanceSummary({
+  project,
+  ledger,
+}: {
+  project: Project;
+  ledger: Ledger;
+}) {
+  const rows = performanceSummary(project, ledger),
+    [msg, note] = useState(""),
+    [busy, setBusy] = useState(false);
+  return (
+    <section>
+      <h3>Observed performance by category</h3>
+      {rows.length ? (
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Measured clips</th>
+                <th>Mean views per clip</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.category}>
+                  <td>{r.category}</td>
+                  <td>{r.measured}</td>
+                  <td>
+                    {r.meanViews.toLocaleString(undefined, {
+                      maximumFractionDigits: 1,
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button
+            className="tool"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const r = await fetch(
+                  "/api/performance-trends?project=" + project.id,
+                  { method: "POST" },
+                );
+                const d = await r.json();
+                if (!r.ok) throw Error(d.error);
+                note(d.observation + " " + d.suggestion);
+              } catch (e) {
+                note(String(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Summarizing…" : "Summarize trends with Ollama"}
+          </button>
+          <p role="status">{msg}</p>
+        </>
+      ) : (
+        <p>Enter measured views to compare clip categories.</p>
+      )}
+    </section>
   );
 }
 function Performance({
@@ -628,5 +739,49 @@ function PackagePanel({
       )}
       <p role="status">{message}</p>
     </div>
+  );
+}
+
+function ActivityChart({
+  title,
+  values,
+  duration,
+}: {
+  title: string;
+  values: number[] | null;
+  duration: number;
+}) {
+  const [i, select] = useState(0);
+  if (!values?.length) return null;
+  const peak = Math.max(0.00001, ...values);
+  return (
+    <figure>
+      <figcaption>{title}</figcaption>
+      <div className="activity-bars" aria-hidden="true">
+        {values.map((n, k) => (
+          <i
+            key={k}
+            style={{
+              height: Math.max(2, (n / peak) * 100) + "%",
+              opacity: k === i ? 1 : 0.65,
+            }}
+          />
+        ))}
+      </div>
+      <label className="field">
+        Inspect interval · {Math.floor((duration * i) / values.length)}–
+        {Math.ceil((duration * (i + 1)) / values.length)}s ·{" "}
+        {title === "Chat activity"
+          ? values[i] + " messages"
+          : values[i]?.toFixed(3) + " RMS amplitude"}
+        <input
+          type="range"
+          min="0"
+          max={values.length - 1}
+          value={i}
+          onChange={(e) => select(+e.target.value)}
+        />
+      </label>
+    </figure>
   );
 }

@@ -20,15 +20,35 @@ export function DiscoverySearch({
     [chosen, pick] = useState<string[]>([]),
     [busy, working] = useState(false),
     [message, msg] = useState("");
+  const [recent, setRecent] = useState<string[]>([]);
   const ctrl = useRef<AbortController | null>(null);
   useEffect(() => {
     fetch("/api/preferences?group=collections")
       .then((r) => r.json())
       .then(saveCollections)
       .catch(() => {});
-    fetch("/api/models")
+    const preferred = localStorage.getItem("studio-embedding-model");
+    if (preferred) set((old) => ({ ...old, model: preferred }));
+    try {
+      setRecent(
+        JSON.parse(localStorage.getItem("studio-search-history") || "[]"),
+      );
+    } catch {}
+    fetch("/api/diagnostics")
       .then((r) => r.json())
-      .then((d) => setModels(Array.isArray(d) ? d : []));
+      .then((d) => {
+        const options = (d.models || [])
+          .filter((m: { capabilities: string[] }) =>
+            m.capabilities.includes("embedding"),
+          )
+          .map((m: { name: string }) => m.name);
+        setModels(options);
+        set((old) => ({
+          ...old,
+          model: options.includes(preferred) ? preferred : options[0],
+        }));
+      })
+      .catch(() => {});
     return () => ctrl.current?.abort();
   }, []);
   async function search(rule = s) {
@@ -46,6 +66,14 @@ export function DiscoverySearch({
       });
       const d = await r.json();
       if (!r.ok) throw Error(d.error);
+      if (rule.query.trim()) {
+        const history = [
+          rule.query,
+          ...recent.filter((q) => q !== rule.query),
+        ].slice(0, 20);
+        setRecent(history);
+        localStorage.setItem("studio-search-history", JSON.stringify(history));
+      }
       items(d.hits);
       count(d.total);
       pick([]);
@@ -82,6 +110,7 @@ export function DiscoverySearch({
           <label className="field">
             Search text
             <input
+              list="workspace-recent-searches"
               value={s.query}
               onChange={(e) => set({ ...s, query: e.target.value })}
               onKeyDown={(e) => {
@@ -89,6 +118,11 @@ export function DiscoverySearch({
               }}
             />
           </label>
+          <datalist id="workspace-recent-searches">
+            {recent.map((q) => (
+              <option key={q}>{q}</option>
+            ))}
+          </datalist>
           <div className="field-grid">
             <label className="field">
               Search mode
@@ -133,6 +167,16 @@ export function DiscoverySearch({
           )}
           <details>
             <summary>Filters</summary>
+            {(["favorite", "missingCaptions"] as const).map((k) => (
+              <label className="check-row" key={k}>
+                <input
+                  type="checkbox"
+                  checked={!!s[k]}
+                  onChange={(e) => set({ ...s, [k]: e.target.checked })}
+                />
+                {k === "favorite" ? "Review favorites" : "Missing captions"}
+              </label>
+            ))}
             <label className="field">
               Source
               <select
@@ -148,28 +192,35 @@ export function DiscoverySearch({
               </select>
             </label>
             <div className="field-grid">
-              {(["after", "before", "minScore", "maxDuration"] as const).map(
-                (k) => (
-                  <label key={k} className="field">
-                    {k}
-                    <input
-                      type={k === "after" || k === "before" ? "date" : "number"}
-                      value={s[k] ?? ""}
-                      onChange={(e) =>
-                        set({
-                          ...s,
-                          [k]:
-                            k === "after" || k === "before"
-                              ? e.target.value
-                              : e.target.value
-                                ? +e.target.value
-                                : undefined,
-                        })
-                      }
-                    />
-                  </label>
-                ),
-              )}
+              {(
+                [
+                  "after",
+                  "before",
+                  "minScore",
+                  "maxScore",
+                  "minDuration",
+                  "maxDuration",
+                ] as const
+              ).map((k) => (
+                <label key={k} className="field">
+                  {k}
+                  <input
+                    type={k === "after" || k === "before" ? "date" : "number"}
+                    value={s[k] ?? ""}
+                    onChange={(e) =>
+                      set({
+                        ...s,
+                        [k]:
+                          k === "after" || k === "before"
+                            ? e.target.value
+                            : e.target.value
+                              ? +e.target.value
+                              : undefined,
+                      })
+                    }
+                  />
+                </label>
+              ))}
             </div>
             <label className="field">
               Review decision

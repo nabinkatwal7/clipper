@@ -73,3 +73,45 @@ test("CSV preserves zero, accepts quoted numbers and rejects bad rows before imp
   assert.throws(() => importMeasurements("clip,completionPercent\na,110"));
   assert.throws(() => importMeasurements("clip,views\na,1\na,2"));
 });
+
+import { validCrop, cropAt } from "../lib/reframe";
+import { chatBins, windowEvidence } from "../lib/activity-evidence";
+import { parseCube } from "../lib/lut";
+test("crop keys interpolate in source time and reject invalid coordinates", () => {
+  const keys = validCrop([
+    { time: 10, x: 0, y: 1 },
+    { time: 20, x: 1, y: 0 },
+  ]);
+  assert.deepEqual(cropAt(keys, 15), { x: 0.5, y: 0.5 });
+  assert.throws(() => validCrop([{ time: 0, x: 2, y: 0 }]));
+});
+test("activity evidence keeps absent inputs distinct from observed silence", () => {
+  assert.throws(() => chatBins([-1], 20));
+  const counts = chatBins([0, 10, 20], 20);
+  assert.equal(
+    counts.reduce((a, b) => a + b, 0),
+    3,
+  );
+  const [bin] = windowEvidence(
+    0,
+    20,
+    20,
+    { peaks: [0, 0], scenes: [4] },
+    counts,
+  );
+  assert.equal(bin.audioPeak, 0);
+  assert.equal(bin.chatActivity, 3);
+  assert.equal(bin.sceneChanges, 1);
+  assert.equal(windowEvidence(0, 20, 20, null)[0].chatActivity, undefined);
+});
+test("cube parser rejects incomplete volumes and extra directives", () => {
+  assert.throws(() => parseCube("LUT_3D_SIZE 2\n1 0 0"));
+  assert.throws(() => parseCube("LUT_3D_SIZE 2\nIMPORT another_file"));
+});
+
+import { coordinates } from "../lib/vision-crop";
+test("sampled frame recommendations reject invalid focal points", () => {
+  assert.deepEqual(coordinates({ x: 0, y: 1 }), { x: 0, y: 1 });
+  assert.throws(() => coordinates({ x: -1, y: 0.3 }));
+  assert.throws(() => coordinates({ x: Infinity, y: 0.5 }));
+});

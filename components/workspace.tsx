@@ -39,6 +39,7 @@ import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
 import { Calendar } from "./content-calendar";
 import { StorageUsage } from "./storage-usage";
 import { SourceTool } from "./studio-tools";
+import { SetupOptions } from "./setup-options";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
   const n = Math.max(0, Math.floor(s));
@@ -80,6 +81,17 @@ export default function Workspace() {
   const [page, setPage] = useState("Overview"),
     [initialUrl, setInitialUrl] = useState(""),
     [initialUpload, setInitialUpload] = useState(false);
+  useEffect(() => {
+    if (
+      loaded &&
+      !projects.length &&
+      !error &&
+      !localStorage.getItem("studio-first-run-seen")
+    ) {
+      localStorage.setItem("studio-first-run-seen", "1");
+      setHealth(true);
+    }
+  }, [loaded, projects.length, error]);
   function openProject(id: string) {
     select(id);
     go("Project", id);
@@ -930,6 +942,7 @@ export default function Workspace() {
             ) : (
               <p className="hint">Checking dependencies…</p>
             )}
+            <SetupOptions />
             <p className="hint">
               Installation and model settings are documented in README.md.{" "}
               <a className="inline-link" href="/api/diagnostics?export=1">

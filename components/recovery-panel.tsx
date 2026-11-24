@@ -1,7 +1,12 @@
 "use client";
+import { browserKeys, browserSettings } from "@/lib/browser-settings";
 import { useEffect, useState } from "react";
 import type { Project } from "@/lib/types";
 export function RecoveryPanel({ projects }: { projects: Project[] }) {
+  const [restoreSettings, pendingRestore] = useState<Record<
+    string,
+    string
+  > | null>(null);
   const [project, setP] = useState(""),
     [media, setMedia] = useState(true),
     [rows, setRows] = useState<
@@ -31,10 +36,28 @@ export function RecoveryPanel({ projects }: { projects: Project[] }) {
       const r = await fetch("/api/backups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, id, project, media }),
+        body: JSON.stringify({
+          action,
+          id,
+          project,
+          media,
+          browser:
+            action === "create" && !project
+              ? Object.fromEntries(
+                  Object.keys(localStorage)
+                    .filter(
+                      (k) =>
+                        browserKeys.some((v) => v === k) ||
+                        /^highlight-[a-f0-9-]{36}$/.test(k),
+                    )
+                    .map((k) => [k, localStorage.getItem(k)]),
+                )
+              : undefined,
+        }),
       });
       const d = await r.json();
       if (!r.ok) throw Error(d.error);
+      if (action === "restore") pendingRestore(d.browser || null);
       msg(
         d.folder
           ? (action === "restore"
@@ -90,12 +113,32 @@ export function RecoveryPanel({ projects }: { projects: Project[] }) {
             restart the app.
           </p>
           <p className="hint">
-            Metadata-only snapshots require the original media files.
-            Browser-specific preferences stay in their browser profile.
+            Metadata-only snapshots require the original media files. Workspace
+            backups include this browser’s brand profiles, calendar and studio
+            preferences.
           </p>
         </section>
       </div>
       <p role="status">{message}</p>
+      {restoreSettings && (
+        <button
+          className="tool"
+          onClick={() => {
+            try {
+              for (const [k, v] of Object.entries(
+                browserSettings(restoreSettings),
+              ))
+                localStorage.setItem(k, v);
+              pendingRestore(null);
+              msg("Preferences restored. Reload to apply them.");
+            } catch (e) {
+              msg(String(e));
+            }
+          }}
+        >
+          Apply restored preferences to this browser
+        </button>
+      )}
       {rows.map((r) => (
         <div className="schedule-row" key={r.id}>
           <span>

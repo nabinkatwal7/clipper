@@ -83,8 +83,32 @@ export async function advise(
       },
       source,
     });
-  const raw = await cachedText(id, "director-v1", [model, prompt], () =>
-    ollamaJson(model, prompt, signal),
+  const raw = await cachedText(id, "director-v2", [model, prompt], () =>
+    ollamaJson(model, prompt, signal, {
+      type: "object",
+      properties: {
+        suggestions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              kind: {
+                type: "string",
+                enum: ["title", "range", "layout", "zoom"],
+              },
+              why: { type: "string" },
+              title: { type: "string" },
+              start: { type: "number" },
+              end: { type: "number" },
+              scale: { type: "number" },
+              layout: { type: "string" },
+            },
+            required: ["kind", "why"],
+          },
+        },
+      },
+      required: ["suggestions"],
+    }),
   );
   return validateProposals(JSON.parse(raw).suggestions, min, max);
 }

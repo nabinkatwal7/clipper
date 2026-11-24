@@ -1,3 +1,4 @@
+import { cropExpression } from "./reframe";
 import type { Segment, Settings } from "./types";
 function stamp(n: number) {
   const c = Math.round(Math.max(0, n) * 100);
@@ -20,9 +21,23 @@ export function captions(
   const primary = hex.slice(4, 6) + hex.slice(2, 4) + hex.slice(0, 2);
   const header = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${w}\nPlayResY: ${h}\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,${s.font || "Arial"},${(s.fontSize * h) / 1920},&H00${primary},&H0000FFFF,&H00111111,&H80000000,${s.style === "minimal" ? 0 : -1},0,0,0,100,100,0,0,${s.captionBackground ? 3 : 1},${s.outline ?? 3},${s.shadow ?? 1},${alignment},40,40,${Math.round(h * 0.09)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
   let lines = "";
+  const y =
+    s.captionPosition === "bottom"
+      ? Math.round(h * 0.91)
+      : s.captionPosition === "top"
+        ? Math.round(h * 0.09)
+        : Math.round(h * 0.5);
+  const x = Math.round(w / 2);
+  const motion = {
+    none: "",
+    fade: "{\\fad(75,60)}",
+    pop: "{\\fscx75\\fscy75\\t(0,90,\\fscx112\\fscy112)\\t(90,160,\\fscx100\\fscy100)}",
+    scale: "{\\fscx70\\fscy70\\t(0,160,\\fscx100\\fscy100)}",
+    slide: `{\\move(${x},${y + Math.round(h * 0.025)},${x},${y},0,160)}`,
+  }[s.captionAnimation || "none"];
   const event = (a: number, b: number, text: string) => {
     if (b > a)
-      lines += `Dialogue: 0,${stamp(a)},${stamp(b)},Default,,0,0,0,,${s.captionAnimation === "fade" ? "{\\fad(75,60)}" : ""}${text}\n`;
+      lines += `Dialogue: 0,${stamp(a)},${stamp(b)},Default,,0,0,0,,${motion}${text}\n`;
   };
   for (const seg of segments) {
     const words = seg.words.filter((x) => x.end > start && x.start < end);
@@ -59,7 +74,7 @@ export function captions(
       event(
         Math.max(0, seg.start - start),
         Math.min(end - start, seg.end - start),
-        clean(seg.text),
+        seg.text.split(/\r?\n/).map(clean).join("\\N"),
       );
   }
   if (s.overlayText?.trim())
@@ -73,16 +88,21 @@ export function dimensions(s: Settings) {
     ? [Math.round((short * a) / b / 2) * 2, short]
     : [short, Math.round((short * b) / a / 2) * 2];
 }
-export function layoutFilter(s: Settings, w: number, h: number) {
-  const x = s.crop / 100;
+export function layoutFilter(s: Settings, w: number, h: number, start = 0) {
+  const x = s.cropPoints?.length
+    ? cropExpression(s.cropPoints, "x", start)
+    : s.crop / 100;
+  const y = s.cropPoints?.length
+    ? cropExpression(s.cropPoints, "y", start)
+    : (s.offsetY ?? 50) / 100;
   const fill = (ow: number, oh: number) =>
-    `scale=${ow}:${oh}:force_original_aspect_ratio=increase,crop=${ow}:${oh}:(iw-ow)*${x}:(ih-oh)/2,setsar=1`;
+    `scale=${ow}:${oh}:force_original_aspect_ratio=increase,crop=${ow}:${oh}:'(iw-ow)*${x}':'(ih-oh)*${y}',setsar=1`;
   if (s.layout === "blur" || s.layout === "original")
     return `[0:v]split[bg][fg];[bg]${fill(w, h)},boxblur=25:5[back];[fg]scale=${w}:${h}:force_original_aspect_ratio=decrease[front];[back][front]overlay=(W-w)/2:(H-h)/2,setsar=1[formatted]`;
   if (s.layout === "facecam") {
     const top = Math.round((h * 0.3) / 2) * 2,
       bottom = h - top;
-    return `[0:v]split[cam][game];[cam]crop=iw*0.4:ih*0.4:(iw-iw*0.4)*${x}:0,${fill(w, top)}[face];[game]${fill(w, bottom)}[play];[face][play]vstack,setsar=1[formatted]`;
+    return `[0:v]split[cam][game];[cam]crop=iw*0.4:ih*0.4:'(iw-iw*0.4)*${x}':0,${fill(w, top)}[face];[game]${fill(w, bottom)}[play];[face][play]vstack,setsar=1[formatted]`;
   }
   return `[0:v]${fill(w, h)}[formatted]`;
 }

@@ -1796,3 +1796,21 @@ time,
     flex-shrink: 0;
   }
 }
+
+.activity-bars {
+  height: 50px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--surface);
+  overflow: hidden;
+}
+.activity-bars i {
+  flex: 1;
+  background: var(--accent-text);
+}
+
+.publishing-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}.publishing-board section{padding:12px;border:1px solid var(--border);border-radius:8px;min-width:0}.calendar-grid.one-day{grid-template-columns:1fr}.schedule-row{flex-wrap:wrap}
+
+[data-density="compact"] .event-row,[data-density="compact"] .schedule-row{padding-block:4px;min-height:28px}[data-density="compact"] .studio-side nav button{min-height:28px;padding-block:3px}.edit-timeline .playhead{background:var(--timeline-color,var(--accent))}.timeline-bed .timeline-scrub{accent-color:var(--timeline-color,var(--accent))}
+
+html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline-color"] .overlay-track span{background:var(--timeline-color)}

@@ -5,7 +5,7 @@ import { FrameStrip } from "./frame-strip";
 import { duration } from "./studio-media";
 import type { Segment } from "@/lib/types";
 export function EditTimeline({
-  overlay,
+  overlay,tracks=[],
   project,
   clip,
   originalStart,
@@ -20,7 +20,7 @@ export function EditTimeline({
   outPoint,
   segments,
 }: {
-  overlay?: string;
+  overlay?: string;tracks?:import("@/lib/composition").Track[];
   project: string;
   clip: string;
   originalStart: number;
@@ -57,7 +57,7 @@ export function EditTimeline({
     const points = [
       originalStart,
       originalEnd,
-      ...markers,
+      ...markers, ...tracks.flatMap(t=>[start+t.at,start+t.at+t.length]),
       ...segments.flatMap((s) => [s.start, s.end]),
     ];
     let best = at,
@@ -185,6 +185,7 @@ export function EditTimeline({
             </span>
           </div>
         )}
+        {tracks.map(t=><div key={t.id} className="overlay-track" aria-label={t.type+" track "+t.name}><span style={{marginLeft:pct(start+t.at)+"%",width:(pct(start+t.at+t.length)-pct(start+t.at))+"%",opacity:t.visible||!t.muted?1:.5}}>{t.locked?"🔒 ":""}{t.name}</span></div>)}
         <i className="playhead" style={{ left: pct(now) + "%" }} />
         <input
           className="timeline-scrub"

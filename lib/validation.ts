@@ -1,3 +1,4 @@
+import { validCrop } from "./reframe";
 import { validateComposition } from "./composition";
 import { gradeValue, mixFilters } from "./grading";
 import { defaults, type Settings, type Highlight } from "./types";
@@ -21,6 +22,11 @@ export function settings(input: unknown): Settings {
     ...defaults,
     ...(typeof input === "object" && input ? input : {}),
   } as Settings;
+  if (
+    s.encodeProfile !== undefined &&
+    !["fast", "balanced", "quality"].includes(s.encodeProfile)
+  )
+    throw Error("Invalid encoding profile");
   const choices: Record<string, unknown[]> = {
     duration: ["15-30", "30-60", "60-90"],
     count: [0, 5, 10, 20],
@@ -59,13 +65,17 @@ export function settings(input: unknown): Settings {
     !["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].includes(s.font)
   )
     throw Error("Invalid font");
-  if (s.captionAnimation && !["none", "fade"].includes(s.captionAnimation))
+  if (
+    s.captionAnimation &&
+    !["none", "fade", "pop", "slide", "scale"].includes(s.captionAnimation)
+  )
     throw Error("Invalid caption animation");
   if (
     s.captionBackground !== undefined &&
     typeof s.captionBackground !== "boolean"
   )
     throw Error("Invalid caption background");
+  if (s.cropPoints !== undefined) validCrop(s.cropPoints);
   if (s.captionColor && !/^#[a-fA-F0-9]{6}$/.test(s.captionColor))
     throw Error("Invalid caption color");
   for (const [value, max] of [
@@ -159,6 +169,7 @@ export function validateHighlights(
       start,
       end,
       title: title.slice(0, 160),
+      ...(typeof h.category==="string"&&h.category.trim()?{category:h.category.trim().slice(0,60)}:{}),
       reason: reason.slice(0, 1000),
       score,
       ...(typeof h.postCaption === "string" && h.postCaption.trim()

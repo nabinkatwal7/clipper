@@ -65,6 +65,7 @@ export function report(
   segments: Segment[],
   ledger: Ledger,
   index?: { scenes: number[]; peaks: number[] },
+  chatActivity?: number[],
 ) {
   const freq = new Map<string, number>();
   for (const s of segments)
@@ -75,7 +76,7 @@ export function report(
     start: h.start,
     end: h.end,
     reason: h.reason,
-    estimatedScore: h.score,
+    estimatedScore: h.score,category:h.category||p.settings.category||null,
     quote:
       segments.find((s) => s.start >= h.start && s.end <= h.end)?.text || null,
   }));
@@ -93,13 +94,16 @@ export function report(
     category: p.settings.category || null,
     selectedDuration: p.settings.duration,
     audioActivity: index?.peaks ?? null,
+    chatActivity: chatActivity ?? null,
     sceneTimes: index?.scenes ?? null,
     rights: ledger.rights,
     actualPerformance: ledger.analytics,
     limitations: [
       "Scores are model estimates. Quotes are taken from stored transcript text.",
       ...(index ? [] : ["Audio and scene index unavailable."]),
-      "Chat activity unavailable without imported chat data.",
+      ...(chatActivity
+        ? []
+        : ["Chat activity unavailable without imported chat data."]),
     ],
   };
 }
@@ -108,6 +112,12 @@ export function reportText(r: ReturnType<typeof report>) {
     "# " + r.project,
     r.summary,
     "Source: " + r.source,
+    ...(r.chatActivity
+      ? [
+          "Chat messages by consecutive equal-duration intervals: " +
+            r.chatActivity.join(", "),
+        ]
+      : []),
     "## Frequent terms",
     r.frequentTerms.map((t) => t.term + " (" + t.count + ")").join(", "),
     "## Selected moments",

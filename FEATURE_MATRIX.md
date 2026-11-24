@@ -8,7 +8,7 @@ Run the unit suite with `npm test`. The FFmpeg integration fixture is `scripts/e
 
 Runtime dependencies — Ollama, transcript, source index.
 
-Deep adds a second Ollama pass. Ranges and keyword rules use overlapping transcript evidence. Source indexing measures signal and scene changes.
+Deep adds a second Ollama pass. Ranges and keyword rules use overlapping transcript evidence. Measured audio and scene information and imported chat counts are included in candidate ranking when available.
 
 Test coverage — Range and keyword unit tests, source-index render fixture.
 
@@ -24,16 +24,19 @@ Test coverage — Range and keyword unit tests, source-index render fixture.
 | Interesting conversation detection | Partial |
 | Hook strength analysis | Partial |
 | Context completeness analysis | Partial |
-| Highlight similarity detection | Planned |
-| Automatic highlight categorization | Planned |
+| Highlight similarity detection | Implemented |
+| Automatic highlight categorization | Implemented |
 | Configurable minimum engagement score | Implemented |
 | Custom highlight detection rules | Partial |
 | Positive and negative keyword filters | Implemented |
-| User-defined highlight categories | Planned |
+| User-defined highlight categories | Implemented |
 | Highlight bookmarks | Partial |
 | Manual timestamp suggestions | Partial |
 | Highlight comparison | Partial |
-| Regeneration of rejected recommendations | Planned |
+| Regeneration of rejected recommendations | Partial |
+| Allow users to analyze selected portions of a stream instead of processing the entire recording | Implemented |
+| Combine multiple sources of evidence when ranking highlights | Implemented |
+| Never fabricate dialogue, reactions or events that were not observed | Partial |
 
 ## 2. AI Director
 
@@ -56,6 +59,11 @@ Test coverage — Proposal bounds unit test.
 | Create a dramatic version | Partial |
 | Create a funny version | Partial |
 | Generate three alternative edits | Partial |
+| Create an Ollama-powered AI Director that acts as an editing assistant | Implemented |
+| The AI Director must return structured editing recommendations rather than executable commands | Implemented |
+| Validate recommendations before applying them | Implemented |
+| Show proposed changes and allow users to accept or reject individual suggestions | Implemented |
+| Support undoing all AI-assisted edits | Implemented |
 
 ## 3. Multiple Clip Variations
 
@@ -79,12 +87,16 @@ Test coverage — Render fixture preserves original and adds a variation.
 | Different ending points | Implemented |
 | Different layouts | Implemented |
 | Different aspect ratios | Implemented |
+| Generate different versions of the same source highlight | Implemented |
+| Create a side-by-side variation comparison workspace | Implemented |
+| Allow playback synchronization between variations | Implemented |
+| Track the relationship between the original clip and its variations | Implemented |
 
 ## 4. Professional Multi-Track Timeline
 
 Runtime dependencies — Local assets, FFmpeg.
 
-The base clip has captions and text. Additional tracks support local media assets. Ripple operations act on asset timing. No nesting or multi-select.
+The base clip has captions and text. Additional tracks support local media assets. Ripple operations act on asset timing. Multiple media rows can be grouped and moved together. Timeline spans show their actual timing. Nested compositions are outstanding.
 
 Test coverage — Real split, inset and audio mix fixture.
 
@@ -109,15 +121,18 @@ Test coverage — Real split, inset and audio mix fixture.
 | Slip editing | Implemented |
 | Clip splitting | Implemented |
 | Clip duplication | Implemented |
-| Clip grouping | Planned |
+| Clip grouping | Implemented |
 | Nested compositions where practical | Planned |
 | Timeline snapping | Partial |
 | Frame-accurate trimming | Partial |
-| Multi-selection | Planned |
+| Multi-selection | Partial |
 | Range selection | Partial |
 | Timeline markers | Partial |
 | In and out points | Implemented |
 | Timeline scrolling and zooming | Partial |
+| Expand the video editor into a genuine multi-track editing environment | Partial |
+| Implement a deterministic composition model that can be converted into FFmpeg filter graphs | Implemented |
+| Do not display editing features that are not supported by the actual rendering engine | Partial |
 
 ## 5. Keyframe Animation
 
@@ -125,7 +140,7 @@ Runtime dependencies — Composition, FFmpeg.
 
 Animated properties are overlay X/Y and audio gain. Other transforms are static. Rendered preview uses FFmpeg.
 
-Test coverage — Interpolation and animated overlay fixture.
+Test coverage — Interpolation, animated overlay and source-time crop tests.
 
 | Requested feature | Status |
 | --- | --- |
@@ -133,7 +148,7 @@ Test coverage — Interpolation and animated overlay fixture.
 | Scale | Planned |
 | Rotation | Planned |
 | Opacity | Planned |
-| Crop regions | Planned |
+| Crop regions | Implemented |
 | Text positioning | Planned |
 | Overlay positioning | Implemented |
 | Audio volume | Implemented |
@@ -146,6 +161,8 @@ Test coverage — Interpolation and animated overlay fixture.
 | Keyframe duplication | Planned |
 | Keyframe deletion | Implemented |
 | Keyframe navigation | Implemented |
+| Provide an intuitive keyframe editor within the timeline | Partial |
+| Preview animations accurately and render supported animations using FFmpeg expressions or generated intermediate assets | Partial |
 
 ## 6. Professional Transitions
 
@@ -166,6 +183,10 @@ Test coverage — Real cross-dissolve compilation. Other transitions lack dedica
 | Dip to color | Partial |
 | Push transitions | Implemented |
 | Blur transitions | Implemented |
+| Create a reusable transition library | Implemented |
+| Allow users to configure duration and applicable direction | Implemented |
+| Only expose transitions supported by the rendering pipeline | Implemented |
+| Provide lightweight previews of each transition | Planned |
 
 ## 7. Effects Library
 
@@ -173,7 +194,7 @@ Runtime dependencies — FFmpeg filters.
 
 One selected effect plus grade per clip. Range controls apply to the selected effect. Speed changes and freeze frame are outstanding.
 
-Test coverage — Rendered time-limited sepia. Other effects lack dedicated fixtures.
+Test coverage — Rendered time-limited sepia. All exposed time-limited effects are encoded in the FFmpeg fixture.
 
 | Requested feature | Status |
 | --- | --- |
@@ -197,12 +218,15 @@ Test coverage — Rendered time-limited sepia. Other effects lack dedicated fixt
 | Speed ramping where supported | Planned |
 | Motion emphasis | Planned |
 | Letterbox overlays | Implemented |
+| Implement configurable non-AI video effects using FFmpeg | Implemented |
+| Allow effects to be applied to selected clips or specific time ranges | Implemented |
+| Support reusable effect presets | Partial |
 
 ## 8. Color Grading Studio
 
 Runtime dependencies — FFmpeg filters.
 
-Seven nondestructive looks. Render a short adjusted preview. LUT handling and paired comparison are outstanding.
+Seven nondestructive looks. Render a short adjusted preview. Validated 3D cube files support 2–65 samples per channel and adjustable blend intensity. Before and after previews play individually.
 
 Test coverage — Graded render fixture.
 
@@ -218,9 +242,13 @@ Test coverage — Graded render fixture.
 | Color temperature approximation | Implemented |
 | Shadows | Implemented |
 | Highlights | Implemented |
-| LUT imports | Planned |
-| LUT intensity | Planned |
+| LUT imports | Implemented |
+| LUT intensity | Implemented |
 | Before-and-after comparison | Partial |
+| Create a dedicated color adjustment panel | Implemented |
+| Support compatible .cube LUT files through FFmpeg | Implemented |
+| Create preset looks including cinematic, natural, vibrant, warm, cool, vintage and monochrome | Implemented |
+| Store grading settings non-destructively | Implemented |
 
 ## 9. Audio Mixing Studio
 
@@ -253,6 +281,10 @@ Test coverage — Mixed and normalized render fixture.
 | Audio extraction | Implemented |
 | Audio replacement | Partial |
 | Audio-only export | Implemented |
+| Add professional audio editing controls | Implemented |
+| Allow users to preview supported audio adjustments | Implemented |
+| Implement automatic background music ducking during speech-like audio activity using supported FFmpeg sidechain processing | Partial |
+| Do not claim perfect speech isolation without an appropriate model | Implemented |
 
 ## 10. Local Asset Library
 
@@ -279,6 +311,10 @@ Test coverage — MP4 import fixture.
 | Layout templates | Partial |
 | Animation presets | Planned |
 | Editing presets | Partial |
+| Create a reusable asset management system | Implemented |
+| Include folders, tags, favorites, search, previews and usage tracking | Implemented |
+| Allow drag-and-drop assets into the editor | Implemented |
+| Only use assets supplied by the user or assets with appropriate usage permissions | Implemented |
 
 ## 11. B-Roll Management
 
@@ -300,25 +336,28 @@ Test coverage — Animated inset render fixture.
 | Custom crop regions | Planned |
 | Timeline placement | Implemented |
 | Transition controls | Partial |
+| Allow users to insert supplementary footage into clips | Implemented |
+| Use Ollama to suggest relevant B-roll from the available asset library based on asset descriptions and available clip transcripts | Implemented |
+| Do not generate or download unrelated copyrighted footage automatically | Implemented |
 
 ## 12. Smart Reframing
 
 Runtime dependencies — Editor, FFmpeg.
 
-Base clip framing is static. A moving overlay can use keyframes. Vision-based subject tracking is outstanding.
+Base framing supports up to 64 time-ordered crop positions in source coordinates with linear interpolation. A moving overlay can use keyframes. An installed vision-capable model can suggest a focal point for one sampled frame. Each suggestion requires confirmation. Live visual inference has not been verified on this machine.
 
 Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
 | Static crop | Implemented |
-| Dynamic keyframed crop | Planned |
+| Dynamic keyframed crop | Implemented |
 | Multiple crop regions | Planned |
 | Scene-specific crop configurations | Planned |
 | Custom subject positioning | Implemented |
-| Smooth crop transitions | Planned |
-| Manual subject tracking through keyframes | Planned |
-| Vision-assisted crop suggestions using Ollama | Planned |
+| Smooth crop transitions | Implemented |
+| Manual subject tracking through keyframes | Implemented |
+| Vision-assisted crop suggestions using Ollama | Partial |
 | Split-screen templates | Partial |
 | Gameplay and facecam templates | Implemented |
 | Podcast templates | Partial |
@@ -326,12 +365,16 @@ Test coverage — No dedicated automated behavioral test.
 | Reaction video layouts | Partial |
 | Multiple video sources | Implemented |
 | Platform-specific safe zones | Partial |
+| Improve vertical video formatting | Partial |
+| Use sampled frame analysis only when a compatible Ollama vision model is configured | Implemented |
+| Validate all suggested crop coordinates | Implemented |
+| Do not advertise continuous AI face tracking unless it is actually implemented and verified | Implemented |
 
 ## 13. Caption Animation Engine
 
 Runtime dependencies — FFmpeg libass.
 
-ASS styling uses recorded timing. Existing captions and title overlay are available. General purpose caption animation is outstanding.
+ASS styling uses recorded timing. Existing captions and title overlay are available. Fade, pop, scale and slide effects render through ASS. Arbitrary animation curves and speaker styling are outstanding.
 
 Test coverage — Caption ASS timing unit tests.
 
@@ -339,12 +382,12 @@ Test coverage — Caption ASS timing unit tests.
 | --- | --- |
 | Word highlighting | Implemented |
 | Phrase highlighting | Partial |
-| Pop-in animation | Planned |
-| Fade animation | Planned |
-| Slide animation | Planned |
-| Scale animation | Planned |
+| Pop-in animation | Implemented |
+| Fade animation | Implemented |
+| Slide animation | Implemented |
+| Scale animation | Implemented |
 | Karaoke effects | Planned |
-| Custom text stroke | Partial |
+| Custom text stroke | Implemented |
 | Multiple text layers | Partial |
 | Background boxes | Implemented |
 | Dynamic keyword colors | Planned |
@@ -353,6 +396,11 @@ Test coverage — Caption ASS timing unit tests.
 | Animated opening hooks | Partial |
 | Caption presets | Implemented |
 | Custom font imports | Planned |
+| Expand the subtitle studio with a professional caption animation system | Partial |
+| Use ASS subtitles or FFmpeg-supported rendering techniques | Implemented |
+| Provide accurate timing controls | Implemented |
+| Only enable synchronized word-level effects when suitable timing data exists | Partial |
+| Allow estimated timings as a clearly labeled optional mode | Planned |
 
 ## 14. Multi-Language Content Creation
 
@@ -380,31 +428,39 @@ Test coverage — No dedicated automated behavioral test.
 | Multiple subtitle export tracks | Implemented |
 | Translation presets | Partial |
 | Translation cache | Implemented |
+| Use Ollama for translation of existing transcripts and subtitles | Implemented |
+| Preserve original timestamps and meaning | Partial |
+| Allow manual correction of translated text | Implemented |
+| Do not introduce external translation APIs | Implemented |
 
 ## 15. Transcript Intelligence
 
 Runtime dependencies — Ollama /api/embed, JSON.
 
-Search uses local embeddings, cosine similarity and stored transcript passages. Common terms are frequency counts.
+Search uses local embeddings, cosine similarity and stored transcript passages. The report can run a separate local transcript analysis for topics, chapters, summaries, Q&A, statements and entity suggestions. Each note links to an exact source line. Project glossaries are saved after analysis.
 
 Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Topic extraction | Partial |
-| Chapter generation | Partial |
-| Conversation summaries | Planned |
+| Topic extraction | Implemented |
+| Chapter generation | Implemented |
+| Conversation summaries | Implemented |
 | Key quote extraction | Implemented |
-| Question and answer detection | Planned |
-| Important statement detection | Planned |
+| Question and answer detection | Implemented |
+| Important statement detection | Implemented |
 | Keyword frequency | Implemented |
-| Named entity suggestions | Planned |
+| Named entity suggestions | Implemented |
 | Semantic transcript search | Implemented |
 | Similar conversation discovery | Partial |
 | Transcript comparison | Planned |
-| Custom glossary | Planned |
+| Custom glossary | Implemented |
 | Automatic punctuation correction | Planned |
 | Search across multiple projects | Implemented |
+| Use Ollama embeddings for semantic search | Implemented |
+| Store embeddings locally in JSON or binary files | Implemented |
+| For small local collections, implement similarity search without requiring a vector database | Implemented |
+| Clearly distinguish exact quotations from AI-generated summaries | Implemented |
 
 ## 16. Stream Intelligence Reports
 
@@ -422,18 +478,21 @@ Test coverage — No dedicated automated behavioral test.
 | Notable moments | Implemented |
 | Recommended highlights | Implemented |
 | Audio activity distribution | Implemented |
-| Available chat activity | Planned |
+| Available chat activity | Implemented |
 | Estimated content categories | Partial |
 | Number of viable clips | Partial |
 | Recommended clip durations | Partial |
 | Highlight confidence | Partial |
 | Analysis limitations | Implemented |
+| Generate a report for every analyzed stream | Implemented |
+| Allow exporting reports as Markdown, JSON and printable HTML | Implemented |
+| Build reports only from actual available analysis data | Implemented |
 
 ## 17. Multi-Stream Compilation Builder
 
 Runtime dependencies — FFmpeg, FFprobe.
 
-Builder handles 2–12 clips and up to 12 minutes. Themed compilations are curated manually. Automatic grouping and compilation branding are outstanding.
+Builder handles 2–12 clips and up to 12 minutes. Themed compilations are curated manually. Ollama can propose a sequence from supplied clips. Compilation-level branding is outstanding.
 
 Test coverage — Two-clip cross-dissolve render fixture.
 
@@ -455,12 +514,14 @@ Test coverage — Two-clip cross-dissolve render fixture.
 | Gaming highlights compilation | Partial |
 | Best podcast moments | Partial |
 | Reaction compilation | Partial |
+| Allow users to create compilation videos from multiple source recordings | Implemented |
+| Allow Ollama to suggest compilation groupings based on available clip information | Implemented |
 
 ## 18. Streamer Channel Intelligence
 
 Runtime dependencies — Project records.
 
-Existing streamer views aggregate local project data. Production reviews are saved separately from model estimates. Feedback-driven prompt refinement is outstanding.
+Existing streamer views aggregate local project data. Production reviews are saved separately from model estimates. A new analysis includes up to 20 explicit prior accept/reject examples from that project. Channel-wide feedback learning is outstanding.
 
 Test coverage — No dedicated automated behavioral test.
 
@@ -477,6 +538,11 @@ Test coverage — No dedicated automated behavioral test.
 | Most productive recordings | Partial |
 | Publishing history | Planned |
 | Processing success rate | Planned |
+| Expand streamer profiles with historical local analytics | Partial |
+| Learn from explicit user feedback | Partial |
+| Use accepted and rejected highlights to refine future clipping prompts and configurable scoring preferences | Partial |
+| Store feedback locally | Implemented |
+| Do not claim that the application retrains the Ollama model unless actual training functionality exists | Implemented |
 
 ## 19. Content Discovery Across Projects
 
@@ -505,14 +571,15 @@ Test coverage — No dedicated automated behavioral test.
 | Advanced filters | Implemented |
 | Date ranges | Implemented |
 | Duration ranges | Implemented |
-| Score ranges | Partial |
+| Score ranges | Implemented |
 | Saved searches | Implemented |
-| Search history | Planned |
+| Search history | Implemented |
 | Show all funny clips from last month | Partial |
 | Find conversations about football | Partial |
 | Find unpublished clips shorter than 45 seconds | Partial |
 | Find all clips involving a particular topic | Partial |
 | Show high-scoring highlights that I rejected | Partial |
+| Create a unified content search interface | Implemented |
 
 ## 20. Smart Collections
 
@@ -530,10 +597,13 @@ Test coverage — No dedicated automated behavioral test.
 | Unpublished gaming clips | Partial |
 | Funny moments | Implemented |
 | Clips under 30 seconds | Implemented |
-| Clips missing captions | Planned |
+| Clips missing captions | Implemented |
 | Clips requiring review | Implemented |
-| Favorite clips | Partial |
+| Favorite clips | Implemented |
 | Clips from a particular streamer | Partial |
+| Create both manual and rule-based clip collections | Implemented |
+| Allow custom collection rules | Implemented |
+| Automatically update smart collections when matching clips are created or modified | Partial |
 
 ## 21. Content Review Workspace
 
@@ -556,6 +626,9 @@ Test coverage — No dedicated automated behavioral test.
 | Adjust score manually | Implemented |
 | View source context | Partial |
 | Compare variations | Implemented |
+| Implement a dedicated review mode for evaluating clips quickly | Implemented |
+| Support keyboard shortcuts for rapid clip review | Partial |
+| Allow reviewing dozens of generated clips without repeatedly opening the editor | Implemented |
 
 ## 22. Social Media Preview Simulator
 
@@ -578,6 +651,10 @@ Test coverage — No dedicated automated behavioral test.
 | Share button | Partial |
 | Description area | Partial |
 | Platform-specific safe zones | Partial |
+| Allow the user to identify obscured captions, logos and important video content | Implemented |
+| Keep preview overlays separate from rendered media | Implemented |
+| Do not permanently burn simulated platform interfaces into exported videos | Implemented |
+| Make safe-zone presets configurable because platform interfaces can change | Partial |
 
 ## 23. Publishing Package Generator
 
@@ -585,7 +662,7 @@ Runtime dependencies — FFmpeg, ZIP.
 
 Per-clip and project ZIPs include media and metadata. The clean copy omits captions. Platform metadata is a starting point for publication.
 
-Test coverage — Real publishing ZIP fixture checks signature.
+Test coverage — Real publishing ZIP fixture checks signature and seven expected entry names.
 
 | Requested feature | Status |
 | --- | --- |
@@ -603,39 +680,45 @@ Test coverage — Real publishing ZIP fixture checks signature.
 | Platform-specific metadata | Partial |
 | Export settings | Implemented |
 | Publishing checklist | Implemented |
+| For each completed clip, generate a complete publishing package | Implemented |
+| Create one organized folder per clip | Implemented |
+| Allow ZIP export of individual publishing packages or complete projects | Implemented |
 
 ## 24. Advanced Content Calendar
 
 Runtime dependencies — Browser storage.
 
-The existing calendar supports basic planning. Recurrence, multi-brand scheduling and an AI planner are outstanding.
+The existing calendar supports basic planning. Choose a recurring weekday and allocate the next free slot per clip. Calendar notes, platform, brand and publication state persist in this browser. Ollama can propose an ordered backlog for user-approved weekly slots.
 
 Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Daily view | Planned |
-| Weekly view | Partial |
-| Monthly view | Planned |
-| Kanban view | Planned |
-| Unscheduled content backlog | Partial |
-| Drag-and-drop planning | Planned |
+| Daily view | Implemented |
+| Weekly view | Implemented |
+| Monthly view | Implemented |
+| Kanban view | Implemented |
+| Unscheduled content backlog | Implemented |
+| Drag-and-drop planning | Implemented |
 | Reusable scheduling patterns | Planned |
-| Recurring publishing slots | Planned |
-| Multiple brand profiles | Planned |
-| Multiple social platforms | Partial |
+| Recurring publishing slots | Implemented |
+| Multiple brand profiles | Implemented |
+| Multiple social platforms | Implemented |
 | Content category balancing | Planned |
-| Manual publishing confirmation | Partial |
-| Missed schedule indicators | Planned |
-| Publishing notes | Partial |
+| Manual publishing confirmation | Implemented |
+| Missed schedule indicators | Implemented |
+| Publishing notes | Implemented |
+| Improve the existing publishing calendar | Partial |
+| Allow Ollama to suggest a content plan from the existing clip library | Implemented |
+| Do not automatically publish content or require social media credentials | Implemented |
 
 ## 25. Publishing Analytics
 
 Runtime dependencies — Production ledger.
 
-Manual numeric metrics and CSV rows are validated. CSV import validates the entire project batch before saving. Model trend analysis is outstanding.
+Manual numeric metrics and CSV rows are validated. CSV import validates the entire project batch before saving. Categories are ranked by mean measured views and display sample sizes. Ollama can summarize those supplied measurements.
 
-Test coverage — No dedicated automated behavioral test.
+Test coverage — CSV validation and atomic rejection of invalid measurement rows.
 
 | Requested feature | Status |
 | --- | --- |
@@ -649,6 +732,13 @@ Test coverage — No dedicated automated behavioral test.
 | Completion rate | Implemented |
 | Followers gained | Implemented |
 | Revenue | Implemented |
+| Create a local publishing analytics module | Implemented |
+| Calculate performance summaries from supplied data | Implemented |
+| Compare actual performance against earlier AI engagement estimates | Partial |
+| Identify which clip types perform best | Implemented |
+| Use Ollama to summarize trends and suggest improvements | Implemented |
+| Keep actual analytics separate from AI estimates | Implemented |
+| Never fabricate social media performance data | Implemented |
 
 ## 26. Content Experimentation
 
@@ -667,6 +757,11 @@ Test coverage — No dedicated automated behavioral test.
 | Durations | Implemented |
 | Layouts | Implemented |
 | Editing styles | Implemented |
+| Create a lightweight experimentation workspace | Partial |
+| Record manually imported performance results | Implemented |
+| Compare variations and identify observed performance differences | Partial |
+| Do not claim statistical significance without sufficient evidence | Implemented |
+| Use results to improve future editing presets and clipping preferences | Planned |
 
 ## 27. Rights and Source Management
 
@@ -688,6 +783,12 @@ Test coverage — No dedicated automated behavioral test.
 | Attribution requirements | Implemented |
 | User notes | Implemented |
 | Third-party assets used | Partial |
+| Track media provenance for every source and asset | Partial |
+| Include configurable warnings for unknown usage rights | Partial |
+| Provide an attribution generator | Partial |
+| Offer a pre-export rights checklist | Partial |
+| Do not attempt to bypass copyright detection or platform protections | Implemented |
+| Do not guarantee that edited content is copyright-free or monetizable | Implemented |
 
 ## 28. Workflow Presets
 
@@ -721,6 +822,8 @@ Test coverage — Workflow compiler unit test.
 | Funny moments | Implemented |
 | Quick social media clips | Implemented |
 | High-quality cinematic clips | Implemented |
+| Allow users to save entire clipping workflows as reusable presets | Implemented |
+| Allow importing and exporting workflow presets as JSON | Implemented |
 
 ## 29. Visual Workflow Builder
 
@@ -747,6 +850,13 @@ Test coverage — Invalid edges, cycles and disconnected operations tested.
 | Create thumbnails | Partial |
 | Render | Implemented |
 | Export | Planned |
+| Create a lightweight workflow builder for automated clipping | Implemented |
+| Use a node-based interface | Partial |
+| Allow users to connect supported operations and configure settings | Implemented |
+| Validate workflows before execution | Implemented |
+| Reject circular dependencies and invalid connections | Implemented |
+| Convert workflows into predefined, safe processing operations | Implemented |
+| Never execute arbitrary commands generated by Ollama | Implemented |
 
 ## 30. Batch Operations
 
@@ -770,6 +880,9 @@ Test coverage — No dedicated automated behavioral test.
 | Export multiple projects | Partial |
 | Archive completed projects | Planned |
 | Delete selected temporary files | Partial |
+| Support bulk editing and processing | Partial |
+| Provide progress tracking and cancellation | Implemented |
+| Avoid exhausting system resources | Partial |
 
 ## 31. Project Version History
 
@@ -795,28 +908,31 @@ Test coverage — Edit and variation fixture invokes automatic checkpoints.
 | Duplicate version | Partial |
 | Compare settings between versions | Partial |
 | Crash recovery | Partial |
+| Implement lightweight version history using local JSON snapshots | Implemented |
+| Do not duplicate large source media files for every project version | Implemented |
+| Use references to immutable source assets | Implemented |
 
 ## 32. Workspace Customization
 
 Runtime dependencies — Browser.
 
-Existing dedicated workspaces, theme and editor preview are available. Personalized panel arrangements are outstanding.
+Existing dedicated workspaces, theme and editor preview are available. Save named combinations of sidebar state, editor inspector width, density, color and command shortcut in Local setup. Free-form panel docking is outstanding.
 
 Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Resizable panels | Planned |
+| Resizable panels | Implemented |
 | Collapsible panels | Partial |
 | Persistent panel positions | Planned |
-| Custom workspace layouts | Planned |
+| Custom workspace layouts | Partial |
 | Fullscreen editing | Partial |
 | Distraction-free preview | Partial |
-| Compact interface mode | Planned |
-| Comfortable interface mode | Planned |
-| Custom accent color | Planned |
-| Timeline color preferences | Planned |
-| Custom keyboard shortcuts | Planned |
+| Compact interface mode | Implemented |
+| Comfortable interface mode | Implemented |
+| Custom accent color | Implemented |
+| Timeline color preferences | Implemented |
+| Custom keyboard shortcuts | Partial |
 | Clipping | Partial |
 | Editing | Partial |
 | Captions | Partial |
@@ -824,12 +940,14 @@ Test coverage — No dedicated automated behavioral test.
 | Review | Partial |
 | Publishing | Partial |
 | Automation | Partial |
+| Allow professional workspace customization | Partial |
+| Allow users to save and restore custom workspace arrangements | Implemented |
 
 ## 33. Global Activity Center
 
 Runtime dependencies — Job queue.
 
-Existing queue reports job activity and supports cancellation. A universal persistent event drawer is outstanding.
+Existing queue reports job activity and supports cancellation. The activity bell opens job status, recorded stage details, filters, cancellation, generation retry and recent events in place.
 
 Test coverage — No dedicated automated behavioral test.
 
@@ -846,6 +964,9 @@ Test coverage — No dedicated automated behavioral test.
 | Storage warnings | Partial |
 | Recent exports | Partial |
 | Application errors | Partial |
+| Create a persistent application activity center | Partial |
+| Support filtering, retrying, cancellation and detailed logs | Partial |
+| Allow users to inspect activity without leaving the current workspace | Partial |
 
 ## 34. Local Developer Tools
 
@@ -870,6 +991,9 @@ Test coverage — No dedicated automated behavioral test.
 | AI request duration | Planned |
 | Cache statistics | Partial |
 | Resource usage | Implemented |
+| Create an advanced diagnostics section | Implemented |
+| Allow exporting sanitized diagnostic reports | Implemented |
+| Hide sensitive information and local secrets | Implemented |
 
 ## 35. Performance Optimization
 
@@ -900,12 +1024,13 @@ Test coverage — Existing progress and storage tests.
 | Disk-space-aware scheduling | Planned |
 | Job checkpointing | Partial |
 | Interrupted job recovery | Partial |
+| Provide fast, balanced and maximum-quality processing profiles | Implemented |
 
 ## 36. Backup, Portability and Recovery
 
 Runtime dependencies — Filesystem, SHA-256.
 
-Per-project or workspace filesystem snapshots optionally include media. SHA-256 restore writes a separate directory. Browser-only state needs separate handling.
+Per-project or workspace filesystem snapshots optionally include media. SHA-256 restore writes a separate directory. Full snapshots include browser brand profiles, calendar and workspace preferences. Restoring those preferences to the current browser requires a separate explicit action.
 
 Test coverage — Media snapshot and restored source fixture.
 
@@ -914,7 +1039,7 @@ Test coverage — Media snapshot and restored source fixture.
 | Complete workspace backup | Partial |
 | Project-only backup | Implemented |
 | Settings export | Partial |
-| Branding export | Partial |
+| Branding export | Implemented |
 | Preset export | Partial |
 | Clip library export | Implemented |
 | Selective media backup | Implemented |
@@ -922,28 +1047,34 @@ Test coverage — Media snapshot and restored source fixture.
 | Project restoration | Implemented |
 | Storage migration | Partial |
 | Automatic metadata checkpoints | Implemented |
+| Make projects portable between machines without requiring a database | Implemented |
+| Document external dependencies and model requirements inside exported project manifests | Implemented |
 
 ## 37. First-Run Experience
 
 Runtime dependencies — Local dependencies.
 
-Health and diagnostics expose dependency information. A complete guided first-launch setup is outstanding.
+New empty workspaces open the skippable Local setup dialog once. It checks dependencies, lists models, shows disk and encoder information and offers a real audio/video encode and decode. Text and embedding defaults persist in the browser. Storage migration uses environment configuration. The optional vision selector filters installed models by capability.
 
 Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Check FFmpeg | Partial |
-| Check FFprobe | Partial |
-| Check yt-dlp | Partial |
-| Check Ollama | Partial |
-| Discover installed models | Partial |
-| Select the preferred text model | Partial |
+| Check FFmpeg | Implemented |
+| Check FFprobe | Implemented |
+| Check yt-dlp | Implemented |
+| Check Ollama | Implemented |
+| Discover installed models | Implemented |
+| Select the preferred text model | Implemented |
 | Select optional vision and embedding models | Partial |
 | Configure the storage directory | Partial |
-| Verify available disk space | Partial |
-| Detect available encoders | Partial |
-| Test the processing pipeline | Partial |
+| Verify available disk space | Implemented |
+| Detect available encoders | Implemented |
+| Test the processing pipeline | Implemented |
+| Build a professional onboarding process | Implemented |
+| Provide installation guidance for missing dependencies | Partial |
+| Do not force users through onboarding repeatedly | Implemented |
+| Allow skipping optional AI capabilities | Implemented |
 
 ## 38. Professional Export Quality Assurance
 
@@ -966,6 +1097,10 @@ Test coverage — Actual rendered output verified by application QA.
 | Corruption indicators | Implemented |
 | Unexpected black frames | Implemented |
 | Unexpected frozen frames | Implemented |
+| Automatically verify completed exports using FFprobe and appropriate FFmpeg checks | Implemented |
+| Display export warnings with actionable suggestions | Implemented |
+| Provide a final export summary | Implemented |
+| Allow rerendering individual failed clips without repeating the entire project | Partial |
 
 ## 39. Local API and CLI
 
@@ -984,6 +1119,10 @@ Test coverage — API entry points exercised in render fixture.
 | Exporting projects | Implemented |
 | Listing jobs | Implemented |
 | Checking dependency status | Implemented |
+| Expose a documented local API for supported operations | Implemented |
+| Reuse the existing application logic | Implemented |
+| Do not build a second backend | Implemented |
+| Restrict local API access appropriately | Implemented |
 
 ## 40. Extensibility
 
@@ -1004,3 +1143,6 @@ Test coverage — No dedicated automated behavioral test.
 | Export presets | Partial |
 | Workflow operations | Implemented |
 | Storage providers | Partial |
+| Build an extensible internal architecture | Partial |
+| Do not introduce a complex third-party plugin marketplace | Implemented |
+| Prefer simple, typed internal registries and configuration-driven extensions | Partial |

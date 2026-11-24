@@ -1,3 +1,4 @@
+import { browserSettings } from "./browser-settings";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, promises as fs } from "node:fs";
 import path from "node:path";
@@ -21,6 +22,7 @@ async function hash(f: string) {
   return h.digest("hex");
 }
 const settingsFiles = [
+  "browser-settings.json",
   "collections.json",
   "workflows.json",
   "workspace.json",
@@ -89,6 +91,7 @@ export async function snapshot(
   project: string | undefined,
   media: boolean,
   signal: AbortSignal,
+  browser?: unknown,
 ) {
   if (project) validId(project);
   const projects = (await list()).filter((p) => !project || p.id === project);
@@ -106,6 +109,9 @@ export async function snapshot(
         ),
       ),
     );
+  for (const p of projects)
+    for (const c of p.clips)
+      if (c.settings.grade?.lut) assets.add(c.settings.grade.lut);
   const files: string[] = [];
   for (const dir of dirs) {
     if (dir === "audio") continue;
@@ -169,24 +175,39 @@ export async function snapshot(
       "Faster Whisper for speech transcription",
     ],
   };
-  for (const rel of files) {
-    signal.throwIfAborted();
-    const src = await plain(root, rel),
-      dst = path.join(stage, rel);
-    await fs.mkdir(path.dirname(dst), { recursive: true });
-    await fs.copyFile(src, dst);
-    m.files.push({
-      path: rel,
-      bytes: (await fs.stat(dst)).size,
-      sha256: await hash(dst),
-    });
+  try {
+    for (const rel of files) {
+      signal.throwIfAborted();
+      const src = await plain(root, rel),
+        dst = path.join(stage, rel);
+      await fs.mkdir(path.dirname(dst), { recursive: true });
+      await fs.copyFile(src, dst);
+      m.files.push({
+        path: rel,
+        bytes: (await fs.stat(dst)).size,
+        sha256: await hash(dst),
+      });
+    }
+    if (!project && browser) {
+      const relative = "browser-settings.json",
+        dst = path.join(stage, relative);
+      await fs.writeFile(dst, JSON.stringify(browserSettings(browser)));
+      m.files = m.files.filter((f) => f.path !== relative);
+      m.files.push({
+        path: relative,
+        bytes: (await fs.stat(dst)).size,
+        sha256: await hash(dst),
+      });
+    }
+    await fs.writeFile(
+      path.join(stage, "manifest.json"),
+      JSON.stringify(m, null, 2),
+    );
+    await fs.rename(stage, dest);
+    return { id, files: m.files.length, folder: dest };
+  } finally {
+    await fs.rm(stage, { recursive: true, force: true });
   }
-  await fs.writeFile(
-    path.join(stage, "manifest.json"),
-    JSON.stringify(m, null, 2),
-  );
-  await fs.rename(stage, dest);
-  return { id, files: m.files.length, folder: dest };
 }
 export async function inspectBackup(
   id: string,
@@ -197,26 +218,41 @@ export async function inspectBackup(
   const src = path.join(backups(), id);
   const dest = path.join(root, "restored", randomUUID());
   const stage = dest + ".partial";
-  for (const e of m.files) {
-    signal.throwIfAborted();
-    const f = await plain(src, e.path);
-    if ((await fs.stat(f)).size !== e.bytes || (await hash(f)) !== e.sha256)
-      throw Error("Backup checksum failed for " + e.path);
-    if (restore) {
-      const to = path.join(stage, e.path);
-      await fs.mkdir(path.dirname(to), { recursive: true });
-      await fs.copyFile(f, to);
-      if ((await hash(to)) !== e.sha256)
-        throw Error("Restored file failed verification");
+  try {
+    for (const e of m.files) {
+      signal.throwIfAborted();
+      const f = await plain(src, e.path);
+      if ((await fs.stat(f)).size !== e.bytes || (await hash(f)) !== e.sha256)
+        throw Error("Backup checksum failed for " + e.path);
+      if (restore) {
+        const to = path.join(stage, e.path);
+        await fs.mkdir(path.dirname(to), { recursive: true });
+        await fs.copyFile(f, to);
+        if ((await hash(to)) !== e.sha256)
+          throw Error("Restored file failed verification");
+      }
     }
+    if (restore) {
+      await fs.mkdir(stage, { recursive: true });
+      await fs.rename(stage, dest);
+    }
+    return {
+      verified: m.files.length,
+      media: m.media,
+      folder: restore ? dest : undefined,
+      browser:
+        restore && m.files.some((f) => f.path === "browser-settings.json")
+          ? browserSettings(
+              JSON.parse(
+                await fs.readFile(
+                  path.join(dest, "browser-settings.json"),
+                  "utf8",
+                ),
+              ),
+            )
+          : undefined,
+    };
+  } finally {
+    if (restore) await fs.rm(stage, { recursive: true, force: true });
   }
-  if (restore) {
-    await fs.mkdir(stage, { recursive: true });
-    await fs.rename(stage, dest);
-  }
-  return {
-    verified: m.files.length,
-    media: m.media,
-    folder: restore ? dest : undefined,
-  };
 }

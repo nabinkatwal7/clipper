@@ -70,6 +70,7 @@ export async function ollamaJson(
   model: string,
   prompt: string,
   signal: AbortSignal,
+  format: object | "json" = "json",
 ) {
   const r = await fetch(
     (process.env.OLLAMA_URL || "http://127.0.0.1:11434") + "/api/generate",
@@ -80,7 +81,7 @@ export async function ollamaJson(
         model,
         prompt,
         stream: false,
-        format: "json",
+        format,
         options: { temperature: 0, num_ctx: 8192, num_predict: 1600 },
       }),
       signal: AbortSignal.any([signal, AbortSignal.timeout(240000)]),
@@ -94,4 +95,12 @@ export async function ollamaJson(
   if (!data.done || typeof data.response !== "string")
     throw Error("Incomplete Ollama response");
   return data.response;
+}
+
+export function distinctEvidence(candidates:Highlight[],rows:Segment[]){
+ const accepted:Highlight[]=[],passages:Set<string>[]=[];
+ for(const h of candidates){const words=rows.filter(r=>r.start<h.end&&r.end>h.start).flatMap(r=>r.text.toLowerCase().match(/[\p{L}\p{N}]+/gu)||[]),grams=new Set(words.slice(2).map((_,i)=>words.slice(i,i+3).join(" ")));
+ const repeated=grams.size>=8&&passages.some(p=>{let common=0;for(const gram of grams)if(p.has(gram))common++;return common/(p.size+grams.size-common)>.82});
+ if(!repeated){accepted.push(h);passages.push(grams)}
+ }return accepted
 }

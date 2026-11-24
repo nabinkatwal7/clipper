@@ -71,6 +71,7 @@ export const sections = [
     ],
   ],
 ] as const;
+import {loadWorkspaceStyle} from "./workspace-preferences";
 export function StudioShell({
   page,
   go,
@@ -96,13 +97,17 @@ export function StudioShell({
     [drawer, setDrawer] = useState(false),
     [light, setLight] = useState(false),
     [dialog, setDialog] = useState(""),
+    [activityFilter, filterActivity] = useState("all"),
+    [activityMsg, activityNote] = useState(""),
     [query, setQuery] = useState(""),
     [index, setIndex] = useState(0),
     [hidden, setHidden] = useState<string[]>([]);
+  const [shortcut,setShortcut]=useState("k");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    setCollapsed(localStorage.getItem("studio-sidebar") === "compact");
-    setLight(localStorage.getItem("studio-theme") === "light");
+    const restore=()=>{loadWorkspaceStyle();setShortcut(localStorage.getItem("studio-command-key")||"k");setCollapsed(localStorage.getItem("studio-sidebar")==="compact")};
+    restore();window.addEventListener("studio-arrangement",restore);
+    setLight(localStorage.getItem("studio-theme") === "light");return()=>window.removeEventListener("studio-arrangement",restore);
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
@@ -120,7 +125,7 @@ export function StudioShell({
     function key(e: KeyboardEvent) {
       if (
         (e.metaKey || e.ctrlKey) &&
-        e.key.toLowerCase() === "k" &&
+        e.key.toLowerCase() === (localStorage.getItem("studio-command-key")||"k") &&
         !document.querySelector("[aria-modal=true]")
       ) {
         e.preventDefault();
@@ -325,11 +330,11 @@ export function StudioShell({
             <button
               className="command-key"
               onClick={palette}
-              title="Search studio (Ctrl+K)"
+              title={"Search studio (Ctrl+"+shortcut.toUpperCase()+")"}
             >
               <Search size={15} />
               <span>Search studio</span>
-              <kbd>Ctrl K</kbd>
+              <kbd>Ctrl {shortcut.toUpperCase()}</kbd>
             </button>
             <button
               title="Activity history"
@@ -414,25 +419,107 @@ export function StudioShell({
                   )}
                 </div>
               </>
-            ) : events.length ? (
-              events.map((event, i) => (
-                <button
-                  className="event-row"
-                  key={i}
-                  disabled={!projects.some((p) => p.id === event.project)}
-                  onClick={() => {
-                    setDialog("");
-                    onProject(event.project);
-                  }}
-                >
-                  <strong>{event.title}</strong>
-                  <small>
-                    {event.detail} · {new Date(event.at).toLocaleString()}
-                  </small>
-                </button>
-              ))
             ) : (
-              <p>Import a video to see project activity here.</p>
+              <>
+                <label className="field">
+                  Show jobs
+                  <select
+                    value={activityFilter}
+                    onChange={(e) => filterActivity(e.target.value)}
+                  >
+                    {[
+                      "all",
+                      "processing",
+                      "queued",
+                      "ready",
+                      "cancelled",
+                      "error",
+                    ].map((s) => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+                {projects
+                  .filter(
+                    (p) =>
+                      activityFilter === "all" || p.status === activityFilter,
+                  )
+                  .map((p) => (
+                    <details className="clip-context" key={p.id}>
+                      <summary>
+                        {p.title} · {p.status}
+                      </summary>
+                      <p>
+                        {p.stage} · {p.detail}
+                      </p>
+                      {p.error && <p role="alert">{p.error}</p>}
+                      {Object.entries(p.progress || {}).map(([key, step]) => (
+                        <p key={key}>
+                          {key} · {step.detail}
+                        </p>
+                      ))}
+                      {["queued", "processing", "error", "cancelled"].includes(
+                        p.status,
+                      ) && (
+                        <button
+                          className="tool"
+                          onClick={async () => {
+                            const action = ["queued", "processing"].includes(
+                              p.status,
+                            )
+                              ? "cancel"
+                              : "generate";
+                            try {
+                              const resp = await fetch("/api/" + action, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  project: p.id,
+                                  settings: p.settings,
+                                }),
+                              });
+                              if (!resp.ok)
+                                throw Error((await resp.json()).error);
+                              activityNote(
+                                action === "cancel"
+                                  ? "Cancellation requested."
+                                  : "Generation queued.",
+                              );
+                            } catch (e) {
+                              activityNote(String(e));
+                            }
+                          }}
+                        >
+                          {["queued", "processing"].includes(p.status)
+                            ? "Cancel job"
+                            : "Retry generation"}
+                        </button>
+                      )}
+                    </details>
+                  ))}
+                <p role="status">{activityMsg}</p>
+                <h3>Recent activity</h3>
+                {events.length ? (
+                  events.map((event, i) => (
+                    <button
+                      className="event-row"
+                      key={i}
+                      disabled={!projects.some((p) => p.id === event.project)}
+                      onClick={() => {
+                        setDialog("");
+                        onProject(event.project);
+                      }}
+                    >
+                      <strong>{event.title}</strong>
+                      <small>
+                        {event.detail} · {new Date(event.at).toLocaleString()}
+                      </small>
+                    </button>
+                  ))
+                ) : (
+                  <p>Import a video to see project activity here.</p>
+                )}
+              </>
             )}
           </div>
         </Modal>

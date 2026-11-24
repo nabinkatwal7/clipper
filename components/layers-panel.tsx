@@ -9,17 +9,43 @@ export function LayersPanel({
   change,
   at,
   length,
-  seek,project,clip,
+  seek,
+  project,
+  clip,
 }: {
-  project:string;clip:string;
+  project: string;
+  clip: string;
   s: Settings;
   change: (s: Settings) => void;
   at: number;
   length: number;
   seek: (n: number) => void;
 }) {
-  const [suggestions,setSuggestions]=useState<{asset:Asset;reason:string}[]>([]),[message,setMessage]=useState(""),[finding,setFinding]=useState(false);
-  async function suggest(){setFinding(true);setMessage("");try{const r=await fetch("/api/suggest-broll",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project,clip})});const data=await r.json();if(!r.ok)throw Error(data.error);setSuggestions(data);if(!data.length)setMessage("No matching local footage found.")}catch(e){setMessage(String(e))}finally{setFinding(false)}}
+  const [suggestions, setSuggestions] = useState<
+      { asset: Asset; reason: string }[]
+    >([]),
+    [message, setMessage] = useState(""),
+    [finding, setFinding] = useState(false);
+  async function suggest() {
+    setFinding(true);
+    setMessage("");
+    try {
+      const r = await fetch("/api/suggest-broll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project, clip }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error);
+      setSuggestions(data);
+      if (!data.length) setMessage("No matching local footage found.");
+    } catch (e) {
+      setMessage(String(e));
+    } finally {
+      setFinding(false);
+    }
+  }
+  const [selection,selectMany]=useState<string[]>([]);
   const tracks = s.composition?.tracks || [],
     [id, setId] = useState(""),
     [param, setParam] = useState<"x" | "y" | "volume">("x"),
@@ -66,15 +92,46 @@ export function LayersPanel({
       : 0;
   return (
     <div className="editor-fields">
-      <h3>Composition tracks</h3>
+      <h3>Composition tracks</h3>{tracks.length>1&&<details><summary>Group tracks</summary>{tracks.map(v=><label className="check-row" key={v.id}><input type="checkbox" disabled={v.locked} checked={selection.includes(v.id)} onChange={e=>selectMany(e.target.checked?[...selection,v.id]:selection.filter(id=>id!==v.id))}/>{v.name}{v.group?" · grouped":""}</label>)}<button className="tool" disabled={selection.length<2} onClick={()=>{const group=crypto.randomUUID();save(tracks.map(v=>selection.includes(v.id)&&!v.locked?{...v,group}:v));selectMany([])}}>Group selected</button><button className="tool" disabled={!selection.length} onClick={()=>{save(tracks.map(v=>selection.includes(v.id)&&!v.locked?{...v,group:undefined}:v));selectMany([])}}>Ungroup selected</button></details>}
       <details>
         <summary className="inline-link">Add media track</summary>
         <AssetLibrary insert={insert} />
-        <button className="tool" disabled={finding} onClick={suggest}>{finding?"Checking local assets…":"Suggest B-roll with Ollama"}</button>
-        {suggestions.map(({asset,reason})=><button key={asset.id} className="event-row" onClick={()=>insert(asset)}>Insert {asset.name}<small>{reason}</small></button>)}
+        <button className="tool" disabled={finding} onClick={suggest}>
+          {finding ? "Checking local assets…" : "Suggest B-roll with Ollama"}
+        </button>
+        {suggestions.map(({ asset, reason }) => (
+          <button
+            key={asset.id}
+            className="event-row"
+            onClick={() => insert(asset)}
+          >
+            Insert {asset.name}
+            <small>{reason}</small>
+          </button>
+        ))}
       </details>
-      {message&&<p role="status">{message}</p>}
-      <div className="layer-stack" onDragOver={e=>{if(e.dataTransfer.types.includes("application/x-clipper-asset"))e.preventDefault()}} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData("application/x-clipper-asset");if(!id)return;try{const r=await fetch("/api/assets");if(!r.ok)throw Error("Could not load the asset library");const a=(await r.json() as Asset[]).find(a=>a.id===id);if(!a)throw Error("Asset is unavailable");insert(a)}catch(err){setMessage(String(err))}}}>
+      {message && <p role="status">{message}</p>}
+      <div
+        className="layer-stack"
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("application/x-clipper-asset"))
+            e.preventDefault();
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData("application/x-clipper-asset");
+          if (!id) return;
+          try {
+            const r = await fetch("/api/assets");
+            if (!r.ok) throw Error("Could not load the asset library");
+            const a = ((await r.json()) as Asset[]).find((a) => a.id === id);
+            if (!a) throw Error("Asset is unavailable");
+            insert(a);
+          } catch (err) {
+            setMessage(String(err));
+          }
+        }}
+      >
         <small>Drop a library asset here to insert it at the playhead.</small>
         {tracks.map((v, i) => (
           <button
@@ -142,7 +199,8 @@ export function LayersPanel({
                     value={t[k]}
                     onChange={(e) => {
                       const n = +e.target.value;
-                      if (k === "length" && ripple)
+                      if(k==="at"&&t.group){const peers=tracks.filter(v=>v.group===t.group);if(peers.some(v=>v.locked)){setMessage("Unlock grouped tracks to move them together.");return}const delta=Math.max(-Math.min(...peers.map(v=>v.at)),Math.min(n-t.at,600-Math.max(...peers.map(v=>v.at))));save(tracks.map(v=>v.group===t.group?{...v,at:v.at+delta}:v))}
+                      else if (k === "length" && ripple)
                         save(
                           tracks.map((v) =>
                             v.id === t.id
