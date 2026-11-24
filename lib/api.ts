@@ -204,7 +204,7 @@ export async function handle(
           };
         }),
       );
-      return NextResponse.json(usage);
+      const disk=await fs.statfs(root).catch(()=>null);return NextResponse.json(usage,{headers:disk?{"X-Storage-Available":String(disk.bavail*disk.bsize)}:{}});
     }
     if (req.method === "GET" && action === "health")
       return NextResponse.json(await health());

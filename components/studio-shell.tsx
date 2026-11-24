@@ -36,7 +36,7 @@ export const sections = [
   [
     "Workspace",
     [
-      ["Overview", PanelsTopLeft],
+      ["Overview", PanelsTopLeft],["New project",Plus],
       ["Projects", FolderClosed],
       ["Clip library", Library],
     ],
@@ -147,7 +147,7 @@ export function StudioShell({
       items.map(([name]) => ({
         name,
         kind: "Page",
-        run: () => navigate(name),
+        run: () => name==="New project"?create():navigate(name),
       })),
     ),
     ...projects.flatMap((p) => [
@@ -232,7 +232,7 @@ export function StudioShell({
                     key={label}
                     aria-current={page === label ? "page" : undefined}
                     className={`nav-item ${page === label ? "current" : ""}`}
-                    onClick={() => navigate(label)}
+                    onClick={() => {if(label==="New project"){setDrawer(false);create()}else navigate(label)}}
                   >
                     <Icon size={16} />
                     <span>{label}</span>

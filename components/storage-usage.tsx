@@ -2,6 +2,7 @@
 import {useEffect,useState} from "react";
 import {HardDrive} from "lucide-react";
 export function StorageUsage() {
+  const [free,setFree]=useState<number|null>(null);
   const [data, setData] = useState<
       { name: string; bytes: number; count: number }[]
     >([]),
@@ -10,7 +11,7 @@ export function StorageUsage() {
     fetch("/api/storage")
       .then(async (r) => {
         if (!r.ok) throw Error();
-        setData(await r.json());
+        const remaining=r.headers.get("x-storage-available");if(remaining!==null)setFree(Number(remaining));setData(await r.json());
       })
       .catch(() =>
         setError("Unable to read storage usage. Reopen Storage to retry."),
@@ -23,11 +24,12 @@ export function StorageUsage() {
         <HardDrive size={20} /> {(total / 1024 ** 3).toFixed(2)} GB used by the
         studio
       </p>
+      {free!==null&&<p className="hint">{(free/1024**3).toFixed(1)} GB available on this drive.</p>}{free!==null&&free<5*1024**3&&<p className="inline-error" role="alert">Less than 5 GB remains. Free disk space before importing a large recording.</p>}
       {error && <p role="alert">{error}</p>}
       {data.map((d) => (
         <div className="storage-line" key={d.name}>
           <strong>{d.name}</strong>
-          <progress value={d.bytes} max={total || 1} />
+          <progress aria-label={d.name+" share of studio storage"} value={d.bytes} max={total || 1} />
           <small>
             {d.count} files · {(d.bytes / 1024 ** 2).toFixed(1)} MB
           </small>

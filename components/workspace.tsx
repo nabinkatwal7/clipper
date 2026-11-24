@@ -109,7 +109,7 @@ export default function Workspace() {
     try {
       setSelected(localStorage.getItem("clipper-project") || "");
     } catch {}
-    const route=()=>{const hash=location.hash.slice(1);if(hash.startsWith("project/")){select(hash.slice(8));setPage("Project")}else{setPage(sections.flatMap(([,items])=>items.map(([name])=>name)).find(name=>name.toLowerCase().replaceAll(" ","-")===hash)||"Overview")}setComposer(false);setHealth(false);setReview(null);setEditing(null);setLibrary(false);setSearch("")};route();window.addEventListener("popstate",route);
+    const route=()=>{const hash=location.hash.slice(1);if(hash.startsWith("project/")){select(hash.slice(8));setPage("Project")}else{setPage(sections.flatMap(([,items])=>items.map(([name])=>name)).filter(n=>n!=="New project").find(name=>name.toLowerCase().replaceAll(" ","-")===hash)||"Overview")}setComposer(false);setHealth(false);setReview(null);setEditing(null);setLibrary(false);setSearch("")};route();window.addEventListener("popstate",route);
     void refresh().finally(() => setLoaded(true));
     void api("/api/health").then(setChecks).catch(()=>setChecks([{name:"Local engine",ok:false,detail:"Could not reach the dependency check. Use Check again to retry."}]));
     const timer = setInterval(() => void refresh(), 2500);

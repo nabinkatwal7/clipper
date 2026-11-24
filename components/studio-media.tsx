@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useDeferredValue,useEffect, useState } from "react";
 import {
   Ellipsis,ArrowUpRight,
   ChevronRight,
@@ -16,7 +16,7 @@ import {
   FolderOpen,
   Download,
 } from "lucide-react";
-import type { Project, Clip } from "@/lib/types";
+import type { Project } from "@/lib/types";
 export const duration = (s: number) =>
   [
     Math.floor(s / 3600) || "",
@@ -141,6 +141,7 @@ export function MediaLibrary({
     setFavorites(next);
     localStorage.setItem("studio-favorites", JSON.stringify(next));
   }
+  const search=useDeferredValue(q.trim().toLowerCase());
   let items = projects
     .flatMap((p) => p.clips.map((c) => ({ p, c })))
     .filter(
@@ -150,7 +151,7 @@ export function MediaLibrary({
         (status === "All statuses" ||
           (pub[c.editorialId || c.id] || "Ready") === status) &&
         (!only || favorites.includes(c.editorialId || c.id)) &&
-        c.title.toLowerCase().includes(q.toLowerCase()),
+        c.title.toLowerCase().includes(search),
     );
   if (sort === "AI score")
     items.sort((a, b) => (b.c.score ?? -1) - (a.c.score ?? -1));
