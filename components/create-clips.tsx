@@ -256,7 +256,11 @@ export function CreateClips({
           )}
           <fieldset className="composer-options" disabled={working}>
             <h3>Make it yours</h3>
-            {settings.mode==='manual'?<p className="hint">One clip from your selected time range.</p>:<BasicSettings value={settings} onChange={setSettings} />}
+            {settings.mode === "manual" ? (
+              <p className="hint">One clip from your selected time range.</p>
+            ) : (
+              <BasicSettings value={settings} onChange={setSettings} />
+            )}
             <div className="preset-summary">
               <Check size={14} />
               {settings.ratio === "9:16" ? "Portrait" : settings.ratio} ·{" "}

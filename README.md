@@ -136,3 +136,12 @@ Each clip has an editable social post caption with Copy, Save, Generate, and TXT
 The main clip download returns a ZIP with matching MP4 and TXT filenames. Download all includes a TXT beside every MP4. TXT uses UTF-8 and contains the saved post caption, separate from burned-in subtitles. Save edits before downloading. Raw MP4 previews and direct MP4 URLs remain supported.
 
 POST /api/caption accepts {project, clip, caption} to save text, or {project, clip} to queue local AI generation. GET /api/download?project=UUID&clip=UUID&kind=caption downloads TXT; kind=bundle downloads a single MP4 + TXT ZIP. kind=zip includes videos and text for the entire project.
+
+### Simplified workspace
+
+Use New video to paste a link or upload a video. Only clip length and count are shown initially; More options contains format, quality, layout, clipping method, and subtitle preferences. Uploads show actual transferred progress.
+
+The main workspace focuses on the clip gallery. Open Review clip to preview the video, edit or copy its post caption, and download the MP4 + TXT bundle. Edit video separates Trim & layout from Subtitles, with timecode inputs such as 1:23.5. Projects opens a searchable library and remembers the chosen project. Activity holds completed processing details; active jobs show a compact live progress card with expandable steps.
+
+The redesign was checked at desktop and phone widths, including a real local upload, manual generation, caption save, and trim/re-render. Temporary test media was removed afterward.
+
