@@ -88,6 +88,7 @@ export default function Workspace() {
     const timer = setTimeout(() => setNotice(""), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
+  useEffect(()=>{const closeMenus=(e:MouseEvent)=>{if(e.target instanceof Element&&!e.target.closest('.project-menu'))document.querySelectorAll('.project-menu[open]').forEach(node=>node.removeAttribute('open'));};document.addEventListener('click',closeMenus);return()=>document.removeEventListener('click',closeMenus);},[]);
   const project = projects.find((p) => p.id === selected) || projects[0];
   const processing =
     !!project && ["queued", "processing"].includes(project.status);
@@ -446,6 +447,7 @@ export default function Workspace() {
                             muted
                             playsInline
                             preload="metadata"
+                        poster={project.thumbnail}
                             src={`/api/download?project=${project.id}&clip=${c.id}#t=0.1`}
                           />
                           <span className="clip-number">
