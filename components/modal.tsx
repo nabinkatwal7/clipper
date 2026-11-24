@@ -35,7 +35,7 @@ export function Modal({
       if (e.key === "Tab") {
         const nodes = [
           ...(ref.current?.querySelectorAll<HTMLElement>(
-            "button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary",
+            "button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex='0']",
           ) || []),
         ].filter((n) => n.getClientRects().length > 0);
         const first = nodes[0],

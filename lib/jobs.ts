@@ -551,7 +551,7 @@ export async function render(
 ): Promise<Clip> {
   const [w, height] = dimensions(s);
   const ass = file("temp", id, "ass");
-  await fs.writeFile(ass, captions(segments, h.start, h.end, s, w, height));
+  await fs.writeFile(ass, captions(s.captions?segments:[], h.start, h.end, s, w, height));
   const subtitlePath = ass
     .replace(/\\/g, "/")
     .replace(/:/g, "\\:")
@@ -569,7 +569,7 @@ export async function render(
   if (s.rotation) transforms.push(`rotate=${s.rotation}*PI/180:c=black`);
   if (alpha !== 1)
     transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
-  if (s.captions) transforms.push(`subtitles=filename='${subtitlePath}'`);
+  if (s.captions||s.overlayText?.trim()) transforms.push(`subtitles=filename='${subtitlePath}'`);
   const filter =
     layoutFilter(s, w, height) +
     ";[formatted]" +

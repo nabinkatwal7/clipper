@@ -5,7 +5,7 @@ import { FrameStrip } from "./frame-strip";
 import { duration } from "./studio-media";
 import type { Segment } from "@/lib/types";
 export function EditTimeline({
-  project,
+  overlay, project,
   clip,
   originalStart,
   originalEnd,
@@ -19,7 +19,7 @@ export function EditTimeline({
   outPoint,
   segments,
 }: {
-  project: string;
+  overlay?:string; project: string;
   clip: string;
   originalStart: number;
   originalEnd: number;
@@ -171,6 +171,7 @@ export function EditTimeline({
               </span>
             ))}
         </div>
+        {overlay&&<div className="overlay-track"><span style={{marginLeft:pct(start)+"%",width:(pct(end)-pct(start))+"%"}}>{overlay}</span></div>}
         <i className="playhead" style={{ left: pct(now) + "%" }} />
         <input
           className="timeline-scrub"

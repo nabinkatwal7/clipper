@@ -62,6 +62,7 @@ export function captions(
         clean(seg.text),
       );
   }
+  if(s.overlayText?.trim())lines+=`Dialogue: 1,0:00:00.00,${stamp(end-start)},Default,,0,0,0,,{\\an5\\pos(${Math.round(w/2)},${Math.round(h*(s.overlayY??15)/100)})\\b1\\fs${Math.round(h*.042)}\\c&H00FFFFFF&}${clean(s.overlayText)}\n`;
   return header + lines;
 }
 export function dimensions(s: Settings) {
