@@ -1,0 +1,3 @@
+faster-whisper>=1.1,<2
+# Faster Whisper 1.x passes metadata_errors to PyAV; newer PyAV removed it.
+av>=11,<16

@@ -1,0 +1,39 @@
+{
+  "name": "clipper-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 4000",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1 --port 4000",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "health": "tsx scripts/health.ts",
+    "format": "prettier --write app components lib scripts tests types *.json *.ts *.mjs README.md"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
+    "archiver": "^8.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "ipaddr.js": "^2.2.0",
+    "lucide-react": "^0.468.0",
+    "next": "^16.4.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prettier": "^3.10.1",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
+  }
+}
