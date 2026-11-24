@@ -35,7 +35,13 @@ export function CreateClips({
     request = useRef<XMLHttpRequest | null>(null);
   function choose(file: File | undefined) {
     if (!file) return;
-    if(!file.type.startsWith('video/')&&!/\.(mp4|mov|mkv|webm|avi|m4v|mpeg|mpg|ts|ogv)$/i.test(file.name)){setError('Choose a video file, such as MP4, MOV, or WebM.');return;}
+    if (
+      !file.type.startsWith("video/") &&
+      !/\.(mp4|mov|mkv|webm|avi|m4v|mpeg|mpg|ts|ogv)$/i.test(file.name)
+    ) {
+      setError("Choose a video file, such as MP4, MOV, or WebM.");
+      return;
+    }
     if (file.size > 5 * 1024 ** 3) {
       setError("Choose a video smaller than 5 GB.");
       return;
@@ -152,6 +158,7 @@ export function CreateClips({
                   type="button"
                   role="tab"
                   aria-selected={tab === "link"}
+                  disabled={working}
                   className={tab === "link" ? "selected" : ""}
                   onClick={() => setTab("link")}
                 >
@@ -162,6 +169,7 @@ export function CreateClips({
                   type="button"
                   role="tab"
                   aria-selected={tab === "upload"}
+                  disabled={working}
                   className={tab === "upload" ? "selected" : ""}
                   onClick={() => setTab("upload")}
                 >
@@ -246,7 +254,7 @@ export function CreateClips({
               )}
             </>
           )}
-          <div className="composer-options">
+          <fieldset className="composer-options" disabled={working}>
             <h3>Make it yours</h3>
             <BasicSettings value={settings} onChange={setSettings} />
             <div className="preset-summary">
@@ -262,7 +270,7 @@ export function CreateClips({
               </summary>
               <AdvancedSettings value={settings} onChange={setSettings} />
             </details>
-          </div>
+          </fieldset>
           {error && (
             <p className="inline-error" role="alert">
               {error}

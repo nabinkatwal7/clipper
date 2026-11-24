@@ -18,7 +18,7 @@ export function PostCaption({
   const [draft, setDraft] = useState(saved),
     [working, setWorking] = useState(false),
     [error, setError] = useState(""),
-    [pending,setPending]=useState(false),
+    [pending, setPending] = useState(false),
     [copied, setCopied] = useState(false);
   useEffect(() => {
     setDraft(saved);
@@ -40,7 +40,7 @@ export function PostCaption({
       });
       const result = await response.json();
       if (!response.ok) throw Error(result.error);
-      setPending(response.status===202);
+      setPending(response.status === 202);
       await onUpdated();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -117,7 +117,11 @@ export function PostCaption({
         )}
         <span>{draft.length}/2200</span>
       </div>
-      {pending&&disabled&&<p className="post-caption-hint" role="status">Caption queued. It will appear here automatically.</p>}
+      {pending && disabled && (
+        <p className="post-caption-hint" role="status">
+          Caption queued. It will appear here automatically.
+        </p>
+      )}
       {error && (
         <p role="alert" className="post-caption-error">
           {error}

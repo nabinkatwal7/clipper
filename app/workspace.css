@@ -512,6 +512,7 @@ summary::-webkit-details-marker {
   background: #080808;
   padding: 0;
   overflow: hidden;
+  max-height: 420px;
 }
 .clip-preview video {
   display: block;
@@ -994,6 +995,9 @@ summary::-webkit-details-marker {
 }
 .composer-options {
   margin-top: 29px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
 }
 .composer-options h3 {
   font-size: 14px;
@@ -1835,7 +1839,7 @@ summary::-webkit-details-marker {
     padding: 8px 11px;
   }
   .setup-button {
-    display: none;
+    display: flex;
   }
   .brand {
     font-size: 20px;
@@ -2111,5 +2115,11 @@ summary::-webkit-details-marker {
   }
   .clip-card:hover {
     transform: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand-edition {
+    display: none;
   }
 }

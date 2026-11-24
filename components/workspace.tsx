@@ -436,6 +436,9 @@ export default function Workspace() {
                       <article className="clip-card" key={c.id}>
                         <button
                           className="clip-preview"
+                          style={{
+                            aspectRatio: c.settings.ratio.replace(":", "/"),
+                          }}
                           aria-label={`Review ${c.title}`}
                           onClick={() => setReview(c.id)}
                         >
@@ -570,7 +573,11 @@ export default function Workspace() {
           onCreated={async (id) => {
             select(id);
             await refresh();
-            setNotice("Video added. Processing has started.");
+            setNotice(
+              reuse
+                ? "Creating more clips from this video."
+                : "Video added. Processing has started.",
+            );
           }}
         />
       )}
