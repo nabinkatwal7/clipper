@@ -16,6 +16,7 @@ import { DirectorPanel } from "./director-panel";
 import { EditorMonitor } from "./editor-monitor";
 import { EditorInspector, editorTools } from "./editor-inspector";
 import { EditTimeline } from "./edit-timeline";
+import { VideoScopes } from "./video-scopes";
 import { Undo2, Redo2, Scan, Maximize, Keyboard } from "lucide-react";
 function timecode(value: number) {
   const n = Math.round(value * 100) / 100,
@@ -532,6 +533,7 @@ export function VideoEditor({
               clipStart={valid ? start : clip.start}
               preferProxy={useProxy && proxyReady}
             />
+            <VideoScopes video={video} />
           </div>
           <Button variant="secondary" disabled={!good} onClick={toggle}>
             <Play size={14} />

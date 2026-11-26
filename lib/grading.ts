@@ -273,3 +273,62 @@ export function mixFilters(input: Partial<Mix>, duration: number) {
     m.limit && "alimiter=limit=0.95",
   ].filter(Boolean) as string[];
 }
+
+export type AdjustmentLayer = {
+  id: string;
+  name: string;
+  at: number;
+  length: number;
+  enabled: boolean;
+  effects: StackedEffect[];
+};
+
+export function validateAdjustmentLayers(layers: AdjustmentLayer[] | undefined) {
+  if (layers === undefined) return undefined;
+  if (!Array.isArray(layers) || layers.length > 8)
+    throw Error("Use at most 8 adjustment layers.");
+  const ids = new Set<string>();
+  return layers.map((layer) => {
+    if (
+      !layer ||
+      typeof layer.id !== "string" ||
+      !/^[a-f0-9-]{36}$/.test(layer.id) ||
+      ids.has(layer.id) ||
+      typeof layer.name !== "string" ||
+      layer.name.length > 80 ||
+      typeof layer.enabled !== "boolean" ||
+      !Number.isFinite(layer.at) ||
+      layer.at < 0 ||
+      layer.at > 600 ||
+      !Number.isFinite(layer.length) ||
+      layer.length < 0.04 ||
+      layer.length > 600
+    )
+      throw Error("Invalid adjustment layer.");
+    ids.add(layer.id);
+    return {
+      ...layer,
+      effects: validateEffectStack(layer.effects) || [],
+    };
+  });
+}
+
+export function adjustmentFilters(layers: AdjustmentLayer[] | undefined, h: number) {
+  const filters: string[] = [];
+  for (const layer of validateAdjustmentLayers(layers) || []) {
+    if (!layer.enabled) continue;
+    for (const item of layer.effects) {
+      if (!item.enabled) continue;
+      filters.push(
+        ...effectFilter(
+          item.effect,
+          item.amount,
+          h,
+          layer.at + (item.from ?? 0),
+          layer.at + (item.to ?? layer.length),
+        ),
+      );
+    }
+  }
+  return filters;
+}

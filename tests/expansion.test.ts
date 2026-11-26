@@ -423,3 +423,26 @@ test("beat detection finds periodic onsets and supports snapping", () => {
   assert.ok(result.bpm > 100 && result.bpm < 140);
   assert.equal(snapToBeats(0.52, result.beats, 0.15), result.beats.find(b => Math.abs(b.time-0.5)<0.05)?.time || 0.52);
 });
+
+import { adjustmentFilters, validateAdjustmentLayers } from "../lib/grading";
+test("adjustment layers emit timed effect filters over composition ranges", () => {
+  const layers = validateAdjustmentLayers([
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Glow pass",
+      at: 0.5,
+      length: 2,
+      enabled: true,
+      effects: [
+        {
+          id: "22222222-2222-4222-8222-222222222222",
+          effect: "glow",
+          amount: 0.4,
+          enabled: true,
+        },
+      ],
+    },
+  ]);
+  const filters = adjustmentFilters(layers, 1080);
+  assert.ok(filters.some((f) => f.includes("unsharp") && f.includes("between(t,0.5")));
+});

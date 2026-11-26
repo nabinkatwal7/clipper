@@ -2,7 +2,7 @@ import { workspaceScope } from "./identity";
 import { evidence, windowEvidence } from "./activity-evidence";
 import { ledger } from "./production-store";
 import { compose } from "./composite-render";
-import { gradeFilters, mixFilters } from "./grading";
+import { gradeFilters, mixFilters, adjustmentFilters } from "./grading";
 import {
   analysisWindows,
   distinctEvidence,
@@ -581,6 +581,7 @@ export async function render(
     transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
   if (s.grade || s.effectStack?.length)
     transforms.push(...gradeFilters(s.grade || {}, w, height, s.effectStack));
+  transforms.push(...adjustmentFilters(s.adjustmentLayers, height));
   const finalOverlay =
     s.captions || s.overlayText?.trim()
       ? `subtitles=filename='${subtitlePath}'`

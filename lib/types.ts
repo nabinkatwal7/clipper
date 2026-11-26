@@ -5,6 +5,7 @@ export type Settings = {
   cropPoints?: import("./reframe").CropPoint[];
   grade?: Partial<import("./grading").Grade>;
   effectStack?: import("./grading").StackedEffect[];
+  adjustmentLayers?: import("./grading").AdjustmentLayer[];
   mix?: Partial<import("./grading").Mix>;
   composition?: import("./composition").Composition;
   category?: string;

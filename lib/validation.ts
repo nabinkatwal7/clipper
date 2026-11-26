@@ -1,6 +1,6 @@
 import { validCrop } from "./reframe";
 import { validateComposition } from "./composition";
-import { gradeValue, mixFilters, validateEffectStack } from "./grading";
+import { gradeValue, mixFilters, validateEffectStack, validateAdjustmentLayers } from "./grading";
 import { validateSpeedCurve } from "./speed-curve";
 import { defaults, type Settings, type Highlight } from "./types";
 import ipaddr from "ipaddr.js";
@@ -146,6 +146,8 @@ export function settings(input: unknown): Settings {
   if (s.grade) gradeValue(s.grade);
   if (s.effectStack !== undefined)
     s.effectStack = validateEffectStack(s.effectStack);
+  if (s.adjustmentLayers !== undefined)
+    s.adjustmentLayers = validateAdjustmentLayers(s.adjustmentLayers);
   if (s.mix) mixFilters(s.mix, 60);
   return s;
 }

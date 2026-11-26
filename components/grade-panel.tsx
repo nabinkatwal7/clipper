@@ -384,6 +384,119 @@ export function GradePanel({
           )}
         </>
       )}
+      {!audio && (
+        <details className="clip-context">
+          <summary>Adjustment layers</summary>
+          <p className="hint">
+            Time-ranged effect stacks applied over the whole composition after
+            color grade.
+          </p>
+          <button
+            type="button"
+            className="tool"
+            disabled={(s.adjustmentLayers?.length || 0) >= 8}
+            onClick={() =>
+              change({
+                ...s,
+                adjustmentLayers: [
+                  ...(s.adjustmentLayers || []),
+                  {
+                    id: crypto.randomUUID(),
+                    name: "Adjustment",
+                    at: 0,
+                    length: Math.max(0.04, end - start),
+                    enabled: true,
+                    effects: [
+                      {
+                        id: crypto.randomUUID(),
+                        effect: "vignette",
+                        amount: 0.45,
+                        enabled: true,
+                      },
+                    ],
+                  },
+                ],
+              })
+            }
+          >
+            Add adjustment layer
+          </button>
+          {(s.adjustmentLayers || []).map((layer, index) => (
+            <div className="field-grid" key={layer.id}>
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={layer.enabled}
+                  onChange={(e) =>
+                    change({
+                      ...s,
+                      adjustmentLayers: (s.adjustmentLayers || []).map(
+                        (entry, i) =>
+                          i === index
+                            ? { ...entry, enabled: e.target.checked }
+                            : entry,
+                      ),
+                    })
+                  }
+                />
+                {layer.name}
+              </label>
+              <label className="field">
+                Start
+                <input
+                  type="number"
+                  step=".05"
+                  value={layer.at}
+                  onChange={(e) =>
+                    change({
+                      ...s,
+                      adjustmentLayers: (s.adjustmentLayers || []).map(
+                        (entry, i) =>
+                          i === index
+                            ? { ...entry, at: +e.target.value }
+                            : entry,
+                      ),
+                    })
+                  }
+                />
+              </label>
+              <label className="field">
+                Length
+                <input
+                  type="number"
+                  step=".05"
+                  value={layer.length}
+                  onChange={(e) =>
+                    change({
+                      ...s,
+                      adjustmentLayers: (s.adjustmentLayers || []).map(
+                        (entry, i) =>
+                          i === index
+                            ? { ...entry, length: +e.target.value }
+                            : entry,
+                      ),
+                    })
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                className="tool"
+                onClick={() =>
+                  change({
+                    ...s,
+                    adjustmentLayers: (s.adjustmentLayers || []).filter(
+                      (_, i) => i !== index,
+                    ),
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </details>
+      )}
       <RenderPreview
         settings={s}
         project={project}

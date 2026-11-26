@@ -1894,3 +1894,17 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
   stroke-width: 1.5;
   cursor: grab;
 }
+
+.video-scopes {
+  margin-top: 8px;
+}
+.scope-plot {
+  width: 100%;
+  max-width: 256px;
+  height: 96px;
+  display: block;
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #111;
+}
