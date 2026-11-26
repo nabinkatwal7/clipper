@@ -211,7 +211,7 @@ export async function bakePngSequence(
   }
 
   const job = uuid();
-  const dir = file("tmp", `three-d-${job}`);
+  const dir = path.join(workspaceRoot(), "tmp", `three-d-${job}`);
   await fs.mkdir(dir, { recursive: true });
   const id = uuid();
   const target = file("assets", id, "mp4");

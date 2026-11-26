@@ -11,8 +11,7 @@ export default async function AppPage() {
   if (!u) redirect("/login?next=/app");
   return (
     <div data-workspace-user={u.id} style={{ display: "contents" }}>
-      <Workspace />
-      <AccountBar name={u.name} role={u.role} />
+      <Workspace account={<AccountBar name={u.name} role={u.role} />} />
     </div>
   );
 }

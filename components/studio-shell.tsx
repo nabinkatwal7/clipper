@@ -22,7 +22,13 @@ import { useStudioEvents } from "./use-studio-events";
 import { Modal } from "./modal";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Input } from "./ui/input";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandEmpty,
+} from "./ui/command";
 import {
   Tooltip,
   TooltipContent,
@@ -30,12 +36,11 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { Separator } from "./ui/separator";
-import { ScrollArea } from "./ui/scroll-area";
 import {
   sections,
-  studioGroups,
-  studioLabelForPage,
-  groupIcons,
+  navSections,
+  sectionForPage,
+  type NavSection,
 } from "./workspace-nav";
 export { sections };
 import { loadWorkspaceStyle } from "./workspace-preferences";
@@ -48,6 +53,7 @@ export function StudioShell({
   create,
   setup,
   ollama,
+  account,
   children,
 }: {
   page: string;
@@ -58,6 +64,7 @@ export function StudioShell({
   create: () => void;
   setup: () => void;
   ollama?: boolean;
+  account: ReactNode;
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false),
@@ -67,13 +74,16 @@ export function StudioShell({
     [activityFilter, filterActivity] = useState("all"),
     [activityMsg, activityNote] = useState(""),
     [query, setQuery] = useState(""),
-    [index, setIndex] = useState(0),
-    [hidden, setHidden] = useState<string[]>([]),
-    [workspace, setWorkspace] = useState(studioLabelForPage(page));
+    [wsOpen, setWsOpen] = useState(false),
+    [activeSection, setActiveSection] = useState<NavSection>(
+      () => sectionForPage(page) || navSections[0],
+    );
   const [shortcut, setShortcut] = useState("k");
   const input = useRef<HTMLInputElement>(null);
+  const wsMenu = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    setWorkspace(studioLabelForPage(page));
+    const next = sectionForPage(page);
+    if (next) setActiveSection(next);
   }, [page]);
   useEffect(() => {
     const restore = () => {
@@ -87,6 +97,22 @@ export function StudioShell({
     return () => window.removeEventListener("studio-arrangement", restore);
   }, []);
   useEffect(() => {
+    if (!wsOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (wsMenu.current && !wsMenu.current.contains(e.target as Node))
+        setWsOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setWsOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [wsOpen]);
+  useEffect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
   }, [light]);
   function theme() {
@@ -95,14 +121,14 @@ export function StudioShell({
   }
   function palette() {
     setQuery("");
-    setIndex(0);
     setDialog("search");
   }
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if (
         (e.metaKey || e.ctrlKey) &&
-        e.key.toLowerCase() === (studioStorage.getItem("studio-command-key")||"k") &&
+        e.key.toLowerCase() ===
+          (studioStorage.getItem("studio-command-key") || "k") &&
         !document.querySelector("[aria-modal=true]")
       ) {
         e.preventDefault();
@@ -178,399 +204,462 @@ export function StudioShell({
   const events = useStudioEvents(projects);
   return (
     <TooltipProvider delayDuration={250}>
-    <div
-      className={`studio ${collapsed ? "compact" : ""} ${drawer ? "drawer-open" : ""}`}
-    >
-      {drawer && (
-        <button
-          className="drawer-shade"
-          aria-label="Close navigation"
-          onClick={() => setDrawer(false)}
-        />
-      )}
-      <aside className="studio-side">
-        <div className="studio-logo">
-          <span className="logo-glyph" aria-hidden>
-            <i />
-            <i />
-            <i />
-          </span>
-          <strong>
-            Clipper <b>Studio</b>
-          </strong>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="desktop-collapse"
-                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                onClick={() => {
-                  setCollapsed(!collapsed);
-                  studioStorage.setItem(
-                    "studio-sidebar",
-                    collapsed ? "full" : "compact",
-                  );
-                }}
-              >
-                {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="workspace-switcher" role="tablist" aria-label="Workspaces">
-          {studioGroups
-            .filter((g) =>
-              g.routes.some((r) => r.page && r.status !== "planned"),
-            )
-            .map((g) => {
-              const Icon = groupIcons[g.id];
-              const live = g.routes.find(
-                (r) => r.page && r.status !== "planned",
-              );
-              const current = workspace === g.label;
+      <div
+        className={`studio ${collapsed ? "compact" : ""} ${drawer ? "drawer-open" : ""}`}
+      >
+        <a
+          className="studio-skip"
+          href="#studio-content"
+          onClick={(event) => {
+            event.preventDefault();
+            document.getElementById("studio-content")?.focus();
+          }}
+        >
+          Skip to workspace content
+        </a>
+        {drawer && (
+          <button
+            className="drawer-shade"
+            aria-label="Close navigation"
+            onClick={() => setDrawer(false)}
+          />
+        )}
+        <aside className="studio-side">
+          <nav className="primary-workspaces" aria-label="Primary workspaces">
+            {navSections.map((group) => {
+              const first = group.items[0];
+              if (!first) return null;
               return (
-                <Tooltip key={g.id}>
+                <Tooltip key={group.id}>
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      role="tab"
-                      aria-selected={current}
-                      className={`workspace-tab ${current ? "current" : ""}`}
-                      title={g.label}
+                      aria-label={group.label + " workspace"}
+                      aria-current={
+                        group.id === activeSection.id ? "true" : undefined
+                      }
                       onClick={() => {
-                        setWorkspace(g.label);
-                        studioStorage.setItem("studio-workspace", g.id);
-                        if (live?.page) {
-                          if (live.page === "New project") create();
-                          else navigate(live.page);
+                        setActiveSection(group);
+                        setWsOpen(false);
+                        if (collapsed && !drawer) {
+                          setCollapsed(false);
+                          studioStorage.setItem("studio-sidebar", "full");
                         }
+                        if (group.id !== activeSection.id) go(first.page);
                       }}
                     >
-                      <Icon size={15} strokeWidth={1.75} />
-                      {!collapsed && <span>{g.label}</span>}
+                      <group.Icon size={17} strokeWidth={1.8} />
+                      <span>{group.label}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    {g.label} — {g.description}
+                    {group.description}
                   </TooltipContent>
                 </Tooltip>
               );
             })}
-        </div>
-        <ScrollArea className="min-h-0 flex-1">
-          <nav aria-label="Studio navigation">
-            {sections
-              .filter(([group]) => !workspace || group === workspace)
-              .map(([group, items]) => (
-                <section key={group}>
-                  <button
-                    className="nav-group"
-                    aria-expanded={!hidden.includes(group)}
-                    onClick={() =>
-                      setHidden(
-                        hidden.includes(group)
-                          ? hidden.filter((g) => g !== group)
-                          : [...hidden, group],
-                      )
-                    }
+          </nav>
+          <div className="studio-logo">
+            <span className="logo-glyph" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+            {!collapsed && (
+              <strong>
+                Clipper <b>Studio</b>
+              </strong>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="desktop-collapse"
+                  aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  onClick={() => {
+                    setCollapsed(!collapsed);
+                    setWsOpen(false);
+                    studioStorage.setItem(
+                      "studio-sidebar",
+                      collapsed ? "full" : "compact",
+                    );
+                  }}
+                >
+                  {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div className="workspace-picker" ref={wsMenu}>
+            {(() => {
+              const WsIcon = activeSection.Icon;
+              return (
+                <button
+                  type="button"
+                  className="workspace-current"
+                  aria-expanded={wsOpen}
+                  title={activeSection.label}
+                  onClick={() => setWsOpen((o) => !o)}
+                >
+                  <WsIcon size={16} strokeWidth={1.75} />
+                  {!collapsed && (
+                    <>
+                      <span className="workspace-current-copy">
+                        <strong>{activeSection.label}</strong>
+                        <small>{activeSection.description}</small>
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={
+                          wsOpen
+                            ? "workspace-chevron open"
+                            : "workspace-chevron"
+                        }
+                      />
+                    </>
+                  )}
+                </button>
+              );
+            })()}
+            {wsOpen && (
+              <div
+                className="workspace-menu"
+                role="group"
+                aria-label="Workspaces"
+              >
+                {navSections.map((g) => {
+                  const Icon = g.Icon;
+                  const current = activeSection.id === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      aria-current={current ? "true" : undefined}
+                      className={`workspace-option ${current ? "current" : ""}`}
+                      onClick={() => {
+                        setActiveSection(g);
+                        studioStorage.setItem("studio-workspace", g.id);
+                        setWsOpen(false);
+                        const first = g.items[0];
+                        if (!first) return;
+                        if (first.page === "New project") {
+                          setDrawer(false);
+                          create();
+                        } else navigate(first.page);
+                      }}
+                    >
+                      <Icon size={15} strokeWidth={1.75} />
+                      <span>
+                        <strong>{g.label}</strong>
+                        <small>{g.description}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <nav className="studio-nav" aria-label="Studio pages">
+            {!collapsed && (
+              <p className="nav-group" id="nav-pages-label">
+                {activeSection.label}
+              </p>
+            )}
+            {activeSection.items.map((item) => {
+              const { Icon } = item;
+              const current = page === item.page;
+              const btn = (
+                <button
+                  type="button"
+                  title={item.label}
+                  aria-current={current ? "page" : undefined}
+                  className={`nav-item ${current ? "current" : ""}`}
+                  onClick={() => {
+                    if (item.page === "New project") {
+                      setDrawer(false);
+                      create();
+                    } else navigate(item.page);
+                  }}
+                >
+                  <Icon size={16} strokeWidth={1.75} />
+                  <span>{item.label}</span>
+                  {item.page === "Processing queue" && active > 0 && (
+                    <small>{active}</small>
+                  )}
+                </button>
+              );
+              if (collapsed) {
+                return (
+                  <Tooltip key={item.page}>
+                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                    <TooltipContent side="right">{item.label}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return <div key={item.page}>{btn}</div>;
+            })}
+          </nav>
+
+          <div className="side-foot">
+            <button className="nav-item" title="Local settings" onClick={setup}>
+              <Settings2 size={16} strokeWidth={1.75} />
+              <span>Settings</span>
+            </button>
+            <button
+              className="engine"
+              title="Check local dependencies"
+              onClick={setup}
+            >
+              <Cpu size={18} strokeWidth={1.75} />
+              <span>
+                <strong>Local engine</strong>
+                <small>
+                  {ollama === undefined
+                    ? "Checking Ollama…"
+                    : ollama
+                      ? "Ollama connected"
+                      : "Ollama unavailable"}
+                </small>
+              </span>
+              <i className={ollama ? "online" : ""} />
+            </button>
+            {!collapsed && (
+              <small className="build-version">Clipper Studio · v1.0</small>
+            )}
+          </div>
+        </aside>
+        <div className="studio-body">
+          <header className="studio-bar">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mobile-menu"
+              aria-label="Navigation"
+              onClick={() => setDrawer(!drawer)}
+            >
+              <Menu size={18} />
+            </Button>
+            <span className="crumb">
+              <Workflow size={15} /> {activeSection.label}{" "}
+              <ChevronRight size={13} />
+              <strong>
+                {activeSection.items.find((i) => i.page === page)?.label ||
+                  page}
+              </strong>
+            </span>
+            <div className="bar-tools">
+              {active > 0 && (
+                <button
+                  className="queue-indicator"
+                  title="Open processing queue"
+                  onClick={() => navigate("Processing queue")}
+                >
+                  <ListVideo size={14} />
+                  {active} active
+                </button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="command-key"
+                onClick={palette}
+                title={"Search studio (Ctrl+" + shortcut.toUpperCase() + ")"}
+              >
+                <Search size={15} />
+                <span>Search studio</span>
+                <kbd>Ctrl {shortcut.toUpperCase()}</kbd>
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Activity history"
+                    onClick={() => setDialog("history")}
                   >
-                    {group}
-                    <ChevronDown size={12} />
-                  </button>
-                  {(!hidden.includes(group) || collapsed) &&
-                    items.map(([label, Icon]) => (
-                      <button
-                        title={label}
-                        key={label}
-                        aria-current={page === label ? "page" : undefined}
-                        className={`nav-item ${page === label ? "current" : ""}`}
-                        onClick={() => {
-                          if (label === "New project") {
-                            setDrawer(false);
-                            create();
-                          } else navigate(label);
+                    <Bell size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Activity history</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Change theme"
+                    onClick={theme}
+                  >
+                    {light ? <Moon size={16} /> : <Sun size={16} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle theme</TooltipContent>
+              </Tooltip>
+              <Separator orientation="vertical" className="mx-1 h-6" />
+              <Button
+                size="sm"
+                className="primary studio-create"
+                aria-label="New project"
+                onClick={create}
+              >
+                <Plus size={15} /> <span>New project</span>
+              </Button>
+              {account}
+            </div>
+          </header>
+          {children}
+        </div>
+        {dialog && (
+          <Modal
+            title={dialog === "search" ? "Search studio" : "Activity history"}
+            onClose={() => setDialog("")}
+          >
+            <div className="library-body">
+              {dialog === "search" ? (
+                <Command label="Search studio" shouldFilter={false} loop>
+                  <CommandInput
+                    ref={input}
+                    aria-label="Find command"
+                    placeholder="Search pages, commands, projects and clips"
+                    value={query}
+                    onValueChange={setQuery}
+                  />
+                  <CommandList className="command-results">
+                    <CommandEmpty>
+                      No matches. Try a project or clip title.
+                    </CommandEmpty>
+                    {matches.map((command, i) => (
+                      <CommandItem
+                        key={i}
+                        value={command.kind + "-" + i + "-" + command.name}
+                        onSelect={() => {
+                          setDialog("");
+                          command.run();
                         }}
                       >
-                        <Icon size={16} strokeWidth={1.75} />
-                        <span>{label}</span>
-                        {label === "Processing queue" && active > 0 && (
-                          <small>{active}</small>
-                        )}
-                      </button>
+                        <span>{command.name}</span>
+                        <small>{command.kind}</small>
+                      </CommandItem>
                     ))}
-                </section>
-              ))}
-          </nav>
-        </ScrollArea>
-        <div className="side-foot">
-          <button className="nav-item" title="Local settings" onClick={setup}>
-            <Settings2 size={16} strokeWidth={1.75} />
-            <span>Settings</span>
-          </button>
-          <button
-            className="engine"
-            title="Check local dependencies"
-            onClick={setup}
-          >
-            <Cpu size={18} strokeWidth={1.75} />
-            <span>
-              <strong>Local engine</strong>
-              <small>
-                {ollama === undefined
-                  ? "Checking Ollama…"
-                  : ollama
-                    ? "Ollama connected"
-                    : "Ollama unavailable"}
-              </small>
-            </span>
-            <i className={ollama ? "online" : ""} />
-          </button>
-          <small className="build-version">Clipper Studio · v1.0</small>
-        </div>
-      </aside>
-      <div className="studio-body">
-        <header className="studio-bar">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mobile-menu"
-            aria-label="Navigation"
-            onClick={() => setDrawer(!drawer)}
-          >
-            <Menu size={18} />
-          </Button>
-          <span className="crumb">
-            <Workflow size={15} /> {workspace} <ChevronRight size={13} />
-            <strong>{page}</strong>
-          </span>
-          <div className="bar-tools">
-            {active > 0 && (
-              <button
-                className="queue-indicator"
-                title="Open processing queue"
-                onClick={() => navigate("Processing queue")}
-              >
-                <ListVideo size={14} />
-                {active} active
-              </button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="command-key"
-              onClick={palette}
-              title={"Search studio (Ctrl+"+shortcut.toUpperCase()+")"}
-            >
-              <Search size={15} />
-              <span>Search studio</span>
-              <kbd>Ctrl {shortcut.toUpperCase()}</kbd>
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Activity history"
-                  onClick={() => setDialog("history")}
-                >
-                  <Bell size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Activity history</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Change theme"
-                  onClick={theme}
-                >
-                  {light ? <Moon size={16} /> : <Sun size={16} />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Toggle theme</TooltipContent>
-            </Tooltip>
-            <Separator orientation="vertical" className="mx-1 h-6" />
-            <Button size="sm" onClick={create}>
-              <Plus size={15} /> New project
-            </Button>
-          </div>
-        </header>
-        {children}
-      </div>
-      {dialog && (
-        <Modal
-          title={dialog === "search" ? "Search studio" : "Activity history"}
-          onClose={() => setDialog("")}
-        >
-          <div className="library-body">
-            {dialog === "search" ? (
-              <>
-                <label className="search-field">
-                  <Search size={16} />
-                  <Input
-                    ref={input}
-                    placeholder="Search pages, commands, projects and clips"
-                    aria-label="Find command"
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value);
-                      setIndex(0);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                        e.preventDefault();
-                        const n = Math.max(
-                          0,
-                          Math.min(
-                            matches.length - 1,
-                            index + (e.key === "ArrowDown" ? 1 : -1),
-                          ),
-                        );
-                        setIndex(n);
-                        document
-                          .getElementById("command-" + n)
-                          ?.scrollIntoView({ block: "nearest" });
-                      }
-                      if (e.key === "Enter" && matches[index]) {
-                        e.preventDefault();
-                        setDialog("");
-                        matches[index].run();
-                      }
-                    }}
-                  />
-                </label>
-                <div className="command-results">
-                  {matches.map((c, i) => (
-                    <button
-                      key={i}
-                      id={"command-" + i}
-                      className={i === index ? "current" : ""}
-                      onClick={() => {
-                        setDialog("");
-                        c.run();
-                      }}
+                  </CommandList>
+                </Command>
+              ) : (
+                <>
+                  <label className="field">
+                    Show jobs
+                    <select
+                      value={activityFilter}
+                      onChange={(e) => filterActivity(e.target.value)}
                     >
-                      <span>{c.name}</span>
-                      <small>{c.kind}</small>
-                    </button>
-                  ))}
-                  {!matches.length && (
-                    <p>No matches. Try a project or clip title.</p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <label className="field">
-                  Show jobs
-                  <select
-                    value={activityFilter}
-                    onChange={(e) => filterActivity(e.target.value)}
-                  >
-                    {[
-                      "all",
-                      "processing",
-                      "queued",
-                      "ready",
-                      "cancelled",
-                      "error",
-                    ].map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
-                </label>
-                {projects
-                  .filter(
-                    (p) =>
-                      activityFilter === "all" || p.status === activityFilter,
-                  )
-                  .map((p) => (
-                    <details className="clip-context" key={p.id}>
-                      <summary>
-                        {p.title} · {p.status}
-                      </summary>
-                      <p>
-                        {p.stage} · {p.detail}
-                      </p>
-                      {p.error && <p role="alert">{p.error}</p>}
-                      {Object.entries(p.progress || {}).map(([key, step]) => (
-                        <p key={key}>
-                          {key} · {step.detail}
-                        </p>
+                      {[
+                        "all",
+                        "processing",
+                        "queued",
+                        "ready",
+                        "cancelled",
+                        "error",
+                      ].map((s) => (
+                        <option key={s}>{s}</option>
                       ))}
-                      {["queued", "processing", "error", "cancelled"].includes(
-                        p.status,
-                      ) && (
-                        <button
-                          className="tool"
-                          onClick={async () => {
-                            const action = ["queued", "processing"].includes(
-                              p.status,
-                            )
-                              ? "cancel"
-                              : "generate";
-                            try {
-                              const resp = await fetch("/api/" + action, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  project: p.id,
-                                  settings: p.settings,
-                                }),
-                              });
-                              if (!resp.ok)
-                                throw Error((await resp.json()).error);
-                              activityNote(
-                                action === "cancel"
-                                  ? "Cancellation requested."
-                                  : "Generation queued.",
-                              );
-                            } catch (e) {
-                              activityNote(String(e));
-                            }
-                          }}
-                        >
-                          {["queued", "processing"].includes(p.status)
-                            ? "Cancel job"
-                            : "Retry generation"}
-                        </button>
-                      )}
-                    </details>
-                  ))}
-                <p role="status">{activityMsg}</p>
-                <h3>Recent activity</h3>
-                {events.length ? (
-                  events.map((event, i) => (
-                    <button
-                      className="event-row"
-                      key={i}
-                      disabled={!projects.some((p) => p.id === event.project)}
-                      onClick={() => {
-                        setDialog("");
-                        onProject(event.project);
-                      }}
-                    >
-                      <strong>{event.title}</strong>
-                      <small>
-                        {event.detail} · {new Date(event.at).toLocaleString()}
-                      </small>
-                    </button>
-                  ))
-                ) : (
-                  <p>Import a video to see project activity here.</p>
-                )}
-              </>
-            )}
-          </div>
-        </Modal>
-      )}
-    </div>
+                    </select>
+                  </label>
+                  {projects
+                    .filter(
+                      (p) =>
+                        activityFilter === "all" || p.status === activityFilter,
+                    )
+                    .map((p) => (
+                      <details className="clip-context" key={p.id}>
+                        <summary>
+                          {p.title} · {p.status}
+                        </summary>
+                        <p>
+                          {p.stage} · {p.detail}
+                        </p>
+                        {p.error && <p role="alert">{p.error}</p>}
+                        {Object.entries(p.progress || {}).map(([key, step]) => (
+                          <p key={key}>
+                            {key} · {step.detail}
+                          </p>
+                        ))}
+                        {[
+                          "queued",
+                          "processing",
+                          "error",
+                          "cancelled",
+                        ].includes(p.status) && (
+                          <button
+                            className="tool"
+                            onClick={async () => {
+                              const action = ["queued", "processing"].includes(
+                                p.status,
+                              )
+                                ? "cancel"
+                                : "generate";
+                              try {
+                                const resp = await fetch("/api/" + action, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    project: p.id,
+                                    settings: p.settings,
+                                  }),
+                                });
+                                if (!resp.ok)
+                                  throw Error((await resp.json()).error);
+                                activityNote(
+                                  action === "cancel"
+                                    ? "Cancellation requested."
+                                    : "Generation queued.",
+                                );
+                              } catch (e) {
+                                activityNote(String(e));
+                              }
+                            }}
+                          >
+                            {["queued", "processing"].includes(p.status)
+                              ? "Cancel job"
+                              : "Retry generation"}
+                          </button>
+                        )}
+                      </details>
+                    ))}
+                  <p role="status">{activityMsg}</p>
+                  <h3>Recent activity</h3>
+                  {events.length ? (
+                    events.map((event, i) => (
+                      <button
+                        className="event-row"
+                        key={i}
+                        disabled={!projects.some((p) => p.id === event.project)}
+                        onClick={() => {
+                          setDialog("");
+                          onProject(event.project);
+                        }}
+                      >
+                        <strong>{event.title}</strong>
+                        <small>
+                          {event.detail} · {new Date(event.at).toLocaleString()}
+                        </small>
+                      </button>
+                    ))
+                  ) : (
+                    <p>Import a video to see project activity here.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </Modal>
+        )}
+      </div>
     </TooltipProvider>
   );
 }

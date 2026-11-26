@@ -105,7 +105,6 @@ export function AudioRestoreStudio({ projects }: { projects: Project[] }) {
 
       <div className="spec-wrap">
         {specUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={specUrl}
             alt="Source spectrogram"

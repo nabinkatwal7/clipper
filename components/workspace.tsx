@@ -1,6 +1,6 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
-import { useCallback, useEffect, useState } from "react";
+import { studioStorage } from "@/lib/client-storage";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   Play,
   Plus,
@@ -38,6 +38,7 @@ import { ProductionDesk } from "./production-desk";
 import { Branding } from "./brand-profiles";
 import { StudioShell, sections } from "./studio-shell";
 import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
+import { Skeleton } from "./ui/skeleton";
 import { Calendar } from "./content-calendar";
 import { StorageUsage } from "./storage-usage";
 import { SourceTool } from "./studio-tools";
@@ -83,7 +84,7 @@ const post = (action: string, body: unknown) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-export default function Workspace() {
+export default function Workspace({ account }: { account: ReactNode }) {
   useChannelMonitor();
   const [projects, setProjects] = useState<Project[]>([]),
     [selected, setSelected] = useState(""),
@@ -92,6 +93,7 @@ export default function Workspace() {
     [reuse, setReuse] = useState<Project | undefined>(),
     [library, setLibrary] = useState(false),
     [search, setSearch] = useState(""),
+    [projectStatus, filterProjects] = useState("all"),
     [health, setHealth] = useState(false),
     [checks, setChecks] = useState<Health[]>([]),
     [review, setReview] = useState<string | null>(null),
@@ -273,8 +275,9 @@ export default function Workspace() {
       create={() => create()}
       setup={() => setHealth(true)}
       ollama={checks.find((c) => c.name === "Ollama")?.ok}
+      account={account}
     >
-      <main className="workspace-main">
+      <main className="workspace-main" id="studio-content" tabIndex={-1}>
         {error && (
           <div className="alert" role="alert">
             <div>
@@ -296,11 +299,10 @@ export default function Workspace() {
             role="status"
             aria-label="Loading workspace"
           >
-            <i />
-            <div />
-            <span />
-            <span />
-            <span />
+            <Skeleton className="workspace-skeleton-title" />
+            <Skeleton className="workspace-skeleton-main" />
+            <Skeleton className="workspace-skeleton-row" />
+            <Skeleton className="workspace-skeleton-row" />
           </div>
         ) : page === "Overview" ? (
           <Overview
@@ -342,32 +344,72 @@ export default function Workspace() {
                 </p>
               </div>
             </div>
-            {page === "Projects" && (
-              <>
-                <label className="search-field">
-                  <Search size={16} />
-                  <input
-                    aria-label="Find project"
-                    placeholder="Find a project"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </label>
-                <ProjectRows
-                  projects={projects.filter((p) =>
-                    p.title.toLowerCase().includes(search.toLowerCase()),
-                  )}
-                  open={openProject}
-                />
-                {!projects.some((p) =>
-                  p.title.toLowerCase().includes(search.toLowerCase()),
-                ) && (
-                  <p className="studio-empty">
-                    No matching projects. Import a video or try another search.
-                  </p>
-                )}
-              </>
-            )}
+            {page === "Projects" &&
+              (() => {
+                const visible = projects
+                  .filter(
+                    (p) =>
+                      p.title
+                        .toLowerCase()
+                        .includes(search.trim().toLowerCase()) &&
+                      (projectStatus === "all" ||
+                        (projectStatus === "active"
+                          ? ["queued", "processing"].includes(p.status)
+                          : p.status === projectStatus)),
+                  )
+                  .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+                return (
+                  <>
+                    <div className="project-filters">
+                      <label className="search-field">
+                        <Search size={16} />
+                        <input
+                          aria-label="Find project"
+                          placeholder="Find a project"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                        />
+                      </label>
+                      <select
+                        aria-label="Filter projects by status"
+                        value={projectStatus}
+                        onChange={(e) => filterProjects(e.target.value)}
+                      >
+                        <option value="all">All statuses</option>
+                        <option value="ready">Ready</option>
+                        <option value="active">Processing</option>
+                        <option value="error">Needs attention</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <ProjectRows projects={visible} open={openProject} />
+                    {!visible.length && (
+                      <div className="studio-empty">
+                        <p>
+                          {projects.length
+                            ? "No projects match these filters."
+                            : "Import a recording to create your first project."}
+                        </p>
+                        {projects.length ? (
+                          <button
+                            className="tool"
+                            onClick={() => {
+                              setSearch("");
+                              filterProjects("all");
+                            }}
+                          >
+                            Clear filters
+                          </button>
+                        ) : (
+                          <Button onClick={() => create()}>
+                            Import a video
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             {["Clip library", "Video editor", "Subtitle studio"].includes(
               page,
             ) && (
@@ -490,7 +532,9 @@ export default function Workspace() {
             {page === "Content calendar" && (
               <Calendar projects={projects} open={openClip} />
             )}
-            {page === "Live clipping" && <LiveClipping open={openProject} projects={projects} />}
+            {page === "Live clipping" && (
+              <LiveClipping open={openProject} projects={projects} />
+            )}
             {page === "Instant clipping" && (
               <InstantClipping projects={projects} />
             )}
@@ -513,9 +557,7 @@ export default function Workspace() {
             {page === "Tutorial tools" && (
               <TutorialStudio projects={projects} />
             )}
-            {page === "Review Studio" && (
-              <ReviewStudio projects={projects} />
-            )}
+            {page === "Review Studio" && <ReviewStudio projects={projects} />}
             {page === "Design Studio" && <DesignStudio />}
             {page === "Image editor" && <ImageEditorStudio />}
             {page === "3D Studio" && <ThreeDStudio />}
@@ -661,7 +703,10 @@ export default function Workspace() {
               </div>
               <div className="project-heading-actions">
                 {project.duration > 0 && (
-                  <Button variant="secondary" onClick={() => go("Transcript explorer")}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => go("Transcript explorer")}
+                  >
                     <Scissors size={16} />
                     Quick clips
                   </Button>

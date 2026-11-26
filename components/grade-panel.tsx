@@ -2,7 +2,14 @@
 import { RenderPreview } from "./render-preview";
 import { useState } from "react";
 import type { Settings } from "@/lib/types";
-import { dry, neutral, effects, looks, gradeRanges, type StackedEffect } from "@/lib/grading";
+import {
+  dry,
+  neutral,
+  effects,
+  looks,
+  gradeRanges,
+  type StackedEffect,
+} from "@/lib/grading";
 export function GradePanel({
   settings: s,
   change,
@@ -264,35 +271,40 @@ export function GradePanel({
                   }
                 />
               </label>
-              <div className="field-grid">
-                {(["from", "to"] as const).map((k) => (
-                  <label className="field" key={k}>
-                    {k} (s)
-                    <input
-                      type="number"
-                      min="0"
-                      max="600"
-                      value={item[k] ?? ""}
-                      onChange={(e) =>
-                        change({
-                          ...s,
-                          effectStack: (s.effectStack || []).map((entry, i) =>
-                            i === index
-                              ? {
-                                  ...entry,
-                                  [k]:
-                                    e.target.value === ""
-                                      ? undefined
-                                      : +e.target.value,
-                                }
-                              : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
+              {item.effect === "freeze" ? (
+                <p className="hint">Freeze holds the last frame of the clip.</p>
+              ) : (
+                <div className="field-grid">
+                  {(["from", "to"] as const).map((k) => (
+                    <label className="field" key={k}>
+                      {k} (s)
+                      <input
+                        type="number"
+                        min="0"
+                        max="600"
+                        value={item[k] ?? ""}
+                        onChange={(e) =>
+                          change({
+                            ...s,
+                            effectStack: (s.effectStack || []).map(
+                              (entry, i) =>
+                                i === index
+                                  ? {
+                                      ...entry,
+                                      [k]:
+                                        e.target.value === ""
+                                          ? undefined
+                                          : +e.target.value,
+                                    }
+                                  : entry,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
               <div className="candidate-actions">
                 <button
                   type="button"
@@ -300,7 +312,10 @@ export function GradePanel({
                   disabled={index === 0}
                   onClick={() => {
                     const list = [...(s.effectStack || [])];
-                    [list[index - 1], list[index]] = [list[index], list[index - 1]];
+                    [list[index - 1], list[index]] = [
+                      list[index],
+                      list[index - 1],
+                    ];
                     change({ ...s, effectStack: list });
                   }}
                 >
@@ -342,29 +357,33 @@ export function GradePanel({
               ))}
             </select>
           </label>
-          <div className="field-grid">
-            {(["from", "to"] as const).map((k) => (
-              <label className="field" key={k}>
-                Effect {k} (s)
-                <input
-                  type="number"
-                  min="0"
-                  max="600"
-                  value={grade[k] ?? ""}
-                  onChange={(e) =>
-                    change({
-                      ...s,
-                      grade: {
-                        ...grade,
-                        [k]:
-                          e.target.value === "" ? undefined : +e.target.value,
-                      },
-                    })
-                  }
-                />
-              </label>
-            ))}
-          </div>
+          {grade.effect === "freeze" ? (
+            <p className="hint">Freeze holds the last frame of the clip.</p>
+          ) : (
+            <div className="field-grid">
+              {(["from", "to"] as const).map((k) => (
+                <label className="field" key={k}>
+                  Effect {k} (s)
+                  <input
+                    type="number"
+                    min="0"
+                    max="600"
+                    value={grade[k] ?? ""}
+                    onChange={(e) =>
+                      change({
+                        ...s,
+                        grade: {
+                          ...grade,
+                          [k]:
+                            e.target.value === "" ? undefined : +e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          )}
           {(Object.keys(gradeRanges) as (keyof typeof gradeRanges)[]).map(
             (k) => (
               <label className="field" key={k}>

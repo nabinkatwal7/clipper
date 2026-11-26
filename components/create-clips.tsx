@@ -1,5 +1,5 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
+import { studioStorage } from "@/lib/client-storage";
 import { useRef, useState, useEffect } from "react";
 import {
   Upload,
@@ -13,7 +13,7 @@ import {
 import { ProfilePicker } from "./brand-profiles";
 import { SourceInspection } from "./source-inspection";
 import { Modal } from "./modal";
-import { BasicSettings, AdvancedSettings } from "./clip-settings";
+import { BasicSettings, AdvancedSettings, Toggle } from "./clip-settings";
 import { Button } from "./ui/button";
 import { defaults, type Project } from "@/lib/types";
 export function CreateClips({
@@ -324,11 +324,24 @@ export function CreateClips({
             </>
           )}
           <fieldset className="composer-options" disabled={working}>
-            <h3>Make it yours</h3>
+            <h3>
+              {settings.mode === "manual"
+                ? "Selected range"
+                : "Quick clip settings"}
+            </h3>
             {settings.mode === "manual" ? (
               <p className="hint">One clip from your selected time range.</p>
             ) : (
-              <BasicSettings value={settings} onChange={setSettings} />
+              <>
+                <BasicSettings value={settings} onChange={setSettings} />
+                <Toggle
+                  label="Burn available subtitles into clips"
+                  checked={settings.captions}
+                  onChange={(captions) =>
+                    setSettings({ ...settings, captions })
+                  }
+                />
+              </>
             )}
             <div className="preset-summary">
               <Check size={14} />
@@ -338,7 +351,7 @@ export function CreateClips({
             </div>
             <details className="advanced-disclosure">
               <summary>
-                More options
+                Advanced project settings
                 <ChevronDown size={16} />
               </summary>
               <ProfilePicker

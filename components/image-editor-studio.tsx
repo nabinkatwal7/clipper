@@ -139,12 +139,10 @@ export function ImageEditorStudio() {
     };
     img.onerror = () => setError("Could not decode image");
     img.src = "/api/assets?id=" + assetId;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetId]);
 
   useEffect(() => {
     redraw();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adj, levels, xf, selection, paint]);
 
   function buildWorking(

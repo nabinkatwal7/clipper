@@ -434,7 +434,12 @@ export function MediaLibrary({
                   src={`/api/download?project=${p.id}&clip=${c.id}`}
                 />
               )}
-              <small>{duration(c.qa?.duration ?? (c.end - c.start) / (c.settings.playbackRate ?? 1))}</small>
+              <small>
+                {duration(
+                  c.qa?.duration ??
+                    (c.end - c.start) / (c.settings.playbackRate ?? 1),
+                )}
+              </small>
             </button>
             <div>
               <button className="media-title" onClick={() => open(p.id, c.id)}>
@@ -524,9 +529,10 @@ export function Overview({
   create: (url?: string, upload?: boolean) => void;
 } & MediaProps) {
   const [url, setUrl] = useState("");
-  const current = projects
+  const recents = projects
     .slice()
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const current = recents.find((project) => project.duration > 0);
   const [favorites, setFavorites] = useState<{ name: string; id: string }[]>(
     [],
   );
@@ -583,6 +589,14 @@ export function Overview({
           <button className="upload-shortcut" onClick={() => create("", true)}>
             <Upload size={15} /> Upload a file <small>Up to 5 GB</small>
           </button>
+          <div className="home-quick-actions">
+            <button className="tool" onClick={() => go("Live clipping")}>
+              Clip a live stream
+            </button>
+            <button className="tool" onClick={() => go("Clip library")}>
+              Browse clips
+            </button>
+          </div>
         </div>
         {current ? (
           <button
@@ -601,12 +615,7 @@ export function Overview({
               </span>
             </span>
           </button>
-        ) : (
-          <div className="studio-empty">
-            <Film />
-            <p>Your most recent project will appear here.</p>
-          </div>
-        )}
+        ) : null}
       </div>
       {jobs.length > 0 && (
         <section className="studio-section">
@@ -630,30 +639,28 @@ export function Overview({
           ))}
         </section>
       )}
-      <section className="studio-section">
-        <div className="section-row">
-          <h2>Recent projects</h2>
-          <button onClick={() => go("Projects")}>
-            All projects <ChevronRight size={14} />
-          </button>
-        </div>
-        {projects.length ? (
-          <ProjectRows projects={projects.slice(0, 3)} open={openProject} />
-        ) : (
-          <p className="studio-empty">
-            Add a video above to start your first project.
-          </p>
-        )}
-      </section>
-      <section className="studio-section">
-        <div className="section-row">
-          <h2>Recent clips</h2>
-          <button onClick={() => go("Clip library")}>
-            Open library <ChevronRight size={14} />
-          </button>
-        </div>
-        <MediaLibrary projects={projects} open={open} recent />
-      </section>
+      {projects.length > 0 && (
+        <section className="studio-section">
+          <div className="section-row">
+            <h2>Recent projects</h2>
+            <button onClick={() => go("Projects")}>
+              All projects <ChevronRight size={14} />
+            </button>
+          </div>
+          <ProjectRows projects={recents.slice(0, 3)} open={openProject} />
+        </section>
+      )}
+      {projects.some((p) => p.clips.length > 0) && (
+        <section className="studio-section">
+          <div className="section-row">
+            <h2>Recent clips</h2>
+            <button onClick={() => go("Clip library")}>
+              Open library <ChevronRight size={14} />
+            </button>
+          </div>
+          <MediaLibrary projects={projects} open={open} recent />
+        </section>
+      )}
       {favorites.length > 0 && (
         <section className="studio-section">
           <div className="section-row">

@@ -156,7 +156,7 @@ function effectFilter(
   if (effect === "none") return [] as string[];
   const a = amount;
   const when =
-    from !== undefined || to !== undefined
+    effect !== "freeze" && (from !== undefined || to !== undefined)
       ? `:enable='between(t,${from ?? 0},${to ?? 600})'`
       : "";
   const fx: Record<Exclude<Grade["effect"], "none">, string> = {
@@ -181,9 +181,9 @@ function effectFilter(
       ":bv=" +
       Math.round(2 + 10 * a),
     posterize: "eq=gamma=" + (1 + a) + ":contrast=" + (1 + 0.4 * a),
-    invert: "negate",
+    invert: "negate=negate_alpha=0",
     freeze: "tpad=stop_mode=clone:stop_duration=" + (0.05 + 0.4 * a),
-    motionblur: "minterpolate=mi_mode=blend:mc_mode=aobmc:vsbmc=1:fps=30",
+    motionblur: "tmix=frames=" + (2 + Math.round(4 * a)),
   };
   const filters = [
     fx[effect] +
@@ -299,7 +299,9 @@ export type AdjustmentLayer = {
   effects: StackedEffect[];
 };
 
-export function validateAdjustmentLayers(layers: AdjustmentLayer[] | undefined) {
+export function validateAdjustmentLayers(
+  layers: AdjustmentLayer[] | undefined,
+) {
   if (layers === undefined) return undefined;
   if (!Array.isArray(layers) || layers.length > 8)
     throw Error("Use at most 8 adjustment layers.");
@@ -329,7 +331,10 @@ export function validateAdjustmentLayers(layers: AdjustmentLayer[] | undefined) 
   });
 }
 
-export function adjustmentFilters(layers: AdjustmentLayer[] | undefined, h: number) {
+export function adjustmentFilters(
+  layers: AdjustmentLayer[] | undefined,
+  h: number,
+) {
   const filters: string[] = [];
   for (const layer of validateAdjustmentLayers(layers) || []) {
     if (!layer.enabled) continue;

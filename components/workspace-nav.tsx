@@ -28,9 +28,9 @@ import {
   BookOpen,
   MessageSquare,
 } from "lucide-react";
-import { studioGroups, type StudioId } from "@/lib/studios";
+import { studioGroups, type StudioGroup, type StudioId } from "@/lib/studios";
 
-const groupIcons: Record<StudioId, LucideIcon> = {
+export const groupIcons: Record<StudioId, LucideIcon> = {
   home: PanelsTopLeft,
   clipping: Clapperboard,
   editing: Scissors,
@@ -89,32 +89,175 @@ const pageIcons: Record<string, LucideIcon> = {
   "Backup & recovery": HardDrive,
 };
 
-/** Live nav sections derived from the studio registry (planned routes omitted). */
-export const sections = studioGroups
+export type NavItem = {
+  /** Display label from the studio registry */
+  label: string;
+  /** Workspace page key used by go() */
+  page: string;
+  Icon: LucideIcon;
+  status: "live" | "partial" | "planned";
+};
+
+export type NavSection = {
+  id:
+    | "home"
+    | "projects"
+    | "clipping"
+    | "studio"
+    | "library"
+    | "automation"
+    | "production"
+    | "settings";
+  Icon: LucideIcon;
+  label: string;
+  description: string;
+  items: NavItem[];
+};
+
+/** Live nav sections — one entry per unique page within a group. */
+const registeredSections = studioGroups
   .map((group) => {
-    const items = group.routes
-      .filter((r) => r.page && r.status !== "planned")
-      .map((r) => {
-        const label = r.page!;
-        const Icon = pageIcons[label] || groupIcons[group.id];
-        return [label, Icon] as const;
-      });
-    // Deduplicate pages that appear once per group
     const seen = new Set<string>();
-    const unique = items.filter(([label]) => {
-      if (seen.has(label)) return false;
-      seen.add(label);
-      return true;
-    });
-    return [group.label, unique] as const;
+    const items: NavItem[] = [];
+    for (const route of group.routes) {
+      if (!route.page || route.status === "planned") continue;
+      if (seen.has(route.page)) continue;
+      seen.add(route.page);
+      items.push({
+        label: route.label,
+        page: route.page,
+        Icon: pageIcons[route.page] || groupIcons[group.id],
+        status: route.status,
+      });
+    }
+    return {
+      id: group.id,
+      label: group.label,
+      description: group.description,
+      items,
+    };
   })
-  .filter(([, items]) => items.length > 0);
+  .filter((s) => s.items.length > 0);
+
+const destinations = [
+  {
+    id: "home",
+    label: "Home",
+    Icon: PanelsTopLeft,
+    groups: [],
+    pages: ["Overview", "New project"],
+    description: "Start or resume a video",
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    Icon: FolderClosed,
+    groups: [],
+    pages: ["Projects", "Project bins"],
+    description: "Organize your recordings",
+  },
+  {
+    id: "clipping",
+    label: "Clipping",
+    Icon: Scissors,
+    groups: ["clipping", "intelligence"],
+    pages: ["Instant clipping", "Live clipping", "Discover"],
+    description: "Find and cut moments",
+  },
+  {
+    id: "studio",
+    label: "Studio",
+    Icon: Clapperboard,
+    groups: ["editing", "audio", "design", "language", "recording"],
+    pages: ["Video editor"],
+    description: "Edit, caption and design",
+  },
+  {
+    id: "library",
+    label: "Library",
+    Icon: Library,
+    groups: ["media"],
+    pages: ["Clip library", "Assets", "Branding"],
+    description: "Browse clips and assets",
+  },
+  {
+    id: "automation",
+    label: "Automation",
+    Icon: Workflow,
+    groups: ["automation"],
+    pages: ["Processing queue", "Automatic clipping", "Streamers"],
+    description: "Run and monitor workflows",
+  },
+  {
+    id: "production",
+    label: "Production",
+    Icon: CalendarDays,
+    groups: ["production"],
+    pages: ["Production desk"],
+    description: "Review and prepare exports",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    Icon: SlidersHorizontal,
+    groups: ["management"],
+    pages: ["Storage", "Backup & recovery"],
+    description: "Manage local resources",
+  },
+] as const;
+const pinned = new Map(
+  destinations.flatMap((group) =>
+    group.pages.map((page) => [page as string, group.id] as const),
+  ),
+);
+const existing = registeredSections.flatMap((group) => group.items);
+const assigned = new Set<string>();
+export const navSections: NavSection[] = destinations.map((destination) => {
+  const ordered = [
+    ...destination.pages.flatMap((page) =>
+      existing.filter((item) => item.page === page).slice(0, 1),
+    ),
+    ...registeredSections
+      .filter((group) =>
+        (destination.groups as readonly string[]).includes(group.id),
+      )
+      .flatMap((group) => group.items),
+  ];
+  return {
+    ...destination,
+    items: ordered.filter((item) => {
+      if (
+        assigned.has(item.page) ||
+        (pinned.has(item.page) && pinned.get(item.page) !== destination.id)
+      )
+        return false;
+      assigned.add(item.page);
+      return true;
+    }),
+  };
+});
+
+export const sections = navSections.map(
+  (s) => [s.label, s.items.map((i) => [i.page, i.Icon] as const)] as const,
+);
 
 export function studioLabelForPage(page: string) {
-  const group = studioGroups.find((g) =>
-    g.routes.some((r) => r.page === page),
-  );
+  const group = studioGroups.find((g) => g.routes.some((r) => r.page === page));
   return group?.label || "Studio";
 }
 
-export { groupIcons, studioGroups };
+export function sectionForPage(page: string): NavSection | undefined {
+  if (page === "Project")
+    return navSections.find((group) => group.id === "projects");
+  return (
+    navSections.find((s) => s.items.some((i) => i.page === page)) ||
+    navSections[0]
+  );
+}
+
+export function liveNavGroups(): NavSection[] {
+  return navSections;
+}
+
+export { studioGroups };
+export type { StudioGroup, StudioId };
