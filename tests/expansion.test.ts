@@ -1200,8 +1200,13 @@ test("image editor adjustments clamp and rewrite pixels", () => {
   assert.equal(adj.brightness, 0.2);
   const xf = validateTransform(defaultTransform);
   assert.equal(xf.rotation, 0);
-  const data = new ImageData(2, 2);
-  data.data.set([10, 20, 30, 255, 40, 50, 60, 255, 70, 80, 90, 255, 100, 110, 120, 255]);
+  const data = {
+    width: 2,
+    height: 2,
+    data: new Uint8ClampedArray([
+      10, 20, 30, 255, 40, 50, 60, 255, 70, 80, 90, 255, 100, 110, 120, 255,
+    ]),
+  };
   const out = applyPixelAdjustments(data, adj);
   assert.equal(out.data.length, 16);
   assert.throws(() => validateAdjustments({ ...adj, brightness: 5 }));

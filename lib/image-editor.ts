@@ -93,16 +93,26 @@ export function cssFilters(a: ImageAdjustments): string {
   return parts.join(" ");
 }
 
+export type PixelBuffer = {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+};
+
 /**
- * Apply pixel adjustments to ImageData in-place (brightness/contrast/sat/hue).
- * Blur/sharpen are preview-only via CSS — documented honestly.
+ * Apply pixel adjustments (brightness/contrast/sat/hue).
+ * Blur/sharpen stay preview-only via CSS — documented honestly.
  */
 export function applyPixelAdjustments(
-  data: ImageData,
+  data: PixelBuffer,
   a: ImageAdjustments,
-): ImageData {
+): PixelBuffer {
   validateAdjustments(a);
-  const out = new ImageData(new Uint8ClampedArray(data.data), data.width, data.height);
+  const out = {
+    width: data.width,
+    height: data.height,
+    data: new Uint8ClampedArray(data.data),
+  };
   const d = out.data;
   const bOff = a.brightness * 255;
   const cFactor = a.contrast >= 0 ? 1 + a.contrast : 1 / (1 - a.contrast);

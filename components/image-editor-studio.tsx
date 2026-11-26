@@ -99,13 +99,17 @@ export function ImageEditorStudio() {
     );
     octx.restore();
 
-    let pixels = octx.getImageData(0, 0, outW, outH);
-    pixels = applyPixelAdjustments(pixels, {
+    const raw = octx.getImageData(0, 0, outW, outH);
+    const pixels = applyPixelAdjustments(raw, {
       ...adj,
       blur: 0,
       sharpen: 0,
     });
-    octx.putImageData(pixels, 0, 0);
+    octx.putImageData(
+      new ImageData(pixels.data, pixels.width, pixels.height),
+      0,
+      0,
+    );
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(off, 0, 0, c.width, c.height);
@@ -144,9 +148,17 @@ export function ImageEditorStudio() {
         cropH,
       );
       octx.setTransform(1, 0, 0, 1, 0, 0);
-      let pixels = octx.getImageData(0, 0, outW, outH);
-      pixels = applyPixelAdjustments(pixels, { ...adj, blur: 0, sharpen: 0 });
-      octx.putImageData(pixels, 0, 0);
+      const raw = octx.getImageData(0, 0, outW, outH);
+      const pixels = applyPixelAdjustments(raw, {
+        ...adj,
+        blur: 0,
+        sharpen: 0,
+      });
+      octx.putImageData(
+        new ImageData(pixels.data, pixels.width, pixels.height),
+        0,
+        0,
+      );
       const blob = await new Promise<Blob | null>((resolve) =>
         off.toBlob(resolve, "image/png"),
       );
