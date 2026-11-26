@@ -1,0 +1,16 @@
+# Optional. Publishes Studio on the host's loopback only; data lives in a named volume.
+# Ollama is NOT included: run it on the host and it is reached via host.docker.internal.
+services:
+  studio:
+    build: .
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - clipper-data:/data
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+volumes:
+  clipper-data:
