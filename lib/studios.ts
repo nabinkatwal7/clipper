@@ -82,6 +82,12 @@ export const studioGroups: StudioGroup[] = [
         status: "live",
       },
       {
+        id: "trend-radar",
+        label: "Trend radar",
+        page: "Trend radar",
+        status: "live",
+      },
+      {
         id: "campaigns",
         label: "Campaigns",
         page: "Campaigns",

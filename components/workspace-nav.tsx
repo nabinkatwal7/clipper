@@ -64,6 +64,7 @@ const pageIcons: Record<string, LucideIcon> = {
   "Instant clipping": Scissors,
   "Reel Factory": Clapperboard,
   Campaigns: Workflow,
+  "Trend radar": Search,
   "Moment Search": Search,
   "Creator Memory": Bot,
   "Language Factory": Languages,

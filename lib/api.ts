@@ -83,6 +83,11 @@ import { snapshot as resourceSnapshot } from "./clipping/resources";
 import { resolveModels, ollamaGenerate } from "./clipping/ai";
 import { readCollection, upsert, remove } from "./clipping/collection";
 import { parseCampaign, checkCompliance, factsFromClip, parseProposal, proposalPrompt, PROPOSAL_JSON_SCHEMA, type Campaign } from "./clipping/campaigns";
+import { parseCreator, checkCreator, recordItems, type Creator } from "./clipping/discovery-store";
+import { parseVideoImport, trendFor, uploadFrequency, topicFrequency, type TrackedVideo } from "./clipping/feeds";
+import { parseCsv } from "./clipping/chat";
+import { nicheAnalysis } from "./clipping/niche";
+import { mutateCollection } from "./clipping/collection";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
@@ -1352,6 +1357,56 @@ export async function handle(
         .filter((c) => !b.clip || c.id === b.clip)
         .map((c) => ({ clip: c.id, title: c.title, report: checkCompliance(campaign, factsFromClip(project, c, overrides)) }));
       return NextResponse.json(reports);
+    }
+    if (action === "creators") {
+      if (req.method === "GET") return NextResponse.json(await readCollection("creators"));
+      if (req.method === "POST") {
+        const input = await req.json();
+        const prev = (await readCollection<Creator>("creators")).find((x) => x.id === input?.id);
+        const creator = parseCreator({ ...input, id: prev?.id ?? randomUUID(), lastChecked: prev?.lastChecked, lastSource: prev?.lastSource, lastCheckStatus: prev?.lastCheckStatus });
+        return NextResponse.json(await upsert("creators", creator, 200));
+      }
+      if (req.method === "DELETE") {
+        const id = query.get("id") || "";
+        await mutateCollection<TrackedVideo, void>("videos", (rows) => { for (let i = rows.length - 1; i >= 0; i--) if (rows[i].creatorId === id) rows.splice(i, 1); });
+        return NextResponse.json({ removed: await remove("creators", id) });
+      }
+    }
+    if (action === "creator-check" && req.method === "POST") {
+      const b = await req.json();
+      return NextResponse.json(await checkCreator(String(b.id || ""), !!b.force, req.signal));
+    }
+    if (action === "videos" && req.method === "GET") {
+      const creator = query.get("creator");
+      const all = (await readCollection<TrackedVideo>("videos")).filter((v) => !creator || v.creatorId === creator);
+      return NextResponse.json({
+        videos: all.map((v) => ({ ...v, trend: trendFor(v) })).sort((a, b) => Date.parse(b.published ?? "0") - Date.parse(a.published ?? "0")).slice(0, 300),
+        frequency: uploadFrequency(all),
+        topics: topicFrequency(all.map((v) => v.title)),
+      });
+    }
+    if (action === "discovery-import" && req.method === "POST") {
+      const b = await req.json();
+      const creator = (await readCollection<Creator>("creators")).find((c) => c.id === b.creator);
+      if (!creator) throw Error("Choose a creator first.");
+      if (typeof b.text !== "string" || b.text.length > 20_000_000) throw Error("Provide the file contents as text.");
+      return NextResponse.json(await recordItems(creator.id, parseVideoImport(b.text, parseCsv), "import"));
+    }
+    if (action === "research") {
+      if (req.method === "GET") return NextResponse.json(await readCollection("research"));
+      if (req.method === "POST") {
+        const b = await req.json();
+        const kind = ["keyword", "note", "bookmark", "opportunity", "collection"].includes(b.kind) ? b.kind : "note";
+        const row = { id: typeof b.id === "string" && /^[a-zA-Z0-9-]{8,64}$/.test(b.id) ? b.id : randomUUID(), kind, text: String(b.text ?? "").slice(0, 2000), url: typeof b.url === "string" && /^https?:\/\//.test(b.url) ? b.url.slice(0, 400) : undefined, tags: Array.isArray(b.tags) ? b.tags.slice(0, 10).map((t: unknown) => String(t).slice(0, 30)) : [], createdAt: new Date().toISOString() };
+        if (!row.text.trim()) throw Error("Write something to save.");
+        return NextResponse.json(await upsert("research", row, 2000));
+      }
+      if (req.method === "DELETE") return NextResponse.json({ removed: await remove("research", query.get("id") || "") });
+    }
+    if (action === "niche" && req.method === "POST") {
+      const b = await req.json();
+      const vids = (await readCollection<TrackedVideo>("videos")).filter((v) => !b.creator || v.creatorId === b.creator);
+      return NextResponse.json(await nicheAnalysis(vids.map((v) => v.title), await resolveModels(req.signal), ollamaGenerate, req.signal));
     }
     if (action === "moments-ai" && req.method === "POST") {
       const b = await req.json();

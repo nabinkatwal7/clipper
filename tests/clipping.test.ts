@@ -284,3 +284,60 @@ test("profile include/exclude words filter candidates only when a transcript exi
   assert.ok(noText.candidates.length >= 1);
   assert.ok(noText.warnings.some((w) => /not applied/.test(w)));
 });
+
+// ---- Phase 7: keyless discovery
+import { parseFeed, youtubeFeedUrl, trendFor, addObservation, topicFrequency, uploadFrequency, parseVideoImport, type TrackedVideo } from "../lib/clipping/feeds";
+import { feedFor, fetchFeedText, parseCreator } from "../lib/clipping/discovery-store";
+import { parseCsv } from "../lib/clipping/chat";
+import { nicheAnalysis } from "../lib/clipping/niche";
+const ATOM = `<?xml version="1.0"?><feed xmlns:yt="y" xmlns:media="m"><title>Chan &amp; Co</title>
+<entry><yt:videoId>abc123</yt:videoId><title>Clutch &#x1F525; win</title><link rel="alternate" href="https://www.youtube.com/watch?v=abc123"/><author><name>Chan</name></author><published>2026-11-20T10:00:00+00:00</published>
+<media:group><media:thumbnail url="https://i.ytimg.com/vi/abc123/hq.jpg"/><media:community><media:starRating count="12" average="5.0"/><media:statistics views="1500"/></media:community></media:group></entry>
+<entry><yt:videoId>def456</yt:videoId><title>No stats here</title><link rel="alternate" href="https://www.youtube.com/watch?v=def456"/><published>2026-11-25T10:00:00+00:00</published></entry></feed>`;
+test("feed parser reads Atom with statistics, leaves absent fields undefined, rejects non-feeds", () => {
+  const f = parseFeed(ATOM);
+  assert.equal(f.title, "Chan & Co");
+  assert.equal(f.items.length, 2);
+  assert.equal(f.items[0].views, 1500);
+  assert.equal(f.items[0].title, "Clutch 🔥 win");
+  assert.equal(f.items[1].views, undefined);
+  assert.equal(f.items[1].thumbnail, undefined);
+  const rss = parseFeed(`<rss><channel><title>R</title><item><title>One</title><link>https://e.com/1</link><pubDate>Tue, 24 Nov 2026 10:00:00 GMT</pubDate></item></channel></rss>`);
+  assert.equal(rss.items[0].url, "https://e.com/1");
+  assert.throws(() => parseFeed("<html></html>"));
+});
+test("trend measures use only recorded observations and label what is missing or stale", () => {
+  const v: TrackedVideo = { id: "c:1", creatorId: "c", title: "t", url: "https://x", published: "2026-11-20T00:00:00Z", source: "s", observations: [] };
+  const now = Date.parse("2026-11-26T00:00:00Z");
+  assert.ok(trendFor(v, now).missing.includes("view count"));
+  addObservation(v, { at: "2026-11-25T00:00:00Z", views: 1000 });
+  assert.equal(trendFor(v, now).viewsPerHour, undefined);
+  assert.ok(trendFor(v, now).missing.some((m) => /second observation/.test(m)));
+  addObservation(v, { at: "2026-11-25T10:00:00Z", views: 1500 });
+  const t = trendFor(v, Date.parse("2026-11-25T11:00:00Z"));
+  assert.equal(t.viewsPerHour, 50);
+  assert.equal(t.stale, false);
+  assert.equal(trendFor(v, Date.parse("2026-11-27T00:00:00Z")).stale, true);
+  assert.equal(addObservation(v, { at: "2026-11-25T10:30:00Z", views: 1500 }), false, "no-information repeat skipped");
+  assert.equal(uploadFrequency([v], now).last7, 1);
+  assert.deepEqual(topicFrequency(["Minecraft speedrun", "minecraft hardcore", "Cooking pasta"]).map((x) => x.word), ["minecraft"]);
+});
+test("feed discovery: only keyless feeds; handles need a feed URL; private hosts are blocked", async () => {
+  assert.equal(youtubeFeedUrl("https://www.youtube.com/channel/UC1234567890123456789012"), "https://www.youtube.com/feeds/videos.xml?channel_id=UC1234567890123456789012");
+  assert.equal(youtubeFeedUrl("https://www.youtube.com/@someone"), null);
+  const c = parseCreator({ id: "creator-00001", name: "A", channelUrl: "https://www.twitch.tv/a" });
+  assert.match(feedFor(c).unavailable ?? "", /No keyless feed/);
+  await assert.rejects(fetchFeedText("http://127.0.0.1/feed.xml"));
+  await assert.rejects(fetchFeedText("http://localhost/feed.xml"));
+  assert.throws(() => parseCreator({ id: "creator-00001", name: "A", feedUrl: "https://u:p@e.com/f" }));
+});
+test("manual video import (CSV/JSON) and niche analysis keep claims tied to cited titles", async () => {
+  const items = parseVideoImport("title,url,views,published\nA video,https://e.com/a,100,2026-11-01\nbad,notaurl,1,", parseCsv);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].views, 100);
+  const titles = ["speedrun one", "speedrun two", "cooking a", "cooking b", "speedrun three", "x"];
+  const out = await nicheAnalysis(titles, { main: "m", light: "m", embed: null, installed: [], reachable: true }, async () => JSON.stringify({ topics: [{ name: "Speedruns", titles: [1, 2, 5, 99] }, { name: "Invented", titles: [99] }], patterns: ["numbered series"] }), new AbortController().signal);
+  assert.deepEqual(out.topics.map((t) => t.name), ["Speedruns"]);
+  assert.deepEqual(out.topics[0].evidence.map((e) => e.n), [1, 2, 5]);
+  await assert.rejects(nicheAnalysis(["a"], { main: "m", light: "m", embed: null, installed: [], reachable: true }, async () => "{}", new AbortController().signal));
+});
