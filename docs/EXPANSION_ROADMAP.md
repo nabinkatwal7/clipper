@@ -11,7 +11,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 3 | Professional video workflows | **In progress** — sequences, bins, render-and-replace |
 | 4 | Language Studio | Partial (subtitle studio live) |
 | 5 | Audio production | **In progress** — mixer, restoration/spectrogram, soundboard + sequencer |
-| 6 | Design Studio | Partial — Thumbnail Studio + artboard scaffold |
+| 6 | Design Studio | Partial — formats, gradients, bulk CSV, PNG export |
 | 7 | Motion Studio | Partial — presets, canvas preview, animation recipes → composition |
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
 | 9 | Compositing Studio | Partial — node graph + FFmpeg bake to asset (60s cap) |
@@ -71,4 +71,11 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 26. ~~Design Studio artboard scaffold~~
 27. ~~AI Laboratory prompt playground (Ollama-only)~~
 
-Priority queue through item 27 is complete. Remaining large optional scopes (full Canva-class design, Fusion-class compositing, 3D Studio) stay partial/planned by design.
+Priority queue through item 27 is complete.
+
+### Optional scopes (in progress)
+
+28. ~~Design Studio depth (formats / bulk / PNG export)~~
+29. Image editor (raster corrections)
+30. Compositing node depth
+31. 3D Studio scaffold

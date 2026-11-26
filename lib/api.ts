@@ -807,6 +807,10 @@ export async function handle(
           );
         if (b.op === "save")
           return NextResponse.json(await ds.saveArtboard(b.board));
+        if (b.op === "bulk") {
+          const boards = ds.bulkFromRows(b.template, b.rows || []);
+          return NextResponse.json(await ds.saveArtboards(boards));
+        }
         throw Error("Unsupported design-studio operation");
       }
     }

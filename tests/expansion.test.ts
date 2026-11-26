@@ -1151,13 +1151,30 @@ import {
   emptyArtboard,
   validateArtboard,
   DESIGN_FORMATS,
+  applyDesignVariables,
+  bulkFromRows,
 } from "../lib/design-studio";
 import { emptyPrompt, validatePrompt } from "../lib/ai-lab";
 test("design artboards and AI lab prompts validate local documents", () => {
-  assert.ok(DESIGN_FORMATS.length >= 4);
+  assert.ok(DESIGN_FORMATS.length >= 8);
   const board = validateArtboard(emptyArtboard("square-post", "Post"));
   assert.equal(board.width, 1080);
   assert.ok(board.layers.length >= 1);
+  const filled = applyDesignVariables(
+    {
+      ...board,
+      layers: board.layers.map((l) =>
+        l.type === "text" ? { ...l, text: "Hi {{creator}}" } : l,
+      ),
+    },
+    { creator: "Alex" },
+  );
+  assert.ok(filled.layers.some((l) => l.text?.includes("Alex")));
+  const many = bulkFromRows(board, [
+    { title: "A" },
+    { title: "B" },
+  ]);
+  assert.equal(many.length, 2);
   const prompt = validatePrompt(emptyPrompt("Titles"));
   assert.ok(prompt.user.length);
   assert.throws(() =>
