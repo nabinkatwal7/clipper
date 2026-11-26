@@ -1247,3 +1247,23 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Universal Media Toolbox | Partial |
 | Media toolbox track extract | Implemented |
 | Media toolbox batch convert (≤8) | Implemented |
+
+## Clipping engine upgrade
+
+Statuses are limited to what was checked; see `CLIPPING_ENGINE_AUDIT.md` for the per-requirement list and gaps.
+
+| Capability | Status |
+| --- | --- |
+| No-AI moment scoring (audio, scene/motion, subtitles, chat, replay) | Implemented, tested with real FFmpeg |
+| Moment finder page with real heatmap and review | Implemented, checked in a browser |
+| 13 content profiles and custom profile builder | Implemented |
+| Optional Ollama ranking, metadata, fallback | Implemented, run against a real model |
+| Quick Clip express workflow | Implemented, checked end to end in a browser |
+| Autopilot with approval and resumable runs | Implemented, tested through the real queue |
+| Campaigns and compliance | Implemented |
+| Trend radar (keyless feeds, imports, observations) | Implemented; live feed fetch not exercised |
+| Storage policies and cleanup previews | Implemented, fixture-tested |
+| System health, verified encoders, hardware profiles | Implemented, checked in a browser |
+| Windows management scripts | Implemented; doctor/backup run for real |
+| Docker | Files provided, untested |
+| Embeddings-based similarity, music/SFX extensions, resumable downloads, hardware benchmarks, offline acceptance run | Not done |

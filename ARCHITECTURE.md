@@ -101,3 +101,9 @@ Roadmap: [docs/EXPANSION_ROADMAP.md](docs/EXPANSION_ROADMAP.md).
 - **Files over a database** keeps installation trivial and data portable; the cost is single-instance operation.
 - **Same-origin check by `Host`** rather than the configured bind address, so `localhost` and `127.0.0.1` both work.
 - **No built-in speech recognition.** It was removed to keep the project to one AI service; transcripts come from subtitles. Adding an Ollama audio-capable model path is a planned extension, gated on verified capability.
+
+## Clipping engine (`lib/clipping/`)
+
+Pure modules (`signals`, `hype`, `chat`, `replay`, `profiles`, `scoring`, `candidates`, `campaigns`, `feeds`, `storage`, `autopilot-core`, `postkit`) hold the logic and are unit-tested without I/O. Thin modules wire them to the existing queue and storage: `media-analysis` (FFmpeg chunks), `engine` (analysis job, AI job, review), `autopilot`, `discovery-store`, `collection` (per-user JSON documents), `system`. New API actions are added to `lib/api.ts` behind the existing session, origin and localhost checks. New pages are lazy-loaded from `components/workspace.tsx`.
+
+Job model: unchanged single in-process queue; Autopilot and Quick Clip enqueue one job per project and record step state in `runs.json`.

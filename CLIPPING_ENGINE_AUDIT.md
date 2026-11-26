@@ -1,69 +1,65 @@
 # Clipping engine audit
 
-Scope: the "Complete Self-Hosted Intelligent Clipping Engine" brief (100 numbered requirements) against the repository as of this change. Status words are used strictly:
+Scope: the "Complete Self-Hosted Intelligent Clipping Engine" brief (100 numbered requirements) against the repository after the work in this branch. Status words are used strictly:
 
-- **Verified** — implemented and covered by an automated test or a real-media check run in this change.
-- **Incomplete** — code exists but covers less than the requirement.
-- **Untested** — code exists; no automated or manual verification was run here.
+- **Verified** — covered by an automated test, or by a real-media / real-browser check run during development.
+- **Incomplete** — code exists but covers less than the requirement says.
+- **Untested** — code exists; no verification was run.
 - **Missing** — no implementation.
-- **Conflict** — exists, but contradicts a constraint in the brief.
 
-This change delivered Phase 1 (partially) and Phase 2 (core). Everything else is listed honestly as Missing or Incomplete. Nothing below was upgraded to "Verified" without a test.
+Nothing is marked Verified without a check. The automated suite is `npm test` (120 tests; `npm run gate` adds typecheck, lint and the production build).
 
-## Findings that need a decision
+## Decisions and open conflicts
 
-1. **Conflict — Whisper.** `lib/speech.ts` runs `whisper-cli` (whisper.cpp) and `.env.local`/`.env.example` carry `WHISPER_*` and `PYTHON_BIN` settings. The brief forbids Whisper/Faster-Whisper and any non-Ollama inference. It is existing, working functionality ("preserve everything"), so it was **not removed**. Decide: keep as an optional local transcriber, or remove it and rely on source subtitles / imported SRT / Ollama audio models.
-2. **Ollama default model.** `OLLAMA_MODEL` defaults to `qwen2.5:3b`; the brief proposes `qwen3.5:2b` / `0.8b` / `qwen3-embedding:0.6b`. Availability of those tags was not verified.
-3. **Two queues.** The existing single in-process queue (`lib/jobs.ts`) already serialises heavy jobs. A separate "global scheduler" would create a second lock domain, so only a memory gate (`lib/clipping/resources.ts`) was added. Wider scheduler unification is open.
-4. **Landing page hot-links Unsplash photos** (`lib/photos.ts`). That conflicts with the offline/no-external-services posture for the public page.
-5. `yt-dlp` and FFmpeg are not on `PATH` in this environment; `.env.local` points at `tools/ffmpeg` and `.venv`. `ollama` 0.40.18 is installed.
+1. **Whisper (kept, as you decided).** `lib/speech.ts` runs whisper.cpp when configured. The brief forbids it; you chose to keep it as an optional local transcriber. It is the only non-Ollama inference path, it runs locally, and the engine works fully without it (source subtitles, imported SRT/VTT, or no transcript).
+2. **Ollama models.** Resolved from what is installed, never pulled automatically. Preference order: `qwen3.5:2b`, then your `OLLAMA_MODEL`, then `qwen2.5:3b`/`1.5b` (main); `qwen3.5:0.8b` then smaller qwen2.5 (light); `qwen3-embedding:0.6b` / `nomic-embed-text` (embedding). Availability of the `qwen3.5` tags was not verified; `qwen2.5:3b` was used for real AI tests.
+3. **Embeddings are not used yet.** Semantic duplicate detection and related-clip discovery over the new candidates are not built; the existing semantic search code is untouched.
+4. **One job queue.** The existing single in-process queue still serialises heavy jobs. The new memory gate is applied inside the new analysis path only.
+5. **Unsplash hot-links** on the public pages remain (disclosed in the privacy page).
+6. **Docker files are untested** (no running Docker daemon in the development environment).
+7. **LAN access is not supported.** The API deliberately rejects non-localhost hosts.
 
-## Status by requirement group
+## Status by requirement
 
 | # | Requirement | Status | Notes |
 | --- | --- | --- | --- |
-| 1–3 | Self-hosted, internet policy, target hardware | Incomplete | Next.js/FFmpeg/yt-dlp/Ollama/JSON persistence already in place. No databases or cloud AI found. Whisper conflict above. |
-| 4 | Repository audit | Verified | This document. |
-| 5 | Universal source import | Incomplete | yt-dlp URL import and upload exist (`lib/ingestion.ts`, `lib/jobs.ts`). Local folders, per-platform capability detection not built. |
-| 6 | Source inspection | Incomplete | `components/source-inspection.tsx`, `lib/source-info.ts` exist; completeness vs. the field list unchecked. |
-| 7 | Smart download manager | Incomplete | Queue and cancel exist. No resumable/partial/audio-only/subtitle-only modes, duplicate detection or storage check verified. |
-| 8 | Long-form support | Incomplete | New analysis streams in 30-minute chunks and resumes after interruption (**Verified** by parser/fixture tests; multi-hour run not benchmarked). Rendering/download paths unchanged. |
-| 9 | No-LLM scoring engine | **Verified** | `lib/clipping/*`. |
-| 10 | Timeline signal extraction | Incomplete | Audio, scene/motion, subtitle pacing, hype words, chat, replay: **Verified**. Not built: user bookmarks and source markers as signals, chapter boundaries as signal. |
-| 11 | Audio activity | Incomplete | RMS, peak, sudden rise, silence spans, baseline-relative: **Verified**. "Loudness" is an RMS dB proxy, not LUFS. Onset activity is approximated by the sudden-rise measure; dynamic range and sustained-region detection are not separately computed. |
-| 12 | Scene change | Incomplete | FFmpeg `scene_score` at 2 fps on a 160-px downscale: cuts, motion estimate, cut rate **Verified**. Static-scene and rapid-edit labels are implicit in the tracks, not separate outputs. Analysis decodes the full source; no proxy is used yet. |
-| 13 | Chat analysis | Incomplete | JSON/CSV/Twitch-style import, offset, rate, unique users, reactions/emoji, repeated phrases, hype: **Verified**. Retrieval of live chat replay via yt-dlp not built. Existing 120-bin count import (`lib/activity-evidence.ts`) untouched. |
-| 14 | Replay heatmap | Incomplete | Manual import and yt-dlp-metadata-shaped `heatmap` parsing: **Verified**. Automatic retrieval wiring into the download step not built. |
-| 15 | Multilingual hype dictionaries | Incomplete | en, ne, ne-Latn, hi, hinglish, ur, bn, es, gaming: **Verified** for matching/normalisation. Lists are small starter sets, not validated lexicons. No UI to edit custom dictionaries; custom dictionaries are supported by the API type only. pt/ar/zh/ja/ko lists absent. |
-| 16 | Combined scoring | **Verified** | Weighted, normalised, redistribution, smoothing, breakdown. |
-| 17 | Candidate windows | **Verified** | Peaks, adaptive window, context, min/max, merge, spacing, duplicate-text removal, chronological. |
-| 18 | Boundary refinement | Incomplete | Subtitle/sentence/silence/scene/leading-silence: **Verified** on unit cases. Dialogue-turn awareness not built. |
-| 19 | Moment heatmap | Incomplete | `components/moment-explorer.tsx`: real tracks, zoom, scroll, toggles, hover, seek, candidate ranges: **Untested in a browser**. Bookmarks and live custom weighting in the UI not built (weights are accepted by the API). |
-| 20 | Instant mode | Incomplete | Analyse → candidates → render through the existing renderer works at code level. Auto layout presets are per-profile hints only; end-to-end render from the UI not run. |
-| 21–23 | Intelligent / Deep / AI fallback | Missing (new) | Existing Ollama highlight analysis (`lib/jobs.ts#analyze`) is separate and untested against these requirements. No hybrid ranking of formula candidates, no deep mode UI, no resource warning. |
-| 24–27 | Ollama profiles, resources, routing, structured output | Incomplete | Existing code uses JSON schemas and validation (`lib/discovery.ts`, `lib/ollama.ts`). Model routing, memory-pressure fallback and embeddings not built. |
-| 28–32 | Multilingual clipping and captions | Incomplete | Language packs and caption styling exist (`lib/localization.ts`, `lib/captions.ts`, `docs/LANGUAGE_SUPPORT.md`). Separate source/transcript/analysis/caption/translation/metadata language settings, audio-capable Ollama detection, RTL/complex-script checks not verified. |
-| 33–40 | Content-type modes | Incomplete | 13 profiles with weights, durations, padding, boundary strategy and layout hint: **Verified** (schema + validation). Per-profile Ollama prompts, edit templates and metadata rules not built. Custom profile validation exists; no builder UI or persistence. |
-| 41–45 | Clip genome, hooks, payoff, comparison, duplicates | Incomplete | Existing clip-family, comparison and transcript-insight code. Genome/hook/payoff scoring per brief not built. Duplicate detection: transcript similarity only. |
-| 46–49 | Layouts, webcam regions, reframing, recipes | Incomplete | Layouts, vision crop, keyframed reframe and recipes exist (`lib/composition.ts`, `lib/vision-crop.ts`, `lib/reframe.ts`, `lib/edit-recipes.ts`). Not re-verified here. |
-| 50–52 | Music, SFX, thumbnails | Incomplete | Soundboard, beat detect, poster generation exist. Ducking/looping/fit and thumbnail variants unchecked. |
-| 53–57 | Trend radar, creators, research | Missing | No discovery workspace beyond `lib/discovery.ts` search helpers. |
-| 58–61 | Campaigns and compliance | Missing | |
-| 62–64 | Post kits and packages | Incomplete | `lib/publishing-package.ts` and `archiver` exist. Not re-verified against the file list. |
-| 65–68 | Quick Clip UX | Incomplete | `components/quick-clips.tsx` exists with a narrower workflow. |
-| 69–71 | Reel Factory, Autopilot | Incomplete | `lib/reel-factory.ts` (batch jobs) and `lib/workflow.ts` exist. No file-arrival triggers, schedules or approval steps verified. |
-| 72–74 | Storage policies, cleanup, cache | Incomplete | `components/storage-usage.tsx`, `lib/backup.ts`. No dependency-aware cleanup preview. |
-| 75–78 | Hardware profiles, scheduler, FFmpeg, frontend | Incomplete | `lib/performance.ts`, encode profiles, hardware-encode flag exist. Memory gate added. TanStack Virtual not used; heavy studios not confirmed lazy-loaded. The new explorer is lazy-loaded. |
-| 79–82 | Windows setup, Docker | Incomplete | `Install-Clipper*.ps1/.cmd` exist. `setup/start/stop/update/doctor/backup.ps1` set not created; no Docker. |
-| 83–90 | UI/UX libraries and workspaces | Incomplete | Radix, cmdk, lucide, zod present. Not installed: TanStack Table/Virtual, React Hook Form, Sonner, Resizable Panels, dnd-kit, Recharts, React Flow. Navigation matches the brief only partly. |
-| 91–95 | Security | Incomplete | Argon2id auth, per-user isolation, localhost guard, SSRF-blocking proxy (`lib/network.ts`) exist and have tests. New endpoints use the same guard, session scope, zod-validated options and a 60 MB import cap. Rights/provenance fields not built. |
-| 96–100 | Testing and benchmarking | Incomplete | 14 new tests; full suite 97 tests. No hardware benchmark, offline test, Playwright run or rendered-clip quality check was performed here. **No benchmark numbers exist and none are claimed.** |
+| 1–3 | Self-hosted, internet policy, target hardware | Incomplete | No databases, no cloud AI, no API-key fields. Local-only Ollama endpoint. Whisper kept (decision 1). No i5/8 GB measurement was made (see 99). |
+| 4 | Repository audit | Verified | This file. |
+| 5 | Universal source import | Incomplete | yt-dlp URL import, upload, local-file path (Quick Clip, Autopilot folder watch) exist. Local audio-only and per-platform capability detection not built. |
+| 6 | Source inspection | Incomplete | Existing `source-inspection`; not re-audited field by field. |
+| 7 | Smart download manager | Incomplete | Existing queue/cancel/duplicate-source reuse. Resumable, partial, audio-only, subtitle-only and storage pre-checks not added. |
+| 8 | Long-form support | Incomplete | Analysis streams in 30-minute chunks and resumes after interruption (**Verified**: chunk parsers, resume path, autopilot retry). No multi-hour run was timed. |
+| 9–11 | No-LLM scoring, signals, audio | **Verified** | RMS/peak/sudden-rise/silence, baseline-relative. "Loudness" is an RMS proxy, not LUFS; onset ≈ sudden rise. |
+| 12 | Scene change | Incomplete | Scene score at 2 fps downscaled, cut rate, motion: Verified on a synthetic video. Static/rapid-edit are implicit in tracks, not separate outputs. Full source is decoded (no proxy path). |
+| 13 | Chat analysis | Incomplete | JSON, Twitch-style, CSV import, offset, rate, unique users, reactions, repeats, hype: **Verified**. Automatic replay chat download not built. |
+| 14 | Replay heatmap | Incomplete | Manual import and yt-dlp-shaped parsing: **Verified**. Auto-fetch not wired. |
+| 15 | Hype dictionaries | Incomplete | en, ne, ne-Latn, hi, hinglish, ur, bn, es, gaming: matching/normalisation **Verified**. Small starter lists; no dictionary editor UI; pt/ar/zh/ja/ko lists absent. |
+| 16–18 | Combined scoring, windows, boundaries | **Verified** | Weight redistribution, merge, spacing, duplicates, subtitle/sentence/silence/scene snapping. Dialogue-turn awareness not built. |
+| 19 | Moment heatmap | Incomplete | Own page, real tracks, zoom, scroll, toggles, hover, seek, ranges, review: **Verified in a real browser** (layout bugs found and fixed). Manual bookmarks and in-UI weight sliders not built. |
+| 20 | Instant mode | **Verified** | Real FFmpeg pipeline test: analysis → selection → approval → render → retry. |
+| 21–23 | Intelligent, Deep, fallback | Incomplete | Intelligent and Deep passes with bounded retries, template fallback, failure circuit-breaker: unit-tested with a stubbed transport and **run against real `qwen2.5:3b`**. Deep adds a larger context only; cross-candidate comparison and narrative passes are not built. |
+| 24–27 | Ollama profiles, resources, routing, structured output | Incomplete | Model resolution, eco/main routing, zod-validated output, grounded (no model timestamps) done. Embedding routing, automatic unload, memory-pressure model downgrade beyond one threshold not built. |
+| 28–32 | Multilingual clipping and captions | Incomplete | Existing language packs/captions/RTL not re-verified. Separate per-purpose language settings and audio-capable-model detection not built. Quick Clip exposes a source-language choice used for profile routing. |
+| 33–40 | Content-type modes | Incomplete | 13 profiles (weights, durations, padding, boundary strategy, layout hint) and a custom profile builder with versioned JSON: **Verified** (schema + API + UI). Per-profile Ollama prompts, editing templates, metadata rules not built. |
+| 41–45 | Clip genome, hooks, payoff, comparison, duplicates | Incomplete | Per-candidate measured breakdown plus AI estimates (hook, payoff, completeness, clarity) kept separate from measured scores. Candidate-to-candidate comparison UI, embeddings duplicates not built. Transcript-similarity duplicates: Verified. |
+| 46–49 | Layouts, webcam regions, reframing, recipes | Incomplete | Existing editor features, not re-verified. Quick Clip applies ratio/layout via platform presets. |
+| 50–52 | Music, SFX, thumbnails | Incomplete | Existing soundboard/beat/poster code; not extended. |
+| 53–57 | Trend radar, creators, research | Incomplete | Atom/RSS parsing (YouTube feed statistics), polling interval enforcement, observations, velocity, staleness, topic counts, evidence-cited Ollama summaries, imports, saved notes: **Verified** by tests and a real-browser check. Live network fetch of a real feed was not exercised; SSRF blocking is Verified. |
+| 58–61 | Campaigns and compliance | Incomplete | Schema, editor, brief import (Ollama, review before save), compliance engine with pass/fail/needs-review, rights ledger feeding checks, report in packages: **Verified**. Linked-projects and production-history views not built. |
+| 62–64 | Post kits, presets, packages | Incomplete | title/description/hashtags/pinned-comment/attribution/captions-original/metadata/compliance files plus existing video/thumbnail(jpg)/srt/vtt: **Verified** (unit). Platform presets (advisory limits). `captions-english.srt` is not generated (no translation track). A full ZIP build was not run in this session. |
+| 65–68 | Quick Clip UX | Incomplete | Express page with the 10 steps, defaults, advanced section, progress, results with real preview, download, open in editor: **Verified in a real browser** with a real render. Per-clip accept/reject/trim/regenerate on that screen not built (review happens in Moment finder before rendering). |
+| 69–71 | Reel Factory, Autopilot | Incomplete | Autopilot: new-upload and folder triggers, stable-file detection, approval, language routing, score filter, transcript condition, history, retry: **Verified** (unit + real pipeline). Background polling only runs while the server is up and after the first request since start. Existing Reel Factory unchanged. |
+| 72–74 | Storage, cleanup, cache | Incomplete | Policies, classification, dependency-aware previews, authorised source deletion, cache age/size sweeps: **Verified** (fixtures). Archive mode defers to existing Backups. Not every dependency kind (e.g., review-version references) is inspected. |
+| 75–78 | Profiles, scheduler, FFmpeg, frontend | Incomplete | Eco/Balanced/Performance (Performance gated below 12 GB): **Verified**. Encoder claims only after a real test encode: **Verified**. TanStack Virtual/Web Workers not used. New pages are lazy-loaded. |
+| 79–82 | Windows scripts, Docker | Incomplete | `scripts/windows/{setup,start,stop,update,doctor,backup}.ps1`: doctor and backup **run for real** (backup verified to exclude sessions/temp/sources); stop tested with no PID; start/update/setup not run end to end. Docker **untested**. |
+| 83–90 | UI libraries and workspaces | Incomplete | Radix, cmdk, lucide, zod used. TanStack Table/Virtual, React Hook Form, Sonner, Resizable Panels, dnd-kit, Recharts, React Flow **not installed** (plain React forms and canvas were used instead). Navigation: Home gains Quick Clip; Clipping gains Moment finder, Trend radar, Campaigns; Automation gains Autopilot; Settings gains System health. System health values measured: **Verified in browser**. |
+| 91–95 | Security | Incomplete | New endpoints use the existing session, origin and localhost guards, zod validation, size caps, SSRF validation for feeds (blocks loopback/private hosts: Verified), path-confined cleanup. Rights ledger (existing) feeds compliance. A formal security review was not done. |
+| 96–100 | Testing and benchmarking | Incomplete | 120 tests including real-FFmpeg and real-pipeline tests. **No hardware benchmark, offline-mode test, Playwright visual suite or black/frozen-frame analysis was run; no benchmark figures exist and none are claimed.** The only rendered-clip check was resolution/codec/audio through the existing export QA on a synthetic file. |
 
-## What this change added
+## Bugs found by running the software (all fixed)
 
-- `lib/clipping/` — signal math, FFmpeg audio and visual analysis (chunked, resumable), hype dictionaries, chat and replay import, content profiles, weighted scoring with weight redistribution, candidate generation and boundary refinement, memory gate, orchestration.
-- API: `moments`, `moments-import`, `moment-profiles`.
-- UI: `components/moment-explorer.tsx` (lazy) mounted under Highlights.
-- Tests: `tests/clipping.test.ts`, including a synthesised video with a known loud, visually busy burst and a known silent tail, analysed by real FFmpeg.
-
-See `CLIPPING_ENGINE.md` for how the engine works and its limits.
+- Windows `EPERM` when atomically replacing a JSON file another request was reading → retrying rename plus stat-validated read cache; covered by a stress test.
+- Quick Clip showed the oldest run instead of the newest.
+- Moment explorer layout (labels, oversized controls, time axis) and its placement inside a collapsed section.
+- Doctor script returned noise in its pipeline and missed an `npm.exe` shim.
+- Model output strictness: over-long free text rejected valid structured output; now shortened instead.

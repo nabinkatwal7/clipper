@@ -46,3 +46,13 @@ Clipper Studio is designed to run on a machine you control, bound to `127.0.0.1`
 3. Run as an unprivileged user with the storage folder readable only by that user.
 4. Keep Node.js, FFmpeg, yt-dlp, Ollama and dependencies (`npm audit`) up to date.
 5. Back up `storage/` regularly.
+
+## Clipping engine additions
+
+- All new endpoints sit behind the existing session, same-origin and localhost checks and use zod validation with size caps (chat/replay/video imports up to 60 MB / 20 MB text).
+- Feed discovery validates every redirect hop (public hosts only, no credentials, ports 80/443) with a 2 MB, 15 s limit. Validation and fetch resolve DNS separately, so a DNS-rebinding race is theoretically possible; do not point creators at hosts you do not trust.
+- Local-folder triggers and file paths are user-supplied absolute paths on your own machine; files are copied, never executed.
+- Ollama receives only bounded transcript excerpts, marked as data; output is schema-validated and never executes anything. Pasted campaign briefs are extraction-only and shown for review before saving.
+- Cleanup deletes only paths that appear in a freshly built preview and sit inside the workspace; downloaded sources need explicit authorisation.
+- Backups contain password hashes and personal data; sessions are excluded.
+- A formal security review has not been performed.

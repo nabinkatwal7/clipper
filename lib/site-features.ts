@@ -130,6 +130,42 @@ export const features: Feature[] = [
     points: ["Usage by category", "Checksummed backups", "Restore without overwriting"],
     sample: [["Sources", "42.1 GB"], ["Clips", "3.8 GB"], ["Backups", "1 verified"]],
   },
+  {
+    id: "quick-clip", group: "Workspace", title: "Quick Clip", tag: "Link in, clips out",
+    text: "Paste a link or point to a recording, choose a content type, clip count and length, and get vertical clips to review. It works without AI and needs no accounts or API keys. Online links need internet access; local files do not.",
+    points: ["Instant mode needs no AI at all", "Optional local Ollama ranking", "Platform presets for vertical formats", "Retry resumes from the step that failed"],
+    sample: [["Source", "Local file"], ["Type", "Gaming · 5 clips · 30–60 s"], ["Mode", "Instant — no AI"]],
+  },
+  {
+    id: "moments", group: "Creation", title: "Moment finder", tag: "Scores you can inspect",
+    text: "Finds candidate moments from measured audio changes, scene and motion changes, subtitles, imported chat logs and replay heatmaps, compared with the recording's own baseline. Every candidate shows where its score came from. Scores rank moments for you to review; they do not predict audience performance.",
+    points: ["Interactive heatmap of the real measured tracks", "Missing signals are listed, never invented", "Boundaries snap to subtitles, silence and scene cuts when available", "Hype-word dictionaries for English, Nepali, Hindi, Urdu, Bengali, Spanish and romanized forms"],
+    sample: [["Used", "audio, chat, visual"], ["Not available", "replay, transcript"], ["Edges", "duration-only (reduced precision)"]],
+  },
+  {
+    id: "autopilot", group: "Automation", title: "Autopilot", tag: "Scheduled, reviewable, never published",
+    text: "Define a workflow that imports a new upload from a tracked creator or a new file in a folder, finds moments, optionally asks you to approve, renders and checks the result. Every run keeps a step-by-step history and can resume after a failure. Automatic checks run only while the studio is running.",
+    points: ["Triggers: manual, new upload, new file in a folder", "Approval step before rendering", "Language-based profile routing", "Nothing is ever posted to a platform"],
+    sample: [["Trigger", "New file in folder"], ["Step", "Waiting for approval"], ["History", "Per-step results kept"]],
+  },
+  {
+    id: "campaigns", group: "Management", title: "Campaigns", tag: "Rules you can verify",
+    text: "Save reusable production rules such as duration, aspect ratio, required captions, watermark, attribution and excluded words. Compliance checks separate what the software can measure from what needs a human, and never mark rights as verified on your behalf.",
+    points: ["Structured, validated rules", "Pass, fail or needs review per check", "Import rules from pasted instructions with local Ollama, reviewed before saving", "Compliance report included in publishing packages"],
+    sample: [["Duration", "pass · 45 s"], ["Captions language", "needs review"], ["Rights", "needs review"]],
+  },
+  {
+    id: "trends", group: "Management", title: "Trend radar", tag: "Only what you track",
+    text: "Track public creator feeds and imported lists, and record views, age and upload frequency over time. Figures come from the feeds and files you add and show when they were observed. They are not platform-wide rankings, and sources without a keyless feed need a manual import.",
+    points: ["RSS and Atom feeds, CSV and JSON import", "Velocity needs two real observations", "Stale and missing data are labelled", "Topic summaries cite the titles behind them"],
+    sample: [["Views", "1,500"], ["Observed", "2 readings"], ["Source", "Public feed"]],
+  },
+  {
+    id: "health", group: "Management", title: "System health", tag: "Measured, not guessed",
+    text: "See CPU, memory, disk, the model Ollama has loaded, the job queue and dependency versions. Encoders are only called verified after a real test encode succeeds on your machine. Eco, Balanced and Performance profiles tune analysis detail, and Performance is never chosen automatically.",
+    points: ["Live measured metrics", "Real encoder test", "One heavy job at a time in every profile", "Storage cleanup previews before anything is deleted"],
+    sample: [["Memory", "24 GB free"], ["Encoders", "libx264 verified"], ["Profile", "Balanced"]],
+  },
 ];
 
 export const groups = ["Workspace", "Creation", "Automation", "Management"] as const;

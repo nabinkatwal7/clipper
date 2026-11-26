@@ -35,3 +35,7 @@ Captions are burned in with FFmpeg's `libass`. Browser previews are not proof of
 ## Speech recognition quality
 
 Recognition runs in bounded audio sections and saves segment-level timecodes. The CPU model can make mistakes with accents, background noise, code-switching and names. Review the transcript before publishing. Automatic recognition does not supply word-level caption timing.
+
+## Hype dictionaries for moment scoring
+
+Starter dictionaries ship for English, Nepali (Devanagari), Romanized Nepali, Hindi (Devanagari), Hinglish, Urdu, Bengali, Spanish and gaming terms. Text is NFKC-normalised, lowercased, Latin diacritics are folded (Indic and Arabic marks are kept), punctuation is removed, and phrases match on whole-word boundaries (substring for Han/Kana/Thai). Repeats get diminishing credit. These are small hand-written lists: they will miss slang and spelling variants, and they only add to a combined score. Portuguese, Arabic, Chinese, Japanese and Korean lists are not shipped. Quick Clip's language choice routes content profiles; transcripts are analysed in their original language and are not forced through English.

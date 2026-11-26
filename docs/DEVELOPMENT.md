@@ -65,3 +65,7 @@ Create `app/<name>/page.tsx` using `PageShell` (and `DocLayout` for long text) f
 ## Releasing
 
 There is no automated release process yet. Run typecheck, lint and tests, update `FEATURE_MATRIX.md` for changed features, and tag the commit.
+
+## Tests and the push gate
+
+`npm run gate` runs typecheck, lint, the full test suite and the production build; run it before pushing. `npm test` loads `.env.local` so the real-FFmpeg tests run when `FFMPEG_BIN` is configured (they skip otherwise). `scripts/moments-ai-smoke.ts` exercises the AI layer against a real local Ollama model. When testing the UI, run a second copy of the app against a temporary `CLIPPER_STORAGE_DIR` and a free port rather than your real data.

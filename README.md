@@ -114,3 +114,7 @@ Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.
 ## License
 
 [MIT](LICENSE). Third-party components and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). FFmpeg, yt-dlp and Ollama are installed separately and are not distributed with this project; check their licenses for your use.
+
+## What is new: self-hosted clipping engine
+
+Quick Clip, a Moment finder that scores real audio/scene/subtitle/chat/replay signals without AI, optional local-Ollama ranking, Autopilot, Campaigns with compliance checks, a keyless Trend radar, storage policies, System health and Windows management scripts. Start with `CLIPPING_ENGINE.md`; the honest status of every requirement is in `CLIPPING_ENGINE_AUDIT.md`; setup and limits are in `docs/SELF_HOSTING.md`.

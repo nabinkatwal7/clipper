@@ -45,3 +45,14 @@ Output: `<project>.moments.json` with all tracks, candidates, per-candidate scor
 ## Tests
 
 `tests/clipping.test.ts`: unit tests for every module plus a real-FFmpeg fixture (needs `FFMPEG_BIN`; `npm test` loads `.env.local`). The fixture video has a known loud, visually busy burst at 10–14 s and silence from 20 s; the test asserts the analysis finds both and that the top candidate covers the burst.
+
+## Beyond Instant mode
+
+- **Ollama layer** (`ai.ts`): after the formula engine has produced candidates, the top 8 (12 in Deep) with transcript text are read one at a time by the installed model (context 2048, or 4096 in Deep). It returns validated JSON: hook, payoff, completeness and clarity (0–10), a category, title, hashtags, optional opening text, reason. These are labelled `ai-estimate` and never overwrite the measured score; `rankScore` blends them for display only (70/30). The model never proposes timestamps. Failures (unreachable, no model, invalid JSON, timeout, out of memory) keep the measured result, fill template metadata and explain what was skipped; three consecutive failures stop further requests. Verified against a real `qwen2.5:3b` (about 17 s for one candidate on a desktop CPU).
+- **Campaigns** (`campaigns.ts`): validated rule sets and a compliance engine returning `pass`, `fail` or `needs-review` per check. Measurable facts (duration, ratio, resolution, hashtags, excluded words, watermark text, attribution text) are checked; captions language, source rights and review are human items unless you recorded them in the rights ledger. A recorded "permitted" is shown as your assertion, not as verified.
+- **Discovery** (`feeds.ts`, `discovery-store.ts`, `niche.ts`): Atom/RSS parsing (YouTube feeds include view counts), polling that refuses to hit a feed before its interval, per-hop SSRF validation, observation history, velocity from two real readings at least 10 minutes apart, staleness labels, token-count topics, and Ollama topic summaries that must cite titles.
+- **Autopilot** (`autopilot-core.ts`, `autopilot.ts`): import → analyse → (AI) → select → approval → render → validate, each step idempotent and recorded in a run history; failed runs resume from the failed step. Triggers baseline existing uploads/files so only later arrivals are processed.
+- **Storage** (`storage.ts`) and **system** (`system.ts`): see `docs/SELF_HOSTING.md`.
+- **Quick Clip** posts to `/api/quick-clip`, which creates an internal Autopilot definition and runs the same pipeline.
+
+Persisted data (per user, JSON): `data/campaigns.json`, `profiles.json`, `creators.json`, `videos.json`, `research.json`, `autopilots.json`, `runs.json`, `settings.json`. Reads are cached by file size and mtime; writes are atomic with retry for Windows file-locking.
