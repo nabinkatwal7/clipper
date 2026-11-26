@@ -219,6 +219,44 @@ export function VideoEditor({
     return () => window.removeEventListener("keydown", key);
   });
   const [quality, setQuality] = useState(720);
+  const [useProxy, setUseProxy] = useState(false);
+  const [proxyReady, setProxyReady] = useState(false);
+  const [proxyBusy, setProxyBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(
+      `/api/media-proxy?kind=source&project=${encodeURIComponent(project.id)}`,
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (alive) setProxyReady(!!data.ready);
+      })
+      .catch(() => {
+        if (alive) setProxyReady(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [project.id]);
+  async function ensureProxy() {
+    setProxyBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/media-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "source", project: project.id }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error);
+      setProxyReady(!!data.ready);
+      setUseProxy(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProxyBusy(false);
+    }
+  }
   const dirty =
     title !== clip.title ||
     settings !== clip.settings ||
@@ -282,6 +320,26 @@ export function VideoEditor({
             <option value={360}>360p preview</option>
             <option value={720}>720p preview</option>
           </select>
+          <button
+            type="button"
+            aria-pressed={useProxy && proxyReady}
+            disabled={proxyBusy}
+            title={
+              proxyReady
+                ? "Toggle low-resolution proxy for the source monitor"
+                : "Generate a low-resolution proxy for smoother scrubbing"
+            }
+            onClick={() => {
+              if (!proxyReady) void ensureProxy();
+              else setUseProxy(!useProxy);
+            }}
+          >
+            {proxyBusy
+              ? "Building proxy…"
+              : useProxy && proxyReady
+                ? "Proxy on"
+                : "Proxy"}
+          </button>
           <button
             title="Toggle inspector"
             aria-pressed={inspector}
@@ -410,10 +468,11 @@ export function VideoEditor({
             style={{ aspectRatio: settings.ratio.replace(":", "/") }}
           >
             <video
+              key={useProxy && proxyReady ? "proxy" : "original"}
               ref={video}
               className="frame-source"
               playsInline
-              src={`/api/download?project=${project.id}&kind=source`}
+              src={`/api/download?project=${project.id}&kind=source${useProxy && proxyReady ? "&proxy=1" : ""}`}
               onError={() =>
                 setError(
                   "Source unavailable. Reimport the recording to restore the monitor.",
@@ -445,6 +504,7 @@ export function VideoEditor({
               segments={segments}
               safe={safe}
               clipStart={valid ? start : clip.start}
+              preferProxy={useProxy && proxyReady}
             />
           </div>
           <Button variant="secondary" disabled={!good} onClick={toggle}>

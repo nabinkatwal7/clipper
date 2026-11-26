@@ -1011,7 +1011,7 @@ Test coverage — Existing progress and storage tests.
 | Incremental analysis | Partial |
 | Incremental rendering where practical | Partial |
 | Shared source media references | Implemented |
-| Preview proxy generation | Partial |
+| Preview proxy generation | Implemented |
 | Thumbnail caching | Implemented |
 | Composition preview caching | Implemented |
 | Waveform caching | Implemented |

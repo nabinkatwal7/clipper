@@ -259,6 +259,34 @@ export async function handle(
           await checkpoint(p, c, (await req.json()).name),
         );
     }
+    if (action === "media-proxy") {
+      const mediaProxy = await import("./media-proxy");
+      const body =
+        req.method === "GET"
+          ? {
+              kind: query.get("kind"),
+              project: query.get("project"),
+              id: query.get("id"),
+            }
+          : await req.json();
+      const target: import("./media-proxy").ProxyTarget =
+        body.kind === "asset"
+          ? { kind: "asset", id: String(body.id || "") }
+          : { kind: "source", project: String(body.project || "") };
+      if (target.kind === "source") await read(target.project);
+      if (req.method === "GET")
+        return NextResponse.json(await mediaProxy.proxyStatus(target));
+      if (req.method === "DELETE")
+        return NextResponse.json(await mediaProxy.removeProxy(target));
+      if (req.method === "POST") {
+        if (target.kind === "source" && busy(target.project))
+          throw Error("A render is already running. Try again when it finishes.");
+        return NextResponse.json(
+          await mediaProxy.buildProxy(target, req.signal),
+        );
+      }
+      throw Error("Unsupported media proxy method");
+    }
     if (action === "assets") {
       if (
         req.method === "POST" &&
@@ -271,20 +299,29 @@ export async function handle(
       }
       if (req.method === "GET" && query.has("id")) {
         const a = await asset(query.get("id") || "");
+        const { resolvePreviewMedia } = await import("./media-proxy");
+        const preview =
+          a.kind === "video" && query.get("proxy") === "1"
+            ? await resolvePreviewMedia({ kind: "asset", id: a.id }, true)
+            : {
+                path: file("assets", a.id, a.ext),
+                proxy: false,
+              };
+        const stat = await fs.stat(preview.path);
         return new Response(
-          Readable.toWeb(
-            createReadStream(file("assets", a.id, a.ext)),
-          ) as ReadableStream,
+          Readable.toWeb(createReadStream(preview.path)) as ReadableStream,
           {
             headers: {
-              "Content-Type":
-                a.kind +
-                "/" +
-                ({ mp4: "mp4", mov: "quicktime", mp3: "mpeg", jpg: "jpeg" }[
-                  a.ext
-                ] || a.ext),
-              "Content-Length": String(a.bytes),
+              "Content-Type": preview.proxy
+                ? "video/mp4"
+                : a.kind +
+                  "/" +
+                  ({ mp4: "mp4", mov: "quicktime", mp3: "mpeg", jpg: "jpeg" }[
+                    a.ext
+                  ] || a.ext),
+              "Content-Length": String(stat.size),
               "X-Content-Type-Options": "nosniff",
+              "X-Media-Proxy": preview.proxy ? "1" : "0",
             },
           },
         );
@@ -1389,11 +1426,21 @@ export async function handle(
       }
       let target: string;
       let mime = "video/mp4";
+      let usingProxy = false;
       if (kind === "thumbnail") {
         target = file("uploads", p.id, "jpg");
         mime = "image/jpeg";
-      } else if (kind === "source") target = file("uploads", p.id, "mp4");
-      else {
+      } else if (kind === "source") {
+        if (query.get("proxy") === "1") {
+          const { resolvePreviewMedia } = await import("./media-proxy");
+          const preview = await resolvePreviewMedia(
+            { kind: "source", project: p.id },
+            true,
+          );
+          target = preview.path;
+          usingProxy = preview.proxy;
+        } else target = file("uploads", p.id, "mp4");
+      } else {
         const c = p.clips.find((c) => c.id === query.get("clip"));
         if (!c) throw Error("Clip not found");
         target = file("clips", c.id, "mp4");
@@ -1403,6 +1450,7 @@ export async function handle(
         "Content-Type": mime,
         "Accept-Ranges": "bytes",
         "Cache-Control": "private, no-store",
+        "X-Media-Proxy": usingProxy ? "1" : "0",
       };
       if (query.get("attachment") === "1")
         headers["Content-Disposition"] = 'attachment; filename="clip.mp4"';

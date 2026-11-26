@@ -8,6 +8,7 @@ import { curve, sampleCurve, validateComposition } from "../lib/composition";
 import { layerPose } from "../lib/preview-layers";
 import { dragTrack } from "../lib/timeline-gestures";
 import { previewKey } from "../lib/preview-cache";
+import { proxyPath } from "../lib/media-proxy";
 import {
   animationPresets,
   applyAnimationPreset,
@@ -145,6 +146,19 @@ test("animation presets write renderable entrance and exit keyframes", () => {
   validateComposition({ version: 1, tracks: [faded, { ...zoomed, id: "33333333-3333-4333-8333-333333333333" }] });
   assert.throws(() =>
     applyAnimationPreset({ ...track, type: "audio", muted: false }, "fade-in"),
+  );
+});
+test("media proxy files use dedicated proxy.mp4 names under uploads and assets", () => {
+  assert.match(
+    proxyPath({
+      kind: "source",
+      project: "11111111-1111-4111-8111-111111111111",
+    }),
+    /[\\/]uploads[\\/]11111111-1111-4111-8111-111111111111\.proxy\.mp4$/,
+  );
+  assert.match(
+    proxyPath({ kind: "asset", id: "22222222-2222-4222-8222-222222222222" }),
+    /[\\/]assets[\\/]22222222-2222-4222-8222-222222222222\.proxy\.mp4$/,
   );
 });
 test("preview cache keys change when settings or media fingerprints change", () => {

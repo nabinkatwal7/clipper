@@ -24,6 +24,7 @@ export function EditorMonitor({
   quality,
   safe,
   clipStart = 0,
+  preferProxy = false,
 }: {
   video: RefObject<HTMLVideoElement | null>;
   settings: Settings;
@@ -31,6 +32,7 @@ export function EditorMonitor({
   quality: number;
   safe: boolean;
   clipStart?: number;
+  preferProxy?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const layers = useRef<Map<string, LayerMedia>>(new Map());
@@ -66,7 +68,10 @@ export function EditorMonitor({
         media.muted = true;
         media.playsInline = true;
         media.preload = "auto";
-        media.src = "/api/assets?id=" + track.asset;
+        media.src =
+          "/api/assets?id=" +
+          track.asset +
+          (preferProxy ? "&proxy=1" : "");
         layers.current.set(track.asset, {
           id: track.asset,
           kind: "video",
@@ -385,7 +390,7 @@ export function EditorMonitor({
         if (media.kind === "video") (media.element as HTMLVideoElement).pause();
       }
     };
-  }, [settings, segments, safe, video, quality, clipStart]);
+  }, [settings, segments, safe, video, quality, clipStart, preferProxy]);
   return (
     <canvas
       className="monitor-canvas"
