@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type MutableRefObject, type RefObject } from "react";
 import { cropAt } from "@/lib/reframe";
 import { dimensions } from "@/lib/captions";
 import { enabledTracks } from "@/lib/composition";
@@ -26,6 +26,7 @@ export function EditorMonitor({
   safe,
   clipStart = 0,
   preferProxy = false,
+  monitorCanvas,
 }: {
   video: RefObject<HTMLVideoElement | null>;
   settings: Settings;
@@ -34,6 +35,7 @@ export function EditorMonitor({
   safe: boolean;
   clipStart?: number;
   preferProxy?: boolean;
+  monitorCanvas?: RefObject<HTMLCanvasElement | null>;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const layers = useRef<Map<string, LayerMedia>>(new Map());
@@ -54,6 +56,7 @@ export function EditorMonitor({
       (track) => track.type !== "audio",
     );
     for (const track of tracks) {
+      if (track.type === "text") continue;
       if (layers.current.has(track.asset)) continue;
       if (track.type === "image") {
         const image = new Image();
@@ -177,6 +180,23 @@ export function EditorMonitor({
       const rel = compositionTime(v.currentTime, clipStart);
       for (const track of tracks) {
         if (rel < track.at || rel >= track.at + track.length) continue;
+        const local = rel - track.at;
+        if (track.type === "text") {
+          const pose = layerPose(track, local);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, pose.opacity));
+          ctx.font =
+            "bold " +
+            Math.max(8, (track.fontSize ?? 48) * factor) +
+            "px " +
+            (settings.font || "Arial");
+          ctx.fillStyle = track.color ?? "#ffffff";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(track.text?.trim() || "Text", w * pose.x, h * pose.y);
+          ctx.restore();
+          continue;
+        }
         const media = layers.current.get(track.asset);
         if (!media) continue;
         const element = media.element;
@@ -186,7 +206,6 @@ export function EditorMonitor({
               (element as HTMLImageElement).naturalWidth > 0
             : (element as HTMLVideoElement).readyState >= 2;
         if (!ready) continue;
-        const local = rel - track.at;
         if (media.kind === "video") {
           const clip = element as HTMLVideoElement;
           const source =
@@ -252,9 +271,19 @@ export function EditorMonitor({
           const cy = geometry.y * layerCanvas.height;
           const rw = (geometry.width * layerCanvas.width) / 2;
           const rh = (geometry.height * layerCanvas.height) / 2;
-          if (track.mask.shape === "ellipse") lx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
-          else
-            lx.rect(cx - rw, cy - rh, rw * 2, rh * 2);
+          if (track.mask.shape === "ellipse")
+            lx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
+          else if (track.mask.shape === "diamond") {
+            lx.moveTo(cx, cy - rh);
+            lx.lineTo(cx + rw, cy);
+            lx.lineTo(cx, cy + rh);
+            lx.lineTo(cx - rw, cy);
+            lx.closePath();
+          } else if (track.mask.shape === "rounded" && "roundRect" in lx) {
+            const r =
+              (track.mask.cornerRadius ?? 0.12) * Math.min(rw, rh) * 2;
+            lx.roundRect(cx - rw, cy - rh, rw * 2, rh * 2, r);
+          } else lx.rect(cx - rw, cy - rh, rw * 2, rh * 2);
           lx.fill();
           lx.globalCompositeOperation = "source-over";
         }
@@ -328,6 +357,9 @@ export function EditorMonitor({
               Math.max(0, (at - a) / 0.075),
               Math.max(0, (b - at) / 0.06),
             );
+          } else if (settings.captionAnimation === "bounce") {
+            const bt = Math.min(1, age / 0.15);
+            ctx.scale(1, 0.92 + 0.08 * Math.sin(bt * Math.PI));
           }
           if (settings.captionBackground) {
             const tw = ctx.measureText(line).width;
@@ -335,8 +367,21 @@ export function EditorMonitor({
             ctx.fillStyle = "#111";
             ctx.fillRect(-tw / 2 - 3, -th, tw + 6, th + 4);
           }
-          let x = -ctx.measureText(line).width / 2;
-          words.forEach((word, i) => {
+          const shown =
+            settings.captionAnimation === "typewriter"
+              ? line.slice(
+                  0,
+                  Math.max(
+                    1,
+                    Math.floor(line.length * Math.min(1, age / 0.4)),
+                  ),
+                )
+              : line;
+          let x = -ctx.measureText(shown).width / 2;
+          (settings.captionAnimation === "typewriter"
+            ? [shown]
+            : words
+          ).forEach((word, i) => {
             ctx.shadowColor = "rgba(0,0,0,.7)";
             ctx.shadowOffsetX = (settings.shadow ?? 1) * factor;
             ctx.shadowOffsetY = (settings.shadow ?? 1) * factor;
@@ -403,7 +448,13 @@ export function EditorMonitor({
   return (
     <canvas
       className="monitor-canvas"
-      ref={ref}
+      ref={(node) => {
+        ref.current = node;
+        if (monitorCanvas)
+          (
+            monitorCanvas as MutableRefObject<HTMLCanvasElement | null>
+          ).current = node;
+      }}
       aria-label="Output composition preview"
     />
   );

@@ -130,11 +130,21 @@ export function FormatSettings({
         value={value.encodeProfile || "fast"}
         onChange={(v) => set("encodeProfile", v as Settings["encodeProfile"])}
         options={[
+          ["draft", "Draft · fastest"],
           ["fast", "Fast"],
           ["balanced", "Balanced"],
           ["quality", "Maximum quality"],
+          ["archive", "Archive · largest"],
         ]}
       />
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={!!value.hardwareEncode}
+          onChange={(e) => set("hardwareEncode", e.target.checked || undefined)}
+        />
+        Try hardware H.264 (NVENC / QSV / AMF) with software fallback
+      </label>
       <Select
         label="Video layout"
         value={value.layout}
@@ -221,6 +231,8 @@ export function SubtitleSettings({
                 ["pop", "Pop in"],
                 ["slide", "Slide up"],
                 ["scale", "Scale in"],
+                ["bounce", "Bounce"],
+                ["typewriter", "Typewriter"],
               ]}
             />
           </div>
@@ -233,12 +245,28 @@ export function SubtitleSettings({
                 onChange={(e) => set("font", e.target.value)}
               />
               <datalist id="studio-fonts">
-                {["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].map(
-                  (f) => (
-                    <option key={f}>{f}</option>
-                  ),
-                )}
+                {[
+                  "Arial",
+                  "Verdana",
+                  "Georgia",
+                  "Tahoma",
+                  "Courier New",
+                  "Impact",
+                  "Comic Sans MS",
+                ].map((f) => (
+                  <option key={f}>{f}</option>
+                ))}
               </datalist>
+            </label>
+            <label className="field">
+              Letter spacing
+              <input
+                type="number"
+                min={-10}
+                max={40}
+                value={value.captionSpacing ?? 0}
+                onChange={(e) => set("captionSpacing", +e.target.value)}
+              />
             </label>
             <label className="field">
               Text color

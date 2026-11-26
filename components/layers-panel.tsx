@@ -9,7 +9,12 @@ import {
   type AnimationPresetId,
 } from "@/lib/animation-presets";
 import type { Asset } from "@/lib/assets";
-import type { Track, Ease } from "@/lib/composition";
+import {
+  TEXT_TRACK_ASSET,
+  sampleCurve,
+  type Track,
+  type Ease,
+} from "@/lib/composition";
 import type { Settings } from "@/lib/types";
 import { KeyframeGraph } from "./keyframe-graph";
 export function LayersPanel({
@@ -66,6 +71,39 @@ export function LayersPanel({
       change({ ...s, composition: { version: 1, tracks } }),
     patch = (v: Partial<Track>) =>
       save(tracks.map((a) => (a.id === t.id ? { ...a, ...v } : a)));
+  function insertText() {
+    if (tracks.length >= 16) return;
+    const id = crypto.randomUUID();
+    const start = Math.min(Math.max(0, at), Math.max(0, length - 0.1));
+    save([
+      ...tracks,
+      {
+        id,
+        name: "Text",
+        type: "text",
+        asset: TEXT_TRACK_ASSET,
+        text: "Title",
+        color: "#ffffff",
+        fontSize: 64,
+        at: start,
+        length: Math.max(0.05, Math.min(length - start, 5)),
+        slip: 0,
+        x: 0.5,
+        y: 0.5,
+        size: 0.2,
+        opacity: 1,
+        volume: 1,
+        visible: true,
+        muted: true,
+        locked: false,
+        solo: false,
+        loop: false,
+        fade: 0,
+        keys: {},
+      },
+    ]);
+    setId(id);
+  }
   function insert(a: Asset) {
     if (tracks.length >= 16) return;
     const id = crypto.randomUUID(),
@@ -161,6 +199,9 @@ export function LayersPanel({
       <details>
         <summary className="inline-link">Add media track</summary>
         <AssetLibrary insert={insert} />
+        <button className="tool" type="button" onClick={insertText}>
+          Add text layer
+        </button>
         <button className="tool" disabled={finding} onClick={suggest}>
           {finding ? "Checking local assets…" : "Suggest B-roll with Ollama"}
         </button>
@@ -295,6 +336,32 @@ export function LayersPanel({
                 time={at - t.at}
                 length={t.length}
                 seek={(time) => seek(t.at + time)}
+                onTrackToMask={
+                  t.mask
+                    ? () => {
+                        const times = new Set([
+                          ...(t.keys.x?.map((k) => k.time) ?? []),
+                          ...(t.keys.y?.map((k) => k.time) ?? []),
+                        ]);
+                        if (!times.size) return;
+                        patch({
+                          mask: {
+                            ...t.mask!,
+                            keys: [...times]
+                              .sort((a, b) => a - b)
+                              .map((time) => ({
+                                time,
+                                x: sampleCurve(t.keys.x, t.x, time),
+                                y: sampleCurve(t.keys.y, t.y, time),
+                                width: t.mask!.width,
+                                height: t.mask!.height,
+                                feather: t.mask!.feather,
+                              })),
+                          },
+                        });
+                      }
+                    : undefined
+                }
               />
             )}
             {t.type !== "audio" && (
@@ -352,9 +419,53 @@ export function LayersPanel({
                   </div>
                 )}
                 <p className="hint">
-                  Render the layer preview to inspect the effect.
+                  The bottom-most visible image or video acts as background when
+                  keyed. Pick a layer explicitly or stack media below this one.
                 </p>
+                <button
+                  type="button"
+                  className="tool"
+                  onClick={() => {
+                    const idx = tracks.findIndex((tr) => tr.id === t.id);
+                    if (idx <= 0) return;
+                    const below = tracks[idx - 1];
+                    if (below.type === "audio" || below.type === "text") return;
+                    change({ ...s, backgroundAsset: below.asset });
+                  }}
+                >
+                  Use layer below as background
+                </button>
               </details>
+            )}
+            {t.type === "text" && (
+              <div className="field-grid">
+                <label className="field">
+                  Text
+                  <input
+                    value={t.text ?? ""}
+                    maxLength={200}
+                    onChange={(e) => patch({ text: e.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  Color
+                  <input
+                    type="color"
+                    value={t.color ?? "#ffffff"}
+                    onChange={(e) => patch({ color: e.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  Font size
+                  <input
+                    type="number"
+                    min={8}
+                    max={200}
+                    value={t.fontSize ?? 64}
+                    onChange={(e) => patch({ fontSize: +e.target.value })}
+                  />
+                </label>
+              </div>
             )}
             <label className="field">
               Track name

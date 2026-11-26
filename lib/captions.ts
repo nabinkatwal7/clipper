@@ -19,7 +19,8 @@ export function captions(
     s.captionPosition === "top" ? 8 : s.captionPosition === "middle" ? 5 : 2;
   const hex = (s.captionColor || "#ffffff").slice(1);
   const primary = hex.slice(4, 6) + hex.slice(2, 4) + hex.slice(0, 2);
-  const header = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${w}\nPlayResY: ${h}\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,${s.font || "Arial"},${(s.fontSize * h) / 1920},&H00${primary},&H0000FFFF,&H00111111,&H80000000,${s.style === "minimal" ? 0 : -1},0,0,0,100,100,0,0,${s.captionBackground ? 3 : 1},${s.outline ?? 3},${s.shadow ?? 1},${alignment},40,40,${Math.round(h * 0.09)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+  const spacing = s.captionSpacing ?? 0;
+  const header = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${w}\nPlayResY: ${h}\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,${s.font || "Arial"},${(s.fontSize * h) / 1920},&H00${primary},&H0000FFFF,&H00111111,&H80000000,${s.style === "minimal" ? 0 : -1},0,0,0,100,100,${spacing},0,${s.captionBackground ? 3 : 1},${s.outline ?? 3},${s.shadow ?? 1},${alignment},40,40,${Math.round(h * 0.09)},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
   let lines = "";
   const y =
     s.captionPosition === "bottom"
@@ -34,6 +35,9 @@ export function captions(
     pop: "{\\fscx75\\fscy75\\t(0,90,\\fscx112\\fscy112)\\t(90,160,\\fscx100\\fscy100)}",
     scale: "{\\fscx70\\fscy70\\t(0,160,\\fscx100\\fscy100)}",
     slide: `{\\move(${x},${y + Math.round(h * 0.025)},${x},${y},0,160)}`,
+    bounce:
+      "{\\fscx90\\fscy90\\t(0,80,\\fscx108\\fscy108)\\t(80,150,\\fscx100\\fscy100)}",
+    typewriter: "{\\k60}",
   }[s.captionAnimation || "none"];
   const event = (a: number, b: number, text: string) => {
     if (b > a)

@@ -17,12 +17,14 @@ export function LayerMaskControls({
   time,
   length,
   seek,
+  onTrackToMask,
 }: {
   mask?: LayerMask;
   change: (mask?: LayerMask) => void;
   time: number;
   length: number;
   seek: (time: number) => void;
+  onTrackToMask?: () => void;
 }) {
   const [editing, edit] = useState<number | null>(null);
   const keys = mask?.keys ?? [];
@@ -46,6 +48,8 @@ export function LayerMaskControls({
           <option value="none">None</option>
           <option value="ellipse">Ellipse</option>
           <option value="rectangle">Rectangle</option>
+          <option value="diamond">Diamond</option>
+          <option value="rounded">Rounded rectangle</option>
         </select>
       </label>
       {mask && (
@@ -153,6 +157,26 @@ export function LayerMaskControls({
             />
             Keep outside the shape
           </label>
+          {mask.shape === "rounded" && (
+            <label className="field">
+              Corner radius · {Math.round((mask.cornerRadius ?? 0.12) * 100)}%
+              <input
+                type="range"
+                min="0"
+                max=".5"
+                step=".01"
+                value={mask.cornerRadius ?? 0.12}
+                onChange={(e) =>
+                  change({ ...mask, cornerRadius: +e.target.value })
+                }
+              />
+            </label>
+          )}
+          {onTrackToMask && (
+            <button type="button" className="tool" onClick={onTrackToMask}>
+              Track mask to layer
+            </button>
+          )}
           <p className="hint">
             Geometry interpolates linearly between keyframes. With keyframes
             present, the first and last values hold outside their range. Render

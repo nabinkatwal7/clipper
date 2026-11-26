@@ -9,7 +9,8 @@ export type MaskGeometry = {
 };
 export type MaskKeyframe = MaskGeometry & { time: number };
 export type LayerMask = MaskGeometry & {
-  shape: "ellipse" | "rectangle";
+  shape: "ellipse" | "rectangle" | "diamond" | "rounded";
+  cornerRadius?: number;
   invert: boolean;
   keys?: MaskKeyframe[];
 };
@@ -29,7 +30,11 @@ export function validateMask(mask: LayerMask, duration = Infinity) {
     Number.isFinite(value) && value >= min && value <= max;
   if (
     !mask ||
-    !["ellipse", "rectangle"].includes(mask.shape) ||
+    !["ellipse", "rectangle", "diamond", "rounded"].includes(mask.shape) ||
+    (mask.cornerRadius !== undefined &&
+      (!Number.isFinite(mask.cornerRadius) ||
+        mask.cornerRadius < 0 ||
+        mask.cornerRadius > 0.5)) ||
     !valid(mask.x, 0, 1) ||
     !valid(mask.y, 0, 1) ||
     !valid(mask.width, 0.05, 1) ||
@@ -75,7 +80,9 @@ export function maskFilter(mask: LayerMask) {
   const distance =
     mask.shape === "ellipse"
       ? "sqrt(ld(0)*ld(0)+ld(1)*ld(1))"
-      : "max(abs(ld(0)),abs(ld(1)))";
+      : mask.shape === "diamond"
+        ? "abs(ld(0))+abs(ld(1))"
+        : "max(abs(ld(0)),abs(ld(1)))";
   const opacity = `if(gt(ld(2),0),clip((1-ld(3))/ld(2),0,1),lte(ld(3),1))`;
   const coverage = mask.invert ? `1-${opacity}` : opacity;
   return layerAlphaFilter(`${setup}st(3,${distance});alpha(X,Y)*(${coverage})`);

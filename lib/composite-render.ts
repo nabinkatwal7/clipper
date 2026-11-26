@@ -20,9 +20,36 @@ export async function compose(
     i = 0;
   for (const t of enabledTracks(c)) {
     if (t.at >= duration) continue;
+    const span = Math.min(t.length, duration - t.at);
+    if (t.type === "text") {
+      if (!t.visible) continue;
+      i++;
+      const esc = (t.text || "Text")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/:/g, "\\:")
+        .replace(/%/g, "\\%");
+      const fc = (t.color || "#ffffff").replace("#", "0x");
+      const fs = t.fontSize ?? 64;
+      const fade = Math.min(t.fade, span / 2);
+      graph.push(
+        `color=c=black@0.0:s=${w}x${h}:d=${span},fps=30,format=rgba,drawtext=text='${esc}':fontsize=${fs}:fontcolor=${fc}:x=(w-text_w)*${curve(t.keys.x, t.x, t.at)}:y=(h-text_h)*${curve(t.keys.y, t.y, t.at)}:enable='between(t,${t.at},${t.at + span})'${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
+      );
+      const placement = `x=0:y=0:enable='between(t,${t.at},${t.at + span})':eof_action=pass:repeatlast=0`;
+      graph.push(
+        ...layerBlendGraph(
+          video,
+          "layer" + i,
+          "composite" + i,
+          placement,
+          t.blendMode,
+        ),
+      );
+      video = "composite" + i;
+      continue;
+    }
     const a = await asset(t.asset);
     if (a.kind !== t.type) throw Error("Track media type changed");
-    const span = Math.min(t.length, duration - t.at);
     if (a.kind !== "image" && t.slip >= a.duration)
       throw Error("Slip time exceeds the asset duration");
     i++;

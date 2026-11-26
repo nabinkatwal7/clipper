@@ -1,8 +1,11 @@
 import { validateMask, type LayerMask } from "./layer-mask";
 import { blendModes, type BlendMode } from "./layer-blend";
 import { layerTransformFilters, type LayerTransform } from "./layer-transform";
+import { TEXT_TRACK_ASSET } from "./types";
 
 import type { Keyframe } from "./keyframe-curve";
+
+export { TEXT_TRACK_ASSET };
 export {
   curve,
   sampleCurve,
@@ -14,7 +17,10 @@ export type Track = LayerTransform & {
   name: string;
   group?: string;
   asset: string;
-  type: "video" | "image" | "audio";
+  type: "video" | "image" | "audio" | "text";
+  text?: string;
+  color?: string;
+  fontSize?: number;
   at: number;
   length: number;
   slip: number;
@@ -48,18 +54,33 @@ export function validateComposition(v: Composition) {
       !t ||
       typeof t.name !== "string" ||
       t.name.length > 100 ||
-      ![t.id, t.asset].every(
-        (v) => typeof v === "string" && /^[a-f0-9-]{36}$/.test(v),
-      ) ||
+      typeof t.id !== "string" ||
+      !/^[a-f0-9-]{36}$/.test(t.id) ||
+      typeof t.asset !== "string" ||
+      !/^[a-f0-9-]{36}$/.test(t.asset) ||
+      (t.type === "text" && t.asset !== TEXT_TRACK_ASSET) ||
       (t.group !== undefined && !/^[a-f0-9-]{36}$/.test(t.group)) ||
       ids.has(t.id) ||
-      !["audio", "image", "video"].includes(t.type)
+      !["audio", "image", "video", "text"].includes(t.type)
     )
       throw Error("Invalid timeline track");
+    if (t.type === "text") {
+      if (
+        typeof t.text !== "string" ||
+        !t.text.trim() ||
+        t.text.length > 200 ||
+        (t.color !== undefined && !/^#[0-9a-f]{6}$/i.test(t.color)) ||
+        (t.fontSize !== undefined &&
+          (!Number.isFinite(t.fontSize) || t.fontSize < 8 || t.fontSize > 200))
+      )
+        throw Error("Invalid text layer");
+    }
     ids.add(t.id);
     const transforms = layerTransformFilters(t);
     if (t.type === "audio" && transforms.length)
       throw Error("Visual transforms require an image or video layer.");
+    if (t.type === "text" && (t.keyColor || t.mask))
+      throw Error("Chroma key and masks are not supported on text layers.");
     if (
       t.blendMode !== undefined &&
       (t.type === "audio" ||
