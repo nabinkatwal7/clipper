@@ -67,6 +67,53 @@ async function main() {
     }
   }
   console.log("PASS ellipse and rectangle alpha, including inverted masks");
+  const moving = {
+    ...defaultMask,
+    width: 0.25,
+    height: 0.5,
+    feather: 0,
+    keys: [
+      {
+        ...defaultMask,
+        time: 0,
+        x: 0.25,
+        width: 0.25,
+        height: 0.5,
+        feather: 0,
+      },
+      {
+        ...defaultMask,
+        time: 1,
+        x: 0.75,
+        width: 0.25,
+        height: 0.5,
+        feather: 0,
+      },
+    ],
+  };
+  const alpha: number[] = [];
+  await run(
+    bin.ffmpeg,
+    [
+      "-hide_banner",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=red:s=64x64:r=2:d=1.5",
+      "-vf",
+      maskFilter(moving) + ",alphaextract,crop=2:2:32:32,showinfo",
+      "-f",
+      "null",
+      "-",
+    ],
+    undefined,
+    (line) => {
+      const observed = line.match(/mean:\[(\d+)\]/);
+      if (observed) alpha.push(Number(observed[1]));
+    },
+  );
+  assert.deepEqual(alpha, [0, 255, 0]);
+  console.log("PASS mask geometry interpolates across rendered frames");
   await run(bin.ffmpeg, [
     "-hide_banner",
     "-f",
@@ -252,7 +299,7 @@ async function main() {
     loop: false,
     fade: 0.1,
     keyColor: { color: "#00ff00", similarity: 0.2, blend: 0.08 },
-    mask: defaultMask,
+    mask: moving,
     keys: {
       x: [
         { time: 0, value: 0, ease: "linear" },
@@ -302,6 +349,35 @@ async function main() {
   assert.ok(v.qa);
   assert.ok(Math.abs(v.qa.duration - 2) < 0.15);
   assert.ok(v.qa.audio);
+  const maskPreview = await req("render-preview", "", "POST", {
+    project: id,
+    clip: v.id,
+    start: v.start,
+    end: v.end,
+    settings: v.settings,
+  });
+  assert.equal(maskPreview.status, 200);
+  const previewFile = path.join(tmp, "mask-preview.mp4");
+  await fs.writeFile(previewFile, Buffer.from(await maskPreview.arrayBuffer()));
+  const frames = (input: string) =>
+    run(bin.ffmpeg, [
+      "-v",
+      "error",
+      "-i",
+      input,
+      "-map",
+      "0:v:0",
+      "-f",
+      "framemd5",
+      "-",
+    ]);
+  assert.equal(
+    await frames(previewFile),
+    await frames(file("clips", v.id, "mp4")),
+  );
+  console.log(
+    "PASS masked preview and final export have identical decoded frames for the tested range",
+  );
   const { subtitleTrack } = await import("../lib/publishing-package");
   assert.match(
     subtitleTrack(

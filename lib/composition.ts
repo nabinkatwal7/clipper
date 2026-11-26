@@ -1,7 +1,7 @@
 import { validateMask, type LayerMask } from "./layer-mask";
 
-export type Ease = "linear" | "in" | "out" | "in-out" | "hold";
-export type Keyframe = { time: number; value: number; ease: Ease };
+import type { Keyframe } from "./keyframe-curve";
+export { curve, type Ease, type Keyframe } from "./keyframe-curve";
 export type Track = {
   id: string;
   name: string;
@@ -50,7 +50,7 @@ export function validateComposition(v: Composition) {
     if (t.mask !== undefined) {
       if (t.type === "audio")
         throw Error("Masks require an image or video layer.");
-      validateMask(t.mask);
+      validateMask(t.mask, t.length);
     }
     if (
       t.keyColor !== undefined &&
@@ -98,31 +98,6 @@ export function validateComposition(v: Composition) {
     }
   }
   return v;
-}
-export function curve(
-  keys: Keyframe[] | undefined,
-  value: number,
-  offset: number,
-) {
-  if (!keys?.length) return String(value);
-  let expr = String(keys.at(-1)!.value);
-  for (let i = keys.length - 2; i >= 0; i--) {
-    const a = keys[i],
-      b = keys[i + 1],
-      t = `((t-(${offset + a.time}))/${b.time - a.time})`;
-    const eased =
-      a.ease === "hold"
-        ? "0"
-        : a.ease === "in"
-          ? `(${t}*${t})`
-          : a.ease === "out"
-            ? `(1-(1-${t})*(1-${t}))`
-            : a.ease === "in-out"
-              ? `(${t}*${t}*(3-2*${t}))`
-              : t;
-    expr = `if(lt(t,${offset + b.time}),${a.value}+(${b.value - a.value})*${eased},${expr})`;
-  }
-  return `if(lt(t,${keys[0].time + offset}),${keys[0].value},${expr})`;
 }
 export function enabledTracks(c: Composition | undefined) {
   const tracks = c ? validateComposition(c).tracks : [];

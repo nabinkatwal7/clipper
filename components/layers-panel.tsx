@@ -214,8 +214,12 @@ export function LayersPanel({
           <fieldset disabled={t.locked}>
             {t.type !== "audio" && (
               <LayerMaskControls
+                key={t.id}
                 mask={t.mask}
                 change={(mask) => patch({ mask })}
+                time={at - t.at}
+                length={t.length}
+                seek={(time) => seek(t.at + time)}
               />
             )}
             {t.type !== "audio" && (

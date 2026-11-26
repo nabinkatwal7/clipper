@@ -43,7 +43,7 @@ export async function compose(
       const keyFilter = key
         ? `,colorkey=0x${key.color.slice(1)}:${key.similarity}:${key.blend}`
         : "";
-      const mask = t.mask ? "," + maskFilter(t.mask) : "";
+      const mask = t.mask ? ",setpts=PTS-STARTPTS," + maskFilter(t.mask) : "";
       graph.push(
         `[${i}:v]scale=${vw}:${vh}:force_original_aspect_ratio=decrease,setsar=1,format=rgba${keyFilter}${mask},colorchannelmixer=aa=${t.opacity}${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
       );
