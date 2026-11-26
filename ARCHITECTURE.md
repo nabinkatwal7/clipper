@@ -80,7 +80,7 @@ Server components under `app/` with content in `lib/site-features.ts`, `lib/publ
 - **Soundboard / sequencer** — `lib/soundboard.ts` stores pad profiles and step patterns under the workspace root; browser playback uses asset audio URLs.
 - **Recording Studio** — browser `getDisplayMedia` / `MediaRecorder` capture saves WebM into the asset library; scene presets and session metadata live in `lib/recording-meta.ts`.
 - **Instant replay** — overlapping bounded buffer while recording (`Save last N s`); bookmark scrub + FFmpeg stream-copy extract via `lib/instant-replay.ts`.
-- **Motion Studio** — scaffold UI for text/shape/keyframe layers that write into the shared composition on a clip (not a separate motion engine).
+- **Motion Studio** — text/shape layers, title presets (`lib/motion-presets.ts`), animation recipes, and canvas preview/scrub; saves into the shared clip composition.
 - **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation; `bakeGraph` compiles supported nodes to FFmpeg `filter_complex` and writes a bounded MP4 asset (60s, no audio).
 - **Workspace switcher** — `components/workspace-nav.tsx` + `StudioShell` filter the sidebar by the active workspace group.
 - **Capability registry** — `GET /api/capabilities` wraps diagnostics into feature gates (FFmpeg, hardware encode, ASS, xfade, Ollama models).

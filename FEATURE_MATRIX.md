@@ -1212,6 +1212,8 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Instant replay rolling buffer (bounded segments) | Implemented |
 | Instant replay bookmark scrub + extract | Implemented |
 | Motion Studio scaffold (text/shape layers) | Partial |
+| Motion title presets + animation recipes | Implemented |
+| Motion canvas preview / scrub | Implemented |
 | Compositing Studio node graph scaffold | Partial |
 | Compositing graph validate / compile plan | Implemented |
 | Compositing graph FFmpeg bake to asset | Implemented |

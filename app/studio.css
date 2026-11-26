@@ -2726,7 +2726,26 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
   display: grid;
   gap: 8px;
 }
+.motion-preview {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--subtle);
+  background: #0a1214;
+}
+.motion-scrub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.motion-scrub input {
+  width: 160px;
+}
 .motion-timeline {
+  position: relative;
   display: grid;
   gap: 6px;
   min-height: 80px;
@@ -2734,6 +2753,15 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
   border: 1px solid var(--subtle);
   border-radius: var(--radius-md);
   background: var(--bg);
+}
+.motion-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-text);
+  pointer-events: none;
+  z-index: 1;
 }
 .motion-block {
   height: 28px;

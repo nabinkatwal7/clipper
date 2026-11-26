@@ -1,9 +1,20 @@
 "use client";
-import { useMemo, useState } from "react";
-import { Sparkles, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles, Plus, Trash2, Play, Pause } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { TEXT_TRACK_ASSET } from "@/lib/types";
 import type { Track } from "@/lib/composition";
+import {
+  animationPresets,
+  type AnimationPresetId,
+} from "@/lib/animation-presets";
+import {
+  buildMotionTitlePreset,
+  motionTitlePresets,
+  sampleMotionLayers,
+  applyPresetToTrack,
+  type MotionTitlePresetId,
+} from "@/lib/motion-presets";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -97,8 +108,16 @@ export function MotionStudio({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [preset, setPreset] = useState<MotionTitlePresetId>("lower-third");
+  const [anim, setAnim] = useState<AnimationPresetId>("fade-in");
+  const [time, setTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const raf = useRef<number | null>(null);
+  const last = useRef(0);
 
   const selectedTrack = tracks.find((t) => t.id === selected);
+  const duration = Math.max(3, ...tracks.map((t) => t.at + t.length), 0.1);
 
   function syncFromClip(pid: string, cid: string) {
     const p = withClips.find((x) => x.id === pid);
@@ -109,7 +128,76 @@ export function MotionStudio({
       ) || [],
     );
     setSelected(null);
+    setTime(0);
   }
+
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    const w = c.width;
+    const h = c.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#0a1214";
+    ctx.fillRect(0, 0, w, h);
+    const samples = sampleMotionLayers(tracks, time);
+    for (const s of samples) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, s.opacity));
+      const cx = s.x * w;
+      const cy = s.y * h;
+      ctx.translate(cx, cy);
+      ctx.rotate((s.rotation * Math.PI) / 180);
+      if (s.type === "shape") {
+        const bw = Math.max(8, w * s.size);
+        const bh =
+          s.shapeKind === "line"
+            ? Math.max(2, h * 0.012)
+            : Math.max(8, h * s.size * 0.55);
+        ctx.fillStyle = s.color;
+        if (s.shapeKind === "ellipse") {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, bw / 2, bh / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
+        }
+      } else if (s.type === "text") {
+        ctx.fillStyle = s.color;
+        ctx.font = `600 ${Math.round(28 + s.size * 20)}px ui-sans-serif, system-ui`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(s.text || s.name, 0, 0);
+      }
+      ctx.restore();
+    }
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.font = "12px ui-sans-serif, system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText(`${time.toFixed(2)}s / ${duration.toFixed(1)}s`, 10, 18);
+  }, [tracks, time, duration]);
+
+  useEffect(() => {
+    if (!playing) {
+      if (raf.current) cancelAnimationFrame(raf.current);
+      return;
+    }
+    last.current = performance.now();
+    const tick = (now: number) => {
+      const dt = (now - last.current) / 1000;
+      last.current = now;
+      setTime((t) => {
+        const next = t + dt;
+        return next >= duration ? 0 : next;
+      });
+      raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [playing, duration]);
 
   async function save() {
     if (!project || !clip) return;
@@ -154,12 +242,12 @@ export function MotionStudio({
         <div>
           <h2>Motion Studio</h2>
           <p>
-            Lightweight motion graphics layers (text/shapes/keyframes) that feed
-            the shared composition engine — not After Effects.
+            Motion graphics layers with title presets, animation recipes, and a
+            live canvas preview — feeds the shared composition engine.
           </p>
         </div>
         <Badge variant="outline">
-          <Sparkles size={12} /> Scaffold
+          <Sparkles size={12} /> Partial
         </Badge>
       </header>
 
@@ -203,9 +291,70 @@ export function MotionStudio({
                 ))}
               </select>
             </label>
+            <label>
+              Title preset
+              <select
+                value={preset}
+                onChange={(e) =>
+                  setPreset(e.target.value as MotionTitlePresetId)
+                }
+              >
+                {motionTitlePresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
+          <canvas
+            ref={canvasRef}
+            className="motion-preview"
+            width={640}
+            height={360}
+            aria-label="Motion preview"
+          />
+
           <div className="bar-tools">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setPlaying((p) => !p)}
+            >
+              {playing ? <Pause size={14} /> : <Play size={14} />}{" "}
+              {playing ? "Pause" : "Preview"}
+            </Button>
+            <label className="motion-scrub">
+              Scrub
+              <input
+                type="range"
+                min={0}
+                max={duration}
+                step={0.05}
+                value={time}
+                onChange={(e) => {
+                  setPlaying(false);
+                  setTime(Number(e.target.value));
+                }}
+              />
+            </label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const built = buildMotionTitlePreset(
+                  preset,
+                  clip?.title || "Clip title",
+                );
+                setTracks((t) => [...t, ...built].slice(0, 16));
+                setSelected(built[0]?.id || null);
+                setTime(0);
+                setMsg(`Added ${motionTitlePresets.find((p) => p.id === preset)?.label}`);
+              }}
+            >
+              <Sparkles size={14} /> Insert preset
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -231,7 +380,11 @@ export function MotionStudio({
             >
               <Plus size={14} /> Ellipse
             </Button>
-            <Button size="sm" disabled={busy || !tracks.length} onClick={() => void save()}>
+            <Button
+              size="sm"
+              disabled={busy || !tracks.length}
+              onClick={() => void save()}
+            >
               {busy ? "Saving…" : "Save to composition"}
             </Button>
           </div>
@@ -262,7 +415,9 @@ export function MotionStudio({
                   </Button>
                 </li>
               ))}
-              {!tracks.length && <li className="empty">No motion layers yet.</li>}
+              {!tracks.length && (
+                <li className="empty">No motion layers yet.</li>
+              )}
             </ul>
             <div className="motion-inspector">
               {selectedTrack ? (
@@ -342,6 +497,37 @@ export function MotionStudio({
                       }
                     />
                   </label>
+                  <label>
+                    Animation
+                    <select
+                      value={anim}
+                      onChange={(e) =>
+                        setAnim(e.target.value as AnimationPresetId)
+                      }
+                    >
+                      {animationPresets.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label} ({p.kind})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setTracks((rows) =>
+                        rows.map((t) =>
+                          t.id === selectedTrack.id
+                            ? applyPresetToTrack(t, anim)
+                            : t,
+                        ),
+                      );
+                      setMsg(`Applied ${anim}`);
+                    }}
+                  >
+                    Apply animation
+                  </Button>
                   <p className="muted">
                     Keyframes:{" "}
                     {Object.keys(selectedTrack.keys || {}).join(", ") || "none"}
@@ -353,13 +539,17 @@ export function MotionStudio({
             </div>
           </div>
           <div className="motion-timeline" aria-label="Motion timeline">
+            <div
+              className="motion-playhead"
+              style={{ left: `${(time / duration) * 100}%` }}
+            />
             {tracks.map((t) => (
               <div
                 key={t.id}
                 className={`motion-block ${selected === t.id ? "current" : ""}`}
                 style={{
-                  marginLeft: `${Math.min(90, t.at * 8)}%`,
-                  width: `${Math.min(40, Math.max(6, t.length * 6))}%`,
+                  marginLeft: `${(t.at / duration) * 100}%`,
+                  width: `${Math.max(4, (t.length / duration) * 100)}%`,
                 }}
                 onClick={() => setSelected(t.id)}
               >

@@ -1064,3 +1064,21 @@ test("compositing bake plan emits filter_complex for solid→blur→out", () => 
   assert.equal(bake.duration, 2);
   assert.ok(bake.mapLabel);
 });
+
+import {
+  buildMotionTitlePreset,
+  sampleMotionLayers,
+  motionTitlePresets,
+} from "../lib/motion-presets";
+test("motion title presets emit animated layers sampleable on a timeline", () => {
+  assert.ok(motionTitlePresets.length >= 4);
+  const layers = buildMotionTitlePreset("lower-third", "Host Name");
+  assert.ok(layers.length >= 2);
+  assert.ok(layers.some((t) => t.type === "text"));
+  assert.ok(layers.some((t) => Object.keys(t.keys).length));
+  const mid = sampleMotionLayers(layers, 1);
+  assert.ok(mid.length >= 1);
+  assert.ok(mid.every((s) => s.opacity >= 0 && s.opacity <= 1));
+  const early = sampleMotionLayers(layers, 0.05);
+  assert.ok(Array.isArray(early));
+});
