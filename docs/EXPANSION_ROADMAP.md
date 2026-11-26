@@ -12,13 +12,14 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 4 | Language Studio | Partial (subtitle studio live) |
 | 5 | Audio production | **In progress** — mixer, restoration/spectrogram, soundboard + sequencer |
 | 6 | Design Studio | Partial — multi-page docs, drag/align/shadow, PNG/JPEG/WebP (not full Canva) |
+| 6b | Image editor | Partial — undo, selection, levels, brush/eraser (not Photoshop) |
 | 7 | Motion Studio | Partial — presets, canvas preview, animation recipes → composition |
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
 | 9 | Compositing Studio | Partial — tone nodes, param inspector, bake W/H/dur/fps (60s, not Fusion) |
 | 10 | Media Toolbox | Partial — inspect/convert/extract/batch (8) |
 | 11 | Production and Review | Partial — desk/calendar + Review Studio live |
 | 12 | Automation | Partial (workflow builder live) |
-| 13 | Optional 3D Studio | Partial — Three.js templates + still PNG export |
+| 13 | Optional 3D Studio | Partial — object edit + PNG/MP4 bake; no GLB (not Blender) |
 | 14 | AI Laboratory + original features | Partial — director/templates + Ollama lab playground |
 | 15 | Professional product quality | Ongoing |
 

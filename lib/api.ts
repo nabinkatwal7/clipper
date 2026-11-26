@@ -807,6 +807,23 @@ export async function handle(
           );
         if (b.op === "save")
           return NextResponse.json(await td.saveScene(b.scene));
+        if (b.op === "create-object")
+          return NextResponse.json(td.emptyObject(b.kind || "box", b.name));
+        if (b.op === "bake-frames") {
+          const frames = Array.isArray(b.frames) ? b.frames : [];
+          const buffers = frames.map((f: string) => {
+            const raw = String(f).replace(/^data:image\/png;base64,/, "");
+            return Buffer.from(raw, "base64");
+          });
+          return NextResponse.json(
+            await td.bakePngSequence(
+              buffers,
+              { fps: b.fps, frames: buffers.length },
+              b.name || "Scene",
+              req.signal,
+            ),
+          );
+        }
         throw Error("Unsupported three-d operation");
       }
     }

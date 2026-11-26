@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Box, Download, Play, Save } from "lucide-react";
+import { Box, Download, Play, Plus, Save, Film } from "lucide-react";
 import * as THREE from "three";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -32,11 +32,30 @@ type ThreeScene = {
 
 type Template = { id: string; label: string };
 
+function applyAnim(
+  root: THREE.Group,
+  animation: ThreeScene["animation"],
+  t: number,
+) {
+  root.rotation.set(0, 0, 0);
+  root.position.set(0, 0, 0);
+  if (animation === "turntable") root.rotation.y = t * 0.7;
+  else if (animation === "orbit") {
+    root.rotation.y = t * 0.45;
+    root.rotation.x = Math.sin(t * 0.6) * 0.15;
+  } else if (animation === "bob") {
+    root.position.y = Math.sin(t * 2) * 0.15;
+  }
+}
+
 export function ThreeDStudio() {
   const mount = useRef<HTMLDivElement>(null);
   const [sceneDoc, setSceneDoc] = useState<ThreeScene | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
   const [playing, setPlaying] = useState(true);
+  const [bakeFrames, setBakeFrames] = useState(24);
+  const [bakeFps, setBakeFps] = useState(24);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,21 +63,27 @@ export function ThreeDStudio() {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rootRef = useRef<THREE.Group | null>(null);
+  const animRef = useRef<ThreeScene["animation"]>("turntable");
   const raf = useRef<number | null>(null);
   const t0 = useRef(performance.now());
+
+  const selectedObj = sceneDoc?.objects.find((o) => o.id === selected);
 
   useEffect(() => {
     fetch("/api/three-d")
       .then((r) => r.json())
       .then((data) => {
         setTemplates(data.templates || []);
-        setSceneDoc(data.scenes?.[0] || data.default);
+        const scene = data.scenes?.[0] || data.default;
+        setSceneDoc(scene);
+        setSelected(scene?.objects?.[0]?.id || null);
       })
       .catch(() => setError("Could not load 3D scenes"));
   }, []);
 
   useEffect(() => {
     if (!mount.current || !sceneDoc) return;
+    animRef.current = sceneDoc.animation;
     const width = mount.current.clientWidth || 640;
     const height = 360;
     const renderer = new THREE.WebGLRenderer({
@@ -131,7 +156,6 @@ export function ThreeDStudio() {
         canvas.width = 512;
         canvas.height = 256;
         const ctx = canvas.getContext("2d")!;
-        ctx.fillStyle = "transparent";
         ctx.clearRect(0, 0, 512, 256);
         ctx.fillStyle = obj.color || "#fff";
         ctx.font = "700 120px ui-sans-serif, system-ui";
@@ -141,10 +165,7 @@ export function ThreeDStudio() {
         const tex = new THREE.CanvasTexture(canvas);
         mesh = new THREE.Mesh(
           new THREE.PlaneGeometry(1.6, 0.8),
-          new THREE.MeshBasicMaterial({
-            map: tex,
-            transparent: true,
-          }),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true }),
         );
       } else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
 
@@ -156,16 +177,8 @@ export function ThreeDStudio() {
 
     const tick = (now: number) => {
       const t = (now - t0.current) / 1000;
-      if (playing && rootRef.current) {
-        if (sceneDoc.animation === "turntable")
-          rootRef.current.rotation.y = t * 0.7;
-        else if (sceneDoc.animation === "orbit") {
-          rootRef.current.rotation.y = t * 0.45;
-          rootRef.current.rotation.x = Math.sin(t * 0.6) * 0.15;
-        } else if (sceneDoc.animation === "bob") {
-          rootRef.current.position.y = Math.sin(t * 2) * 0.15;
-        }
-      }
+      if (playing && rootRef.current)
+        applyAnim(rootRef.current, animRef.current, t);
       renderer.render(scene, camera);
       raf.current = requestAnimationFrame(tick);
     };
@@ -191,6 +204,7 @@ export function ThreeDStudio() {
       const data = await r.json();
       if (!r.ok) throw Error(data.error || "Create failed");
       setSceneDoc(data);
+      setSelected(data.objects?.[0]?.id || null);
       setMsg("Loaded template");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Create failed");
@@ -219,6 +233,57 @@ export function ThreeDStudio() {
     }
   }
 
+  async function addObject(kind: ThreeObject["kind"]) {
+    if (!sceneDoc) return;
+    if (sceneDoc.objects.length >= 24) {
+      setError("At most 24 objects");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await fetch("/api/three-d", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "create-object", kind }),
+      });
+      const obj = await r.json();
+      if (!r.ok) throw Error(obj.error || "Could not add object");
+      setSceneDoc({
+        ...sceneDoc,
+        objects: [...sceneDoc.objects, obj],
+      });
+      setSelected(obj.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Add failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function patchObject(id: string, patch: Partial<ThreeObject>) {
+    if (!sceneDoc) return;
+    setSceneDoc({
+      ...sceneDoc,
+      objects: sceneDoc.objects.map((o) =>
+        o.id === id ? { ...o, ...patch } : o,
+      ),
+    });
+  }
+
+  function patchVec(
+    id: string,
+    key: "position" | "rotation" | "scale",
+    axis: keyof Vec3,
+    value: number,
+  ) {
+    if (!sceneDoc) return;
+    const obj = sceneDoc.objects.find((o) => o.id === id);
+    if (!obj) return;
+    patchObject(id, {
+      [key]: { ...obj[key], [axis]: value },
+    });
+  }
+
   async function exportStill() {
     const renderer = rendererRef.current;
     if (!renderer) return;
@@ -242,11 +307,59 @@ export function ThreeDStudio() {
       });
       const asset = await r.json();
       if (!r.ok) throw Error(asset.error || "Upload failed");
-      setMsg(
-        `Exported still ${String(asset.id).slice(0, 8)}… Use as overlay asset. Needs WebGL.`,
-      );
+      setMsg(`Exported still ${String(asset.id).slice(0, 8)}…`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function bakeVideo() {
+    const renderer = rendererRef.current;
+    const root = rootRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !root || !scene || !camera || !sceneDoc) return;
+    setBusy(true);
+    setError("");
+    setPlaying(false);
+    try {
+      const frames: string[] = [];
+      const n = Math.min(48, Math.max(2, bakeFrames));
+      const fps = Math.min(30, Math.max(12, bakeFps));
+      for (let i = 0; i < n; i++) {
+        applyAnim(root, sceneDoc.animation, i / fps);
+        renderer.render(scene, camera);
+        const blob = await new Promise<Blob | null>((resolve) =>
+          renderer.domElement.toBlob(resolve, "image/png"),
+        );
+        if (!blob) throw Error("Frame capture failed");
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(Error("Read failed"));
+          reader.readAsDataURL(blob);
+        });
+        frames.push(dataUrl);
+      }
+      const r = await fetch("/api/three-d", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          op: "bake-frames",
+          frames,
+          fps,
+          name: sceneDoc.name,
+        }),
+      });
+      const asset = await r.json();
+      if (!r.ok) throw Error(asset.error || "Bake failed");
+      setMsg(
+        `Baked ${n}-frame video ${String(asset.id).slice(0, 8)}… (${(n / fps).toFixed(1)}s). Open Assets.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bake failed");
     } finally {
       setBusy(false);
     }
@@ -258,12 +371,12 @@ export function ThreeDStudio() {
         <div>
           <h2>3D Studio</h2>
           <p>
-            Optional Three.js overlays for logos, nameplates and turntables —
-            not Blender. Requires WebGL; exports still PNG overlays into Assets.
+            Closer to Blender-lite overlays: edit objects, bake short frame
+            sequences to MP4. Not Blender — no GLB/glTF import, WebGL required.
           </p>
         </div>
         <Badge variant="outline">
-          <Box size={12} /> Optional
+          <Box size={12} /> Closer parity
         </Badge>
       </header>
 
@@ -292,35 +405,231 @@ export function ThreeDStudio() {
           <Button size="sm" disabled={busy || !sceneDoc} onClick={() => void save()}>
             <Save size={14} /> Save
           </Button>
-          <Button
-            size="sm"
-            disabled={busy}
-            onClick={() => void exportStill()}
-          >
-            <Download size={14} /> Export PNG
+          <Button size="sm" disabled={busy} onClick={() => void exportStill()}>
+            <Download size={14} /> PNG
+          </Button>
+          <Button size="sm" disabled={busy} onClick={() => void bakeVideo()}>
+            <Film size={14} /> Bake video
           </Button>
         </div>
       </div>
 
       {sceneDoc && (
-        <label>
-          Name
-          <Input
-            value={sceneDoc.name}
-            onChange={(e) =>
-              setSceneDoc({ ...sceneDoc, name: e.target.value.slice(0, 80) })
-            }
-          />
-        </label>
-      )}
+        <>
+          <div className="reel-grid">
+            <label>
+              Name
+              <Input
+                value={sceneDoc.name}
+                onChange={(e) =>
+                  setSceneDoc({
+                    ...sceneDoc,
+                    name: e.target.value.slice(0, 80),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Animation
+              <select
+                value={sceneDoc.animation}
+                onChange={(e) =>
+                  setSceneDoc({
+                    ...sceneDoc,
+                    animation: e.target.value as ThreeScene["animation"],
+                  })
+                }
+              >
+                <option value="none">None</option>
+                <option value="turntable">Turntable</option>
+                <option value="orbit">Orbit</option>
+                <option value="bob">Bob</option>
+              </select>
+            </label>
+            <label>
+              Bake frames
+              <Input
+                type="number"
+                min={2}
+                max={48}
+                value={bakeFrames}
+                onChange={(e) =>
+                  setBakeFrames(
+                    Math.min(48, Math.max(2, Number(e.target.value) || 24)),
+                  )
+                }
+              />
+            </label>
+            <label>
+              Bake FPS
+              <Input
+                type="number"
+                min={12}
+                max={30}
+                value={bakeFps}
+                onChange={(e) =>
+                  setBakeFps(
+                    Math.min(30, Math.max(12, Number(e.target.value) || 24)),
+                  )
+                }
+              />
+            </label>
+          </div>
 
-      <div ref={mount} className="three-d-viewport" />
+          <div ref={mount} className="three-d-viewport" />
 
-      {sceneDoc && (
-        <p className="muted">
-          {sceneDoc.objects.length} objects · animation {sceneDoc.animation}.
-          Frame sequences / video bake can follow via FFmpeg from stills.
-        </p>
+          <div className="design-layout">
+            <ul className="design-layers">
+              {sceneDoc.objects.map((o) => (
+                <li key={o.id}>
+                  <button
+                    type="button"
+                    className={selected === o.id ? "current" : ""}
+                    onClick={() => setSelected(o.id)}
+                  >
+                    {o.name}
+                    <small>{o.kind}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="design-inspector">
+              <div className="bar-tools">
+                {(
+                  ["box", "sphere", "torus", "plane", "text"] as const
+                ).map((k) => (
+                  <Button
+                    key={k}
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void addObject(k)}
+                  >
+                    <Plus size={12} /> {k}
+                  </Button>
+                ))}
+              </div>
+              {!selectedObj ? (
+                <p className="muted">Select an object</p>
+              ) : (
+                <>
+                  <label>
+                    Name
+                    <Input
+                      value={selectedObj.name}
+                      onChange={(e) =>
+                        patchObject(selectedObj.id, {
+                          name: e.target.value.slice(0, 80),
+                        })
+                      }
+                    />
+                  </label>
+                  {selectedObj.kind === "text" && (
+                    <label>
+                      Text
+                      <Input
+                        value={selectedObj.text || ""}
+                        onChange={(e) =>
+                          patchObject(selectedObj.id, {
+                            text: e.target.value.slice(0, 24),
+                          })
+                        }
+                      />
+                    </label>
+                  )}
+                  <label>
+                    Color
+                    <Input
+                      type="color"
+                      value={(selectedObj.color || "#14b8a6").slice(0, 7)}
+                      onChange={(e) =>
+                        patchObject(selectedObj.id, { color: e.target.value })
+                      }
+                    />
+                  </label>
+                  {(["position", "rotation", "scale"] as const).map((key) => (
+                    <div key={key} className="reel-grid">
+                      {(["x", "y", "z"] as const).map((axis) => (
+                        <label key={axis}>
+                          {key} {axis}
+                          <Input
+                            type="number"
+                            step={0.05}
+                            value={selectedObj[key][axis]}
+                            onChange={(e) =>
+                              patchVec(
+                                selectedObj.id,
+                                key,
+                                axis,
+                                Number(e.target.value) || 0,
+                              )
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  ))}
+                  <label>
+                    Metalness
+                    <Input
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={selectedObj.metalness}
+                      onChange={(e) =>
+                        patchObject(selectedObj.id, {
+                          metalness: Math.min(
+                            1,
+                            Math.max(0, Number(e.target.value) || 0),
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Roughness
+                    <Input
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={selectedObj.roughness}
+                      onChange={(e) =>
+                        patchObject(selectedObj.id, {
+                          roughness: Math.min(
+                            1,
+                            Math.max(0, Number(e.target.value) || 0),
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSceneDoc({
+                        ...sceneDoc,
+                        objects: sceneDoc.objects.filter(
+                          (o) => o.id !== selectedObj.id,
+                        ),
+                      });
+                      setSelected(null);
+                    }}
+                  >
+                    Remove object
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <p className="muted">
+            GLB/glTF mesh import is not supported in this local stack — use
+            primitive objects or export stills/video overlays into Assets.
+          </p>
+        </>
       )}
 
       {error && <p className="error">{error}</p>}

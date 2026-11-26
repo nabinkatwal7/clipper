@@ -1228,6 +1228,9 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Image editor brush / eraser stamps | Implemented |
 | 3D Studio templates (logo/nameplate/geo) | Partial |
 | 3D still PNG overlay export | Implemented |
+| 3D object inspector (pos/rot/scale/material) | Implemented |
+| 3D frame-sequence → MP4 bake | Implemented |
+| 3D GLB/glTF import | Planned (not supported) |
 | AI Laboratory Ollama prompt playground | Implemented |
 | Motion Studio scaffold (text/shape layers) | Partial |
 | Motion title presets + animation recipes | Implemented |

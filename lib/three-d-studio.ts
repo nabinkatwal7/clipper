@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { uuid } from "./id";
-import { workspaceRoot } from "./store";
+import { workspaceRoot, file } from "./store";
+import { bin, run } from "./process";
+import type { Asset } from "./assets";
 
 export type Vec3 = { x: number; y: number; z: number };
 
@@ -163,4 +165,101 @@ export async function saveScene(scene: ThreeScene) {
     await fs.rm(tmp, { force: true });
   }
   return row;
+}
+
+export type FrameBakeOpts = {
+  fps: number;
+  /** Number of PNG frames (2–48). */
+  frames: number;
+};
+
+export function validateFrameBakeOpts(input: unknown): FrameBakeOpts {
+  const o = input as FrameBakeOpts;
+  if (
+    !o ||
+    !Number.isFinite(o.fps) ||
+    o.fps < 12 ||
+    o.fps > 30 ||
+    !Number.isFinite(o.frames) ||
+    o.frames < 2 ||
+    o.frames > 48
+  )
+    throw Error("Invalid frame bake options (fps 12–30, frames 2–48)");
+  return { fps: Math.round(o.fps), frames: Math.round(o.frames) };
+}
+
+/**
+ * Encode a short PNG frame sequence into an MP4 asset.
+ * GLB/glTF import is not supported — document honestly in the UI.
+ */
+export async function bakePngSequence(
+  pngBuffers: Buffer[],
+  opts: FrameBakeOpts,
+  sceneName: string,
+  signal?: AbortSignal,
+): Promise<Asset> {
+  const bake = validateFrameBakeOpts(opts);
+  if (!Array.isArray(pngBuffers) || pngBuffers.length < 2)
+    throw Error("Need at least 2 PNG frames");
+  if (pngBuffers.length > 48) throw Error("At most 48 frames");
+  if (pngBuffers.length !== bake.frames)
+    throw Error(`Expected ${bake.frames} frames, got ${pngBuffers.length}`);
+  for (const buf of pngBuffers) {
+    if (!Buffer.isBuffer(buf) || buf.length < 32 || buf.length > 8_000_000)
+      throw Error("Invalid PNG frame payload");
+    if (buf[0] !== 0x89 || buf[1] !== 0x50) throw Error("Frame is not PNG");
+  }
+
+  const job = uuid();
+  const dir = file("tmp", `three-d-${job}`);
+  await fs.mkdir(dir, { recursive: true });
+  const id = uuid();
+  const target = file("assets", id, "mp4");
+  try {
+    for (let i = 0; i < pngBuffers.length; i++) {
+      const name = `frame-${String(i).padStart(4, "0")}.png`;
+      await fs.writeFile(path.join(dir, name), pngBuffers[i]);
+    }
+    await run(
+      bin.ffmpeg,
+      [
+        "-y",
+        "-framerate",
+        String(bake.fps),
+        "-i",
+        path.join(dir, "frame-%04d.png"),
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        target,
+      ],
+      signal,
+    );
+    const stat = await fs.stat(target);
+    const a: Asset = {
+      id,
+      name: `3D bake · ${sceneName}`.slice(0, 180),
+      description: `Three.js frame sequence (${pngBuffers.length} frames @ ${bake.fps}fps)`,
+      folder: "",
+      tags: ["3d", "bake"],
+      favorite: false,
+      kind: "video",
+      duration: pngBuffers.length / bake.fps,
+      ext: "mp4",
+      audio: false,
+      bytes: stat.size,
+      usedBy: [],
+      collections: [],
+    };
+    await fs.writeFile(file("assets", id, "json"), JSON.stringify(a));
+    return a;
+  } catch (e) {
+    await fs.rm(target, { force: true });
+    throw e;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
 }

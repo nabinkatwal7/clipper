@@ -1332,6 +1332,8 @@ test("image editor adjustments clamp and rewrite pixels", () => {
 import {
   sceneFromTemplate,
   validateScene as validateThreeScene,
+  validateFrameBakeOpts,
+  emptyObject,
   THREE_TEMPLATES,
 } from "../lib/three-d-studio";
 test("3D studio templates validate scene documents", () => {
@@ -1339,6 +1341,10 @@ test("3D studio templates validate scene documents", () => {
   const scene = sceneFromTemplate("logo-reveal");
   assert.equal(validateThreeScene(scene).animation, "turntable");
   assert.ok(scene.objects.length >= 1);
+  const obj = emptyObject("sphere", "Orb");
+  assert.equal(obj.kind, "sphere");
+  assert.equal(validateFrameBakeOpts({ fps: 24, frames: 12 }).frames, 12);
+  assert.throws(() => validateFrameBakeOpts({ fps: 60, frames: 12 }));
   assert.throws(() =>
     validateThreeScene({ ...scene, animation: "explode" }),
   );
