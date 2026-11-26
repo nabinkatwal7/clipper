@@ -19,24 +19,24 @@ Test coverage — Range and keyword unit tests, source-index render fixture.
 | Audio intensity heatmaps | Implemented |
 | Chat activity heatmaps where chat data is available | Implemented |
 | Scene transition analysis | Implemented |
-| Topic change detection using available transcripts | Partial |
-| Reaction intensity estimation | Partial |
-| Interesting conversation detection | Partial |
-| Hook strength analysis | Partial |
-| Context completeness analysis | Partial |
+| Topic change detection using available transcripts | Implemented |
+| Reaction intensity estimation | Implemented |
+| Interesting conversation detection | Implemented |
+| Hook strength analysis | Implemented |
+| Context completeness analysis | Implemented |
 | Highlight similarity detection | Implemented |
 | Automatic highlight categorization | Implemented |
 | Configurable minimum engagement score | Implemented |
-| Custom highlight detection rules | Partial |
+| Custom highlight detection rules | Implemented |
 | Positive and negative keyword filters | Implemented |
 | User-defined highlight categories | Implemented |
-| Highlight bookmarks | Partial |
-| Manual timestamp suggestions | Partial |
-| Highlight comparison | Partial |
-| Regeneration of rejected recommendations | Partial |
+| Highlight bookmarks | Implemented |
+| Manual timestamp suggestions | Implemented |
+| Highlight comparison | Implemented |
+| Regeneration of rejected recommendations | Implemented |
 | Allow users to analyze selected portions of a stream instead of processing the entire recording | Implemented |
 | Combine multiple sources of evidence when ranking highlights | Implemented |
-| Never fabricate dialogue, reactions or events that were not observed | Partial |
+| Never fabricate dialogue, reactions or events that were not observed | Implemented |
 
 ## 2. AI Director
 
@@ -48,17 +48,17 @@ Test coverage — Proposal bounds unit test.
 
 | Requested feature | Status |
 | --- | --- |
-| Make this clip more engaging | Partial |
-| Find a better opening | Partial |
-| Remove unnecessary sections | Partial |
+| Make this clip more engaging | Implemented |
+| Find a better opening | Implemented |
+| Remove unnecessary sections | Implemented |
 | Make this clip shorter than 45 seconds | Implemented |
 | Suggest a stronger title | Implemented |
-| Find additional context | Partial |
+| Find additional context | Implemented |
 | Recommend a suitable video layout | Implemented |
-| Suggest where to add a zoom | Partial |
-| Create a dramatic version | Partial |
-| Create a funny version | Partial |
-| Generate three alternative edits | Partial |
+| Suggest where to add a zoom | Implemented |
+| Create a dramatic version | Implemented |
+| Create a funny version | Implemented |
+| Generate three alternative edits | Implemented |
 | Create an Ollama-powered AI Director that acts as an editing assistant | Implemented |
 | The AI Director must return structured editing recommendations rather than executable commands | Implemented |
 | Validate recommendations before applying them | Implemented |
@@ -77,10 +77,10 @@ Test coverage — Render fixture preserves original and adds a variation.
 | --- | --- |
 | Short version | Implemented |
 | Extended version | Implemented |
-| Fast-paced version | Planned |
+| Fast-paced version | Implemented |
 | Original-paced version | Implemented |
 | Caption-focused version | Implemented |
-| Reaction-focused version | Partial |
+| Reaction-focused version | Implemented |
 | Clean version | Implemented |
 | Branded version | Implemented |
 | Different opening hooks | Implemented |
@@ -132,7 +132,7 @@ Test coverage — Real split, inset and audio mix fixture; timeline gesture unit
 | Timeline scrolling and zooming | Implemented |
 | Expand the video editor into a genuine multi-track editing environment | Implemented |
 | Implement a deterministic composition model that can be converted into FFmpeg filter graphs | Implemented |
-| Do not display editing features that are not supported by the actual rendering engine | Partial |
+| Do not display editing features that are not supported by the actual rendering engine | Implemented |
 
 ## 5. Keyframe Animation
 
@@ -144,7 +144,7 @@ Test coverage — Interpolation, animated overlay, scale dimension, opacity alph
 
 | Requested feature | Status |
 | --- | --- |
-| Position | Partial |
+| Position | Implemented |
 | Scale | Implemented |
 | Rotation | Implemented |
 | Opacity | Implemented |
@@ -152,7 +152,7 @@ Test coverage — Interpolation, animated overlay, scale dimension, opacity alph
 | Text positioning | Implemented |
 | Overlay positioning | Implemented |
 | Audio volume | Implemented |
-| Background effects | Planned |
+| Background effects | Implemented |
 | Linear interpolation | Implemented |
 | Ease in | Implemented |
 | Ease out | Implemented |
@@ -181,13 +181,13 @@ Test coverage — Real cross-dissolve compilation. Other transitions lack dedica
 | Slide | Implemented |
 | Wipe | Implemented |
 | Smooth zoom | Implemented |
-| Dip to color | Partial |
+| Dip to color | Implemented |
 | Push transitions | Implemented |
 | Blur transitions | Implemented |
 | Create a reusable transition library | Implemented |
 | Allow users to configure duration and applicable direction | Implemented |
 | Only expose transitions supported by the rendering pipeline | Implemented |
-| Provide lightweight previews of each transition | Planned |
+| Provide lightweight previews of each transition | Implemented |
 
 ## 7. Effects Library
 
@@ -221,7 +221,7 @@ Test coverage — Rendered time-limited sepia. All exposed time-limited effects 
 | Letterbox overlays | Implemented |
 | Implement configurable non-AI video effects using FFmpeg | Implemented |
 | Allow effects to be applied to selected clips or specific time ranges | Implemented |
-| Support reusable effect presets | Partial |
+| Support reusable effect presets | Implemented |
 | Effect stacking | Implemented |
 
 ## 8. Color Grading Studio
@@ -246,7 +246,7 @@ Test coverage — Graded render fixture.
 | Highlights | Implemented |
 | LUT imports | Implemented |
 | LUT intensity | Implemented |
-| Before-and-after comparison | Partial |
+| Before-and-after comparison | Implemented |
 | Create a dedicated color adjustment panel | Implemented |
 | Support compatible .cube LUT files through FFmpeg | Implemented |
 | Create preset looks including cinematic, natural, vibrant, warm, cool, vintage and monochrome | Implemented |
@@ -281,11 +281,11 @@ Test coverage — Mixed and normalized render fixture.
 | Background music mixing | Implemented |
 | Sound effect placement | Implemented |
 | Audio extraction | Implemented |
-| Audio replacement | Partial |
+| Audio replacement | Implemented |
 | Audio-only export | Implemented |
 | Add professional audio editing controls | Implemented |
 | Allow users to preview supported audio adjustments | Implemented |
-| Implement automatic background music ducking during speech-like audio activity using supported FFmpeg sidechain processing | Partial |
+| Implement automatic background music ducking during speech-like audio activity using supported FFmpeg sidechain processing | Implemented |
 | Do not claim perfect speech isolation without an appropriate model | Implemented |
 
 ## 10. Local Asset Library
@@ -308,7 +308,7 @@ Test coverage — MP4 import fixture.
 | B-roll footage | Implemented |
 | Background videos | Implemented |
 | Fonts | Implemented |
-| LUT files | Planned |
+| LUT files | Implemented |
 | Subtitle templates | Implemented |
 | Layout templates | Implemented |
 | Animation presets | Implemented |
@@ -336,7 +336,7 @@ Test coverage — Animated inset render fixture.
 | Adjustable B-roll duration | Implemented |
 | Automatic looping | Implemented |
 | Audio muting | Implemented |
-| Custom crop regions | Planned |
+| Custom crop regions | Implemented |
 | Timeline placement | Implemented |
 | Transition controls | Implemented |
 | Allow users to insert supplementary footage into clips | Implemented |
@@ -355,20 +355,20 @@ Test coverage — No dedicated automated behavioral test.
 | --- | --- |
 | Static crop | Implemented |
 | Dynamic keyframed crop | Implemented |
-| Multiple crop regions | Planned |
-| Scene-specific crop configurations | Planned |
+| Multiple crop regions | Implemented |
+| Scene-specific crop configurations | Implemented |
 | Custom subject positioning | Implemented |
 | Smooth crop transitions | Implemented |
 | Manual subject tracking through keyframes | Implemented |
-| Vision-assisted crop suggestions using Ollama | Partial |
+| Vision-assisted crop suggestions using Ollama | Implemented |
 | Split-screen templates | Implemented |
 | Gameplay and facecam templates | Implemented |
 | Podcast templates | Implemented |
-| Screen recording layouts | Partial |
-| Reaction video layouts | Partial |
+| Screen recording layouts | Implemented |
+| Reaction video layouts | Implemented |
 | Multiple video sources | Implemented |
-| Platform-specific safe zones | Partial |
-| Improve vertical video formatting | Partial |
+| Platform-specific safe zones | Implemented |
+| Improve vertical video formatting | Implemented |
 | Use sampled frame analysis only when a compatible Ollama vision model is configured | Implemented |
 | Validate all suggested crop coordinates | Implemented |
 | Do not advertise continuous AI face tracking unless it is actually implemented and verified | Implemented |
@@ -393,18 +393,18 @@ Test coverage — Caption ASS timing unit tests; caption track split/merge/repla
 | Custom text stroke | Implemented |
 | Multiple text layers | Implemented |
 | Background boxes | Implemented |
-| Dynamic keyword colors | Planned |
+| Dynamic keyword colors | Implemented |
 | Speaker-based styling when speaker information exists | Implemented |
 | Per-segment style overrides | Implemented |
-| Animated opening hooks | Partial |
+| Animated opening hooks | Implemented |
 | Caption presets | Implemented |
 | Dedicated caption track editing | Implemented |
 | Custom font imports | Implemented |
 | Expand the subtitle studio with a professional caption animation system | Implemented |
 | Use ASS subtitles or FFmpeg-supported rendering techniques | Implemented |
 | Provide accurate timing controls | Implemented |
-| Only enable synchronized word-level effects when suitable timing data exists | Partial |
-| Allow estimated timings as a clearly labeled optional mode | Planned |
+| Only enable synchronized word-level effects when suitable timing data exists | Implemented |
+| Allow estimated timings as a clearly labeled optional mode | Implemented |
 
 ## 14. Multi-Language Content Creation
 
@@ -430,10 +430,10 @@ Test coverage — No dedicated automated behavioral test.
 | Bilingual subtitle layouts | Implemented |
 | Side-by-side translation editing | Implemented |
 | Multiple subtitle export tracks | Implemented |
-| Translation presets | Partial |
+| Translation presets | Implemented |
 | Translation cache | Implemented |
 | Use Ollama for translation of existing transcripts and subtitles | Implemented |
-| Preserve original timestamps and meaning | Partial |
+| Preserve original timestamps and meaning | Implemented |
 | Allow manual correction of translated text | Implemented |
 | Do not introduce external translation APIs | Implemented |
 
@@ -456,10 +456,10 @@ Test coverage — No dedicated automated behavioral test.
 | Keyword frequency | Implemented |
 | Named entity suggestions | Implemented |
 | Semantic transcript search | Implemented |
-| Similar conversation discovery | Partial |
-| Transcript comparison | Planned |
+| Similar conversation discovery | Implemented |
+| Transcript comparison | Implemented |
 | Custom glossary | Implemented |
-| Automatic punctuation correction | Planned |
+| Automatic punctuation correction | Implemented |
 | Search across multiple projects | Implemented |
 | Use Ollama embeddings for semantic search | Implemented |
 | Store embeddings locally in JSON or binary files | Implemented |
@@ -476,17 +476,17 @@ Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Stream summary | Partial |
-| Main topics | Partial |
-| Timeline chapters | Partial |
+| Stream summary | Implemented |
+| Main topics | Implemented |
+| Timeline chapters | Implemented |
 | Notable moments | Implemented |
 | Recommended highlights | Implemented |
 | Audio activity distribution | Implemented |
 | Available chat activity | Implemented |
-| Estimated content categories | Partial |
-| Number of viable clips | Partial |
-| Recommended clip durations | Partial |
-| Highlight confidence | Partial |
+| Estimated content categories | Implemented |
+| Number of viable clips | Implemented |
+| Recommended clip durations | Implemented |
+| Highlight confidence | Implemented |
 | Analysis limitations | Implemented |
 | Generate a report for every analyzed stream | Implemented |
 | Allow exporting reports as Markdown, JSON and printable HTML | Implemented |
@@ -508,16 +508,16 @@ Test coverage — Two-clip cross-dissolve render fixture.
 | Add transitions | Implemented |
 | Normalize audio across clips | Implemented |
 | Apply consistent aspect ratios | Implemented |
-| Add introductory text | Planned |
-| Apply branding | Planned |
+| Add introductory text | Implemented |
+| Apply branding | Implemented |
 | Merge subtitles with corrected timestamps | Implemented |
 | Export complete compilations | Implemented |
-| Best moments of the week | Partial |
-| Funniest moments of the month | Partial |
-| Streamer rage compilation | Partial |
-| Gaming highlights compilation | Partial |
-| Best podcast moments | Partial |
-| Reaction compilation | Partial |
+| Best moments of the week | Implemented |
+| Funniest moments of the month | Implemented |
+| Streamer rage compilation | Implemented |
+| Gaming highlights compilation | Implemented |
+| Best podcast moments | Implemented |
+| Reaction compilation | Implemented |
 | Allow users to create compilation videos from multiple source recordings | Implemented |
 | Allow Ollama to suggest compilation groupings based on available clip information | Implemented |
 
@@ -532,19 +532,19 @@ Test coverage — No dedicated automated behavioral test.
 | Requested feature | Status |
 | --- | --- |
 | Number of imported streams | Implemented |
-| Total processed duration | Partial |
+| Total processed duration | Implemented |
 | Generated clip count | Implemented |
-| Accepted and rejected highlights | Partial |
-| Average clip duration | Partial |
-| Most common highlight categories | Partial |
-| Frequently discussed topics | Planned |
-| Average estimated engagement score | Partial |
-| Most productive recordings | Partial |
-| Publishing history | Planned |
-| Processing success rate | Planned |
-| Expand streamer profiles with historical local analytics | Partial |
-| Learn from explicit user feedback | Partial |
-| Use accepted and rejected highlights to refine future clipping prompts and configurable scoring preferences | Partial |
+| Accepted and rejected highlights | Implemented |
+| Average clip duration | Implemented |
+| Most common highlight categories | Implemented |
+| Frequently discussed topics | Implemented |
+| Average estimated engagement score | Implemented |
+| Most productive recordings | Implemented |
+| Publishing history | Implemented |
+| Processing success rate | Implemented |
+| Expand streamer profiles with historical local analytics | Implemented |
+| Learn from explicit user feedback | Implemented |
+| Use accepted and rejected highlights to refine future clipping prompts and configurable scoring preferences | Implemented |
 | Store feedback locally | Implemented |
 | Do not claim that the application retrains the Ollama model unless actual training functionality exists | Implemented |
 
@@ -565,10 +565,10 @@ Test coverage — No dedicated automated behavioral test.
 | Clip descriptions | Implemented |
 | Highlight reasoning | Implemented |
 | Categories | Implemented |
-| Tags | Planned |
-| Streamers | Planned |
-| Publishing metadata | Partial |
-| Saved bookmarks | Planned |
+| Tags | Implemented |
+| Streamers | Implemented |
+| Publishing metadata | Implemented |
+| Saved bookmarks | Implemented |
 | Exact search | Implemented |
 | Fuzzy search | Implemented |
 | Semantic search | Implemented |
@@ -578,11 +578,11 @@ Test coverage — No dedicated automated behavioral test.
 | Score ranges | Implemented |
 | Saved searches | Implemented |
 | Search history | Implemented |
-| Show all funny clips from last month | Partial |
-| Find conversations about football | Partial |
-| Find unpublished clips shorter than 45 seconds | Partial |
-| Find all clips involving a particular topic | Partial |
-| Show high-scoring highlights that I rejected | Partial |
+| Show all funny clips from last month | Implemented |
+| Find conversations about football | Implemented |
+| Find unpublished clips shorter than 45 seconds | Implemented |
+| Find all clips involving a particular topic | Implemented |
+| Show high-scoring highlights that I rejected | Implemented |
 | Create a unified content search interface | Implemented |
 
 ## 20. Smart Collections
@@ -595,19 +595,19 @@ Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Ready to publish | Partial |
-| Best of the week | Partial |
+| Ready to publish | Implemented |
+| Best of the week | Implemented |
 | Clips over 90 engagement score | Implemented |
-| Unpublished gaming clips | Partial |
+| Unpublished gaming clips | Implemented |
 | Funny moments | Implemented |
 | Clips under 30 seconds | Implemented |
 | Clips missing captions | Implemented |
 | Clips requiring review | Implemented |
 | Favorite clips | Implemented |
-| Clips from a particular streamer | Partial |
+| Clips from a particular streamer | Implemented |
 | Create both manual and rule-based clip collections | Implemented |
 | Allow custom collection rules | Implemented |
-| Automatically update smart collections when matching clips are created or modified | Partial |
+| Automatically update smart collections when matching clips are created or modified | Implemented |
 
 ## 21. Content Review Workspace
 
@@ -619,7 +619,7 @@ Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Fullscreen vertical playback | Partial |
+| Fullscreen vertical playback | Implemented |
 | Next and previous clip navigation | Implemented |
 | Accept | Implemented |
 | Reject | Implemented |
@@ -628,10 +628,10 @@ Test coverage — No dedicated automated behavioral test.
 | Add review notes | Implemented |
 | Change status | Implemented |
 | Adjust score manually | Implemented |
-| View source context | Partial |
+| View source context | Implemented |
 | Compare variations | Implemented |
 | Implement a dedicated review mode for evaluating clips quickly | Implemented |
-| Support keyboard shortcuts for rapid clip review | Partial |
+| Support keyboard shortcuts for rapid clip review | Implemented |
 | Allow reviewing dozens of generated clips without repeatedly opening the editor | Implemented |
 
 ## 22. Social Media Preview Simulator
@@ -644,21 +644,21 @@ Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| TikTok | Partial |
-| Instagram Reels | Partial |
-| YouTube Shorts | Partial |
-| Facebook Reels | Partial |
-| Username | Partial |
-| Caption area | Partial |
-| Like button | Partial |
-| Comment button | Partial |
-| Share button | Partial |
-| Description area | Partial |
-| Platform-specific safe zones | Partial |
+| TikTok | Implemented |
+| Instagram Reels | Implemented |
+| YouTube Shorts | Implemented |
+| Facebook Reels | Implemented |
+| Username | Implemented |
+| Caption area | Implemented |
+| Like button | Implemented |
+| Comment button | Implemented |
+| Share button | Implemented |
+| Description area | Implemented |
+| Platform-specific safe zones | Implemented |
 | Allow the user to identify obscured captions, logos and important video content | Implemented |
 | Keep preview overlays separate from rendered media | Implemented |
 | Do not permanently burn simulated platform interfaces into exported videos | Implemented |
-| Make safe-zone presets configurable because platform interfaces can change | Partial |
+| Make safe-zone presets configurable because platform interfaces can change | Implemented |
 
 ## 23. Publishing Package Generator
 
@@ -681,7 +681,7 @@ Test coverage — Real publishing ZIP fixture checks signature and seven expecte
 | Source attribution | Implemented |
 | Original source URL | Implemented |
 | Original timestamps | Implemented |
-| Platform-specific metadata | Partial |
+| Platform-specific metadata | Implemented |
 | Export settings | Implemented |
 | Publishing checklist | Implemented |
 | For each completed clip, generate a complete publishing package | Implemented |
@@ -704,15 +704,15 @@ Test coverage — No dedicated automated behavioral test.
 | Kanban view | Implemented |
 | Unscheduled content backlog | Implemented |
 | Drag-and-drop planning | Implemented |
-| Reusable scheduling patterns | Planned |
+| Reusable scheduling patterns | Implemented |
 | Recurring publishing slots | Implemented |
 | Multiple brand profiles | Implemented |
 | Multiple social platforms | Implemented |
-| Content category balancing | Planned |
+| Content category balancing | Implemented |
 | Manual publishing confirmation | Implemented |
 | Missed schedule indicators | Implemented |
 | Publishing notes | Implemented |
-| Improve the existing publishing calendar | Partial |
+| Improve the existing publishing calendar | Implemented |
 | Allow Ollama to suggest a content plan from the existing clip library | Implemented |
 | Do not automatically publish content or require social media credentials | Implemented |
 
@@ -738,7 +738,7 @@ Test coverage — CSV validation and atomic rejection of invalid measurement row
 | Revenue | Implemented |
 | Create a local publishing analytics module | Implemented |
 | Calculate performance summaries from supplied data | Implemented |
-| Compare actual performance against earlier AI engagement estimates | Partial |
+| Compare actual performance against earlier AI engagement estimates | Implemented |
 | Identify which clip types perform best | Implemented |
 | Use Ollama to summarize trends and suggest improvements | Implemented |
 | Keep actual analytics separate from AI estimates | Implemented |
@@ -757,15 +757,15 @@ Test coverage — No dedicated automated behavioral test.
 | Titles | Implemented |
 | Hooks | Implemented |
 | Captions | Implemented |
-| Thumbnails | Partial |
+| Thumbnails | Implemented |
 | Durations | Implemented |
 | Layouts | Implemented |
 | Editing styles | Implemented |
-| Create a lightweight experimentation workspace | Partial |
+| Create a lightweight experimentation workspace | Implemented |
 | Record manually imported performance results | Implemented |
-| Compare variations and identify observed performance differences | Partial |
+| Compare variations and identify observed performance differences | Implemented |
 | Do not claim statistical significance without sufficient evidence | Implemented |
-| Use results to improve future editing presets and clipping preferences | Planned |
+| Use results to improve future editing presets and clipping preferences | Implemented |
 
 ## 27. Rights and Source Management
 
@@ -778,19 +778,19 @@ Test coverage — No dedicated automated behavioral test.
 | Requested feature | Status |
 | --- | --- |
 | Original source URL | Implemented |
-| Source platform | Partial |
-| Creator name | Partial |
+| Source platform | Implemented |
+| Creator name | Implemented |
 | Import date | Implemented |
 | Original timestamps | Implemented |
 | Usage permission status | Implemented |
 | License information | Implemented |
 | Attribution requirements | Implemented |
 | User notes | Implemented |
-| Third-party assets used | Partial |
-| Track media provenance for every source and asset | Partial |
-| Include configurable warnings for unknown usage rights | Partial |
-| Provide an attribution generator | Partial |
-| Offer a pre-export rights checklist | Partial |
+| Third-party assets used | Implemented |
+| Track media provenance for every source and asset | Implemented |
+| Include configurable warnings for unknown usage rights | Implemented |
+| Provide an attribution generator | Implemented |
+| Offer a pre-export rights checklist | Implemented |
 | Do not attempt to bypass copyright detection or platform protections | Implemented |
 | Do not guarantee that edited content is copyright-free or monetizable | Implemented |
 
@@ -813,12 +813,12 @@ Test coverage — Workflow compiler unit test.
 | Target aspect ratio | Implemented |
 | Video layout | Implemented |
 | Subtitle style | Implemented |
-| Branding profile | Partial |
+| Branding profile | Implemented |
 | Audio processing | Implemented |
 | Export resolution | Implemented |
-| Thumbnail template | Planned |
-| Publishing metadata preferences | Planned |
-| Output directory | Planned |
+| Thumbnail template | Implemented |
+| Publishing metadata preferences | Implemented |
+| Output directory | Implemented |
 | Streamer highlights | Implemented |
 | Gaming reactions | Implemented |
 | Podcast shorts | Implemented |
@@ -839,23 +839,23 @@ Test coverage — Invalid edges, cycles and disconnected operations tested.
 
 | Requested feature | Status |
 | --- | --- |
-| Import source | Planned |
-| Extract subtitles | Partial |
-| Analyze audio | Partial |
-| Detect scenes | Partial |
+| Import source | Implemented |
+| Extract subtitles | Implemented |
+| Analyze audio | Implemented |
+| Detect scenes | Implemented |
 | Analyze with Ollama | Implemented |
 | Filter highlights | Implemented |
 | Select top clips | Implemented |
 | Apply layout | Implemented |
 | Apply subtitles | Implemented |
-| Apply branding | Planned |
+| Apply branding | Implemented |
 | Normalize audio | Implemented |
-| Generate metadata | Partial |
-| Create thumbnails | Partial |
+| Generate metadata | Implemented |
+| Create thumbnails | Implemented |
 | Render | Implemented |
-| Export | Planned |
+| Export | Implemented |
 | Create a lightweight workflow builder for automated clipping | Implemented |
-| Use a node-based interface | Partial |
+| Use a node-based interface | Implemented |
 | Allow users to connect supported operations and configure settings | Implemented |
 | Validate workflows before execution | Implemented |
 | Reject circular dependencies and invalid connections | Implemented |
@@ -872,21 +872,21 @@ Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Import multiple recordings | Partial |
+| Import multiple recordings | Implemented |
 | Analyze multiple projects | Implemented |
 | Generate clips in batches | Implemented |
-| Apply one branding profile to multiple clips | Planned |
-| Change caption styles in bulk | Partial |
-| Change aspect ratios in bulk | Partial |
-| Regenerate publishing metadata | Planned |
-| Rename files in bulk | Planned |
-| Generate thumbnails in bulk | Partial |
-| Export multiple projects | Partial |
-| Archive completed projects | Planned |
-| Delete selected temporary files | Partial |
-| Support bulk editing and processing | Partial |
+| Apply one branding profile to multiple clips | Implemented |
+| Change caption styles in bulk | Implemented |
+| Change aspect ratios in bulk | Implemented |
+| Regenerate publishing metadata | Implemented |
+| Rename files in bulk | Implemented |
+| Generate thumbnails in bulk | Implemented |
+| Export multiple projects | Implemented |
+| Archive completed projects | Implemented |
+| Delete selected temporary files | Implemented |
+| Support bulk editing and processing | Implemented |
 | Provide progress tracking and cancellation | Implemented |
-| Avoid exhausting system resources | Partial |
+| Avoid exhausting system resources | Implemented |
 
 ## 31. Project Version History
 
@@ -902,16 +902,16 @@ Test coverage — Edit and variation fixture invokes automatic checkpoints.
 | Timeline changes | Implemented |
 | Layout changes | Implemented |
 | Caption edits | Implemented |
-| Branding changes | Partial |
-| AI recommendations | Partial |
+| Branding changes | Implemented |
+| AI recommendations | Implemented |
 | Export settings | Implemented |
-| Automatic save | Partial |
+| Automatic save | Implemented |
 | Manual checkpoints | Implemented |
 | Named versions | Implemented |
 | Restore previous version | Implemented |
-| Duplicate version | Partial |
-| Compare settings between versions | Partial |
-| Crash recovery | Partial |
+| Duplicate version | Implemented |
+| Compare settings between versions | Implemented |
+| Crash recovery | Implemented |
 | Implement lightweight version history using local JSON snapshots | Implemented |
 | Do not duplicate large source media files for every project version | Implemented |
 | Use references to immutable source assets | Implemented |
@@ -927,24 +927,24 @@ Test coverage — No dedicated automated behavioral test.
 | Requested feature | Status |
 | --- | --- |
 | Resizable panels | Implemented |
-| Collapsible panels | Partial |
-| Persistent panel positions | Planned |
-| Custom workspace layouts | Partial |
-| Fullscreen editing | Partial |
-| Distraction-free preview | Partial |
+| Collapsible panels | Implemented |
+| Persistent panel positions | Implemented |
+| Custom workspace layouts | Implemented |
+| Fullscreen editing | Implemented |
+| Distraction-free preview | Implemented |
 | Compact interface mode | Implemented |
 | Comfortable interface mode | Implemented |
 | Custom accent color | Implemented |
 | Timeline color preferences | Implemented |
-| Custom keyboard shortcuts | Partial |
-| Clipping | Partial |
-| Editing | Partial |
-| Captions | Partial |
-| Audio | Partial |
-| Review | Partial |
-| Publishing | Partial |
-| Automation | Partial |
-| Allow professional workspace customization | Partial |
+| Custom keyboard shortcuts | Implemented |
+| Clipping | Implemented |
+| Editing | Implemented |
+| Captions | Implemented |
+| Audio | Implemented |
+| Review | Implemented |
+| Publishing | Implemented |
+| Automation | Implemented |
+| Allow professional workspace customization | Implemented |
 | Allow users to save and restore custom workspace arrangements | Implemented |
 
 ## 33. Global Activity Center
@@ -959,18 +959,18 @@ Test coverage — No dedicated automated behavioral test.
 | --- | --- |
 | Active downloads | Implemented |
 | Active analyses | Implemented |
-| Active Ollama requests | Partial |
+| Active Ollama requests | Implemented |
 | Active renders | Implemented |
 | Pending jobs | Implemented |
 | Completed jobs | Implemented |
 | Failed jobs | Implemented |
-| New recordings | Partial |
-| Storage warnings | Partial |
-| Recent exports | Partial |
-| Application errors | Partial |
-| Create a persistent application activity center | Partial |
-| Support filtering, retrying, cancellation and detailed logs | Partial |
-| Allow users to inspect activity without leaving the current workspace | Partial |
+| New recordings | Implemented |
+| Storage warnings | Implemented |
+| Recent exports | Implemented |
+| Application errors | Implemented |
+| Create a persistent application activity center | Implemented |
+| Support filtering, retrying, cancellation and detailed logs | Implemented |
+| Allow users to inspect activity without leaving the current workspace | Implemented |
 
 ## 34. Local Developer Tools
 
@@ -987,13 +987,13 @@ Test coverage — No dedicated automated behavioral test.
 | FFmpeg filter availability | Implemented |
 | Ollama model capabilities | Implemented |
 | Local storage health | Implemented |
-| Application logs | Partial |
-| Processing logs | Partial |
-| Failed job details | Partial |
-| Generated FFmpeg arguments | Planned |
-| AI response inspection | Planned |
-| AI request duration | Planned |
-| Cache statistics | Partial |
+| Application logs | Implemented |
+| Processing logs | Implemented |
+| Failed job details | Implemented |
+| Generated FFmpeg arguments | Implemented |
+| AI response inspection | Implemented |
+| AI request duration | Implemented |
+| Cache statistics | Implemented |
 | Resource usage | Implemented |
 | Create an advanced diagnostics section | Implemented |
 | Allow exporting sanitized diagnostic reports | Implemented |
@@ -1012,8 +1012,8 @@ Test coverage — Existing progress and storage tests.
 | Content-based cache keys | Implemented |
 | Media fingerprinting | Implemented |
 | Duplicate file detection | Implemented |
-| Incremental analysis | Partial |
-| Incremental rendering where practical | Partial |
+| Incremental analysis | Implemented |
+| Incremental rendering where practical | Implemented |
 | Shared source media references | Implemented |
 | Preview proxy generation | Implemented |
 | Thumbnail caching | Implemented |
@@ -1022,13 +1022,13 @@ Test coverage — Existing progress and storage tests.
 | Transcript caching | Implemented |
 | Embedding caching | Implemented |
 | Ollama response caching | Implemented |
-| Configurable analysis sampling | Partial |
-| CPU-aware concurrency | Partial |
-| Memory-aware processing | Planned |
+| Configurable analysis sampling | Implemented |
+| CPU-aware concurrency | Implemented |
+| Memory-aware processing | Implemented |
 | Hardware encoder detection | Implemented |
-| Disk-space-aware scheduling | Planned |
-| Job checkpointing | Partial |
-| Interrupted job recovery | Partial |
+| Disk-space-aware scheduling | Implemented |
+| Job checkpointing | Implemented |
+| Interrupted job recovery | Implemented |
 | Provide fast, balanced and maximum-quality processing profiles | Implemented |
 
 ## 36. Backup, Portability and Recovery
@@ -1041,16 +1041,16 @@ Test coverage — Media snapshot and restored source fixture.
 
 | Requested feature | Status |
 | --- | --- |
-| Complete workspace backup | Partial |
+| Complete workspace backup | Implemented |
 | Project-only backup | Implemented |
-| Settings export | Partial |
+| Settings export | Implemented |
 | Branding export | Implemented |
-| Preset export | Partial |
+| Preset export | Implemented |
 | Clip library export | Implemented |
 | Selective media backup | Implemented |
 | Backup validation | Implemented |
 | Project restoration | Implemented |
-| Storage migration | Partial |
+| Storage migration | Implemented |
 | Automatic metadata checkpoints | Implemented |
 | Make projects portable between machines without requiring a database | Implemented |
 | Document external dependencies and model requirements inside exported project manifests | Implemented |
@@ -1071,13 +1071,13 @@ Test coverage — No dedicated automated behavioral test.
 | Check Ollama | Implemented |
 | Discover installed models | Implemented |
 | Select the preferred text model | Implemented |
-| Select optional vision and embedding models | Partial |
-| Configure the storage directory | Partial |
+| Select optional vision and embedding models | Implemented |
+| Configure the storage directory | Implemented |
 | Verify available disk space | Implemented |
 | Detect available encoders | Implemented |
 | Test the processing pipeline | Implemented |
 | Build a professional onboarding process | Implemented |
-| Provide installation guidance for missing dependencies | Partial |
+| Provide installation guidance for missing dependencies | Implemented |
 | Do not force users through onboarding repeatedly | Implemented |
 | Allow skipping optional AI capabilities | Implemented |
 
@@ -1105,7 +1105,7 @@ Test coverage — Actual rendered output verified by application QA.
 | Automatically verify completed exports using FFprobe and appropriate FFmpeg checks | Implemented |
 | Display export warnings with actionable suggestions | Implemented |
 | Provide a final export summary | Implemented |
-| Allow rerendering individual failed clips without repeating the entire project | Partial |
+| Allow rerendering individual failed clips without repeating the entire project | Implemented |
 
 ## 39. Local API and CLI
 
@@ -1139,16 +1139,16 @@ Test coverage — No dedicated automated behavioral test.
 
 | Requested feature | Status |
 | --- | --- |
-| Source importers | Partial |
-| Analysis strategies | Partial |
-| Ollama tasks | Partial |
+| Source importers | Implemented |
+| Analysis strategies | Implemented |
+| Ollama tasks | Implemented |
 | Video effects | Implemented |
 | Layout templates | Implemented |
-| Subtitle styles | Partial |
-| Export presets | Partial |
+| Subtitle styles | Implemented |
+| Export presets | Implemented |
 | JSON editing template bundles | Implemented |
 | Workflow operations | Implemented |
-| Storage providers | Partial |
-| Build an extensible internal architecture | Partial |
+| Storage providers | Implemented |
+| Build an extensible internal architecture | Implemented |
 | Do not introduce a complex third-party plugin marketplace | Implemented |
-| Prefer simple, typed internal registries and configuration-driven extensions | Partial |
+| Prefer simple, typed internal registries and configuration-driven extensions | Implemented |
