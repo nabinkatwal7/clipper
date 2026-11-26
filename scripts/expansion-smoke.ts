@@ -227,6 +227,38 @@ async function main() {
   );
   assert.deepEqual(alphas, [0, 64, 128]);
   console.log("PASS opacity keyframes preserve existing layer transparency");
+  const sizeFactor = `(${curve(
+    [
+      { time: 0, value: 0.25, ease: "linear" },
+      { time: 1, value: 1, ease: "linear" },
+    ],
+    0.5,
+    0,
+    "t",
+  )})/1`.replace(/,/g, "\\,");
+  const sizes: string[] = [];
+  await run(
+    bin.ffmpeg,
+    [
+      "-hide_banner",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=blue:s=64x64:r=2:d=1.5",
+      "-vf",
+      `format=rgba,setpts=PTS-STARTPTS,scale=eval=frame:w='max(2\\,trunc(iw*(${sizeFactor})/2)*2)':h='max(2\\,trunc(ih*(${sizeFactor})/2)*2)',showinfo`,
+      "-f",
+      "null",
+      "-",
+    ],
+    undefined,
+    (line) => {
+      const match = line.match(/s:(\d+x\d+)/);
+      if (match) sizes.push(match[1]);
+    },
+  );
+  assert.deepEqual(sizes, ["16x16", "40x40", "64x64"]);
+  console.log("PASS scale keyframes change layer dimensions over time");
   const { blendModes, layerBlendGraph } = await import("../lib/layer-blend");
   const luminance = async (
     mode: keyof typeof blendModes,
@@ -493,6 +525,10 @@ async function main() {
       rotation: [
         { time: 0, value: 22, ease: "in-out" },
         { time: 0.8, value: -45, ease: "hold" },
+      ],
+      size: [
+        { time: 0, value: 0.25, ease: "in" },
+        { time: 0.8, value: 0.4, ease: "hold" },
       ],
       x: [
         { time: 0, value: 0, ease: "linear" },

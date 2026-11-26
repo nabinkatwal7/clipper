@@ -28,7 +28,7 @@ export type Track = LayerTransform & {
   mask?: LayerMask;
   blendMode?: BlendMode;
   keys: Partial<
-    Record<"x" | "y" | "volume" | "rotation" | "opacity", Keyframe[]>
+    Record<"x" | "y" | "volume" | "rotation" | "opacity" | "size", Keyframe[]>
   >;
 };
 export type Composition = { version: 1; tracks: Track[] };
@@ -94,22 +94,23 @@ export function validateComposition(v: Composition) {
     if (!t.keys || typeof t.keys !== "object") throw Error("Invalid keyframes");
     for (const [k, keys] of Object.entries(t.keys)) {
       if (
-        !["x", "y", "volume", "rotation", "opacity"].includes(k) ||
-        (t.type === "audio" && ["rotation", "opacity"].includes(k)) ||
+        !["x", "y", "volume", "rotation", "opacity", "size"].includes(k) ||
+        (t.type === "audio" &&
+          ["rotation", "opacity", "size"].includes(k)) ||
         !Array.isArray(keys) ||
         keys.length > 48
       )
         throw Error("Unsupported animation");
       let previous = -1;
       for (const key of keys) {
+        const min =
+          k === "rotation" ? -180 : k === "size" ? 0.05 : 0;
+        const max =
+          k === "rotation" ? 180 : k === "volume" ? 2 : 1;
         if (
           !within(key.time, 0, t.length) ||
           key.time <= previous ||
-          !within(
-            key.value,
-            k === "rotation" ? -180 : 0,
-            k === "rotation" ? 180 : k === "volume" ? 2 : 1,
-          ) ||
+          !within(key.value, min, max) ||
           !["linear", "in", "out", "in-out", "hold"].includes(key.ease)
         )
           throw Error("Invalid animation point");

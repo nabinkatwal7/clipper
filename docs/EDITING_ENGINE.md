@@ -6,7 +6,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | --- | --- | --- |
 | 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, composition preview and export validation | Broader document schema, full realtime composition and preview caching |
 | 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, undo, checkpoints and asset browser | Expanded track gestures, media proxy workflow and deeper timeline editing |
-| 10–13 · Transforms and animation | Crop, zoom, rotation, opacity and position/gain keyframes for supported layers | General-purpose curves, graph editor and entrance/exit/loop presets |
+| 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes for supported layers | General-purpose curves, graph editor and entrance/exit/loop presets |
 | 14–18 · Effects and transitions | Timed effects, color tools and compilation transitions | Expanded effect catalog, effect stacking and per-cut editor transitions |
 | 19–20 · Speed | Constant 0.5×–4× playback speed, pitch-preserving audio, retimed sidecar captions and source-aligned comparison | Speed curves, reverse playback and motion interpolation |
 | 21–24 · Text and graphics | Title overlay and imported images | Rich text layers, native stickers and motion-graphics authoring |
@@ -18,7 +18,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | 51–57 · Short-form export | Aspect ratios, safe-zone previews, variations, export queue and FFmpeg quality checks | Expanded export options, hardware-accelerated export, and broader preset coverage |
 | 58–67 · Interaction | Existing studio shell, keyboard actions, inspector and workspace preferences | Expanded canvas interactions, context menus and workspace presets |
 | 68–73 · Reliability | Local caches, version checkpoints, isolated workspaces and authenticated routes | Dedicated proxy and composition cache, and comprehensive autosave recovery |
-| 74–77 · Verification | 41 tests, production build, desktop checks for Speed and mask controls, FFmpeg alpha pixel checks, and matching decoded frames for one masked preview and export fixture | Chroma key screenshot coverage and broader preview-to-export comparisons |
+| 74–77 · Verification | Unit suite, production build, desktop checks for Speed and mask controls, FFmpeg alpha and scale-dimension checks, and matching decoded frames for one masked preview and export fixture | Chroma key screenshot coverage and broader preview-to-export comparisons |
 
 ## Using speed and chroma key
 
@@ -39,3 +39,5 @@ Open **Layer transform** to rotate an image or video layer from −180° to 180�
 To animate rotation, choose **Rotation** under **Keyframes**. Set an angle in **Layer transform** and add a keyframe at the playhead. Repeat at another time. Each keyframe determines the interpolation toward the next one. The renderer uses a fixed transparent square large enough for every angle, so the layer turns about its center without its bounds changing during playback. Mirroring is static.
 
 Choose **Opacity** under **Keyframes** to animate an image or video layer’s transparency. Set a value from 0% to 100% and add it at the playhead. The keyframes multiply any transparency already present in the layer, including masks and chroma key. Layer fades and blend modes still apply.
+
+Choose **Scale** under **Keyframes** to animate layer size. Values match the **size** field (5%–100% of the canvas). The renderer scales the layer up to the largest keyframe size first, then interpolates down or up so mid-animation frames are not upscaled from a smaller raster. Position still uses the overlay placement formula, so a centered layer stays centered while it grows or shrinks.

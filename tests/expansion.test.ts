@@ -64,6 +64,52 @@ test("composition versioning and interpolation enforce explicit timeline offsets
     /lt\(t,5\)/,
   );
 });
+test("layer scale keyframes stay within size bounds and reject audio tracks", () => {
+  const base = {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Inset",
+    asset: "22222222-2222-4222-8222-222222222222",
+    type: "image" as const,
+    at: 0,
+    length: 2,
+    slip: 0,
+    x: 0.5,
+    y: 0.5,
+    size: 0.4,
+    opacity: 1,
+    volume: 1,
+    visible: true,
+    muted: true,
+    locked: false,
+    solo: false,
+    loop: true,
+    fade: 0,
+    keys: {
+      size: [
+        { time: 0, value: 0.2, ease: "in" as const },
+        { time: 1, value: 0.8, ease: "out" as const },
+      ],
+    },
+  };
+  assert.equal(validateComposition({ version: 1, tracks: [base] }).tracks.length, 1);
+  assert.throws(() =>
+    validateComposition({
+      version: 1,
+      tracks: [
+        {
+          ...base,
+          keys: { size: [{ time: 0, value: 0.01, ease: "linear" }] },
+        },
+      ],
+    }),
+  );
+  assert.throws(() =>
+    validateComposition({
+      version: 1,
+      tracks: [{ ...base, type: "audio", muted: false, keys: { size: base.keys.size } }],
+    }),
+  );
+});
 
 import { importMeasurements } from "../lib/metrics-csv";
 test("CSV preserves zero, accepts quoted numbers and rejects bad rows before import", () => {

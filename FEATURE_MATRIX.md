@@ -138,16 +138,16 @@ Test coverage — Real split, inset and audio mix fixture.
 
 Runtime dependencies — Composition, FFmpeg.
 
-Animated properties are overlay X/Y and audio gain. Other transforms are static. Rendered preview uses FFmpeg.
+Animated properties are overlay X/Y, layer scale, rotation, opacity and audio gain. Crop uses source-time keys. Rendered preview uses FFmpeg.
 
-Test coverage — Interpolation, animated overlay and source-time crop tests.
+Test coverage — Interpolation, animated overlay, scale dimension, opacity alpha and source-time crop tests.
 
 | Requested feature | Status |
 | --- | --- |
 | Position | Partial |
-| Scale | Planned |
-| Rotation | Planned |
-| Opacity | Planned |
+| Scale | Implemented |
+| Rotation | Implemented |
+| Opacity | Implemented |
 | Crop regions | Implemented |
 | Text positioning | Planned |
 | Overlay positioning | Implemented |

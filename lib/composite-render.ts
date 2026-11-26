@@ -39,27 +39,44 @@ export async function compose(
     );
     const fade = Math.min(t.fade, span / 2);
     if (t.visible && a.kind !== "audio") {
-      const vw = Math.max(2, Math.round((w * t.size) / 2) * 2),
-        vh = Math.max(2, Math.round((h * t.size) / 2) * 2);
+      const sizeKeys = t.keys.size;
+      const maxSize = Math.max(
+        t.size,
+        ...(sizeKeys?.map((key) => key.value) ?? []),
+      );
+      const vw = Math.max(2, Math.round((w * maxSize) / 2) * 2),
+        vh = Math.max(2, Math.round((h * maxSize) / 2) * 2);
       const key = t.keyColor;
       const keyFilter = key
         ? `,colorkey=0x${key.color.slice(1)}:${key.similarity}:${key.blend}`
         : "";
       const resetClock =
-        t.mask || t.keys.rotation?.length || t.keys.opacity?.length
+        t.mask ||
+        t.keys.rotation?.length ||
+        t.keys.opacity?.length ||
+        sizeKeys?.length
           ? ",setpts=PTS-STARTPTS"
           : "";
       const mask = t.mask ? "," + maskFilter(t.mask) : "";
       const transforms = layerTransformFilters(t, t.keys.rotation)
         .map((filter) => "," + filter)
         .join("");
+      const sizeFactor = sizeKeys?.length
+        ? `(${curve(sizeKeys, t.size, 0, "t")})/${maxSize}`.replace(
+            /,/g,
+            "\\,",
+          )
+        : "";
+      const sizeScale = sizeFactor
+        ? `,scale=eval=frame:w='max(2\\,trunc(iw*(${sizeFactor})/2)*2)':h='max(2\\,trunc(ih*(${sizeFactor})/2)*2)'`
+        : "";
       const opacity = t.keys.opacity?.length
         ? layerAlphaFilter(
             `alpha(X,Y)*(${curve(t.keys.opacity, t.opacity, 0, "T")})`,
           )
         : `colorchannelmixer=aa=${t.opacity}`;
       graph.push(
-        `[${i}:v]scale=${vw}:${vh}:force_original_aspect_ratio=decrease,setsar=1,format=rgba${keyFilter}${resetClock}${mask}${transforms},${opacity}${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
+        `[${i}:v]scale=${vw}:${vh}:force_original_aspect_ratio=decrease,setsar=1,format=rgba${keyFilter}${resetClock}${mask}${transforms}${sizeScale},${opacity}${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
       );
       const placement = `x='(W-w)*${curve(t.keys.x, t.x, t.at)}':y='(H-h)*${curve(t.keys.y, t.y, t.at)}':enable='between(t,${t.at},${t.at + span})':eof_action=pass:repeatlast=0`;
       graph.push(

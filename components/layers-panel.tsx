@@ -51,7 +51,7 @@ export function LayersPanel({
   const tracks = s.composition?.tracks || [],
     [id, setId] = useState(""),
     [selectedParam, setParam] = useState<
-      "x" | "y" | "volume" | "rotation" | "opacity"
+      "x" | "y" | "volume" | "rotation" | "opacity" | "size"
     >("x"),
     [ease, setEase] = useState<Ease>("linear"),
     [ripple, setRipple] = useState(false);
@@ -488,29 +488,37 @@ export function LayersPanel({
               >
                 {(t.type === "audio"
                   ? ["volume"]
-                  : ["x", "y", "volume", "rotation", "opacity"]
+                  : ["x", "y", "volume", "rotation", "opacity", "size"]
                 ).map((v) => (
                   <option key={v} value={v}>
                     {v === "rotation"
                       ? "Rotation"
                       : v === "opacity"
                         ? "Opacity"
-                        : v}
+                        : v === "size"
+                          ? "Scale"
+                          : v}
                   </option>
                 ))}
               </select>
             </label>
-            {(param === "opacity" || param === "rotation") && (
+            {(param === "opacity" ||
+              param === "rotation" ||
+              param === "size") && (
               <label className="field">
                 Value for next keyframe ·{" "}
                 {param === "opacity"
                   ? Math.round(t.opacity * 100) + "%"
-                  : (t.rotation ?? 0) + "°"}
+                  : param === "size"
+                    ? Math.round(t.size * 100) + "%"
+                    : (t.rotation ?? 0) + "°"}
                 <input
                   type="range"
-                  min={param === "opacity" ? 0 : -180}
-                  max={param === "opacity" ? 1 : 180}
-                  step={param === "opacity" ? ".01" : "1"}
+                  min={
+                    param === "opacity" ? 0 : param === "size" ? 0.05 : -180
+                  }
+                  max={param === "rotation" ? 180 : 1}
+                  step={param === "rotation" ? "1" : ".01"}
                   value={t[param] ?? 0}
                   onChange={(e) => patch({ [param]: +e.target.value })}
                 />

@@ -38,7 +38,7 @@ tests/               node:test unit tests
 scripts/             smoke and integration scripts
 ```
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for how the parts fit together.
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for how the parts fit together. Editor and FFmpeg details live in [EDITOR_ARCHITECTURE.md](./EDITOR_ARCHITECTURE.md) and [RENDERING_ENGINE.md](./RENDERING_ENGINE.md).
 
 ## Tests
 
