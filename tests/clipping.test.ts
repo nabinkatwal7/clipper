@@ -341,3 +341,64 @@ test("manual video import (CSV/JSON) and niche analysis keep claims tied to cite
   assert.deepEqual(out.topics[0].evidence.map((e) => e.n), [1, 2, 5]);
   await assert.rejects(nicheAnalysis(["a"], { main: "m", light: "m", embed: null, installed: [], reachable: true }, async () => "{}", new AbortController().signal));
 });
+
+// ---- Phase 9: storage policy and dependency-aware cleanup
+import { classify, scan, planCache, planPolicy, execute, report } from "../lib/clipping/storage";
+import type { Project } from "../lib/types";
+const U1 = "11111111-1111-4111-8111-111111111111", U2 = "22222222-2222-4222-8222-222222222222";
+const proj = (id: string, extra: Partial<Project> = {}, ok = true): Project => ({
+  id, title: id, duration: 100, width: 1, height: 1, status: "ready", stage: "complete", detail: "", createdAt: "", updatedAt: "",
+  settings: {} as Project["settings"], highlights: [],
+  clips: ok ? [{ id: "c", file: "", settings: {} as Project["settings"], segments: [], start: 0, end: 1, title: "", reason: "", score: 1, qa: { duration: 1, width: 1, height: 1, fps: 30, audio: true, bytes: 1, warnings: [] } }] : [],
+  ...extra,
+});
+test("classification protects user imports and results; caches are regenerable", () => {
+  assert.equal(classify("temp", `${U1}.chat.messages.json`).category, "user-imports");
+  assert.equal(classify("temp", `${U1}.moments.json`).category, "results");
+  assert.equal(classify("temp", `${U1}.signals.raw.i1.all.json`).category, "analysis-cache");
+  assert.equal(classify("temp", `${U1}.${"a".repeat(64)}.json`).category, "ollama-cache");
+  assert.equal(classify("uploads", `${U1}.mp4`).category, "source");
+  assert.equal(classify("uploads", `${U1}.proxy.mp4`).category, "proxy");
+  assert.equal(classify("temp", `${U1}.x.json.tmp`).category, "partial");
+});
+test("cleanup previews respect dependencies, running jobs and verification; execution only deletes approved items", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "clip-storage-"));
+  try {
+    for (const d of ["uploads", "temp", "audio", "clips"]) await fs.mkdir(path.join(root, d));
+    const old = new Date(Date.now() - 10 * 86400_000);
+    const w = async (d: string, n: string, size = 1000) => { const p = path.join(root, d, n); await fs.writeFile(p, Buffer.alloc(size)); await fs.utimes(p, old, old); return p; };
+    await w("uploads", `${U1}.mp4`); await w("temp", `${U1}.signals.raw.i1.all.json`); await w("temp", `${U1}.chat.messages.json`); await w("temp", `${U1}.moments.json`);
+    await w("uploads", `${U2}.mp4`); await w("temp", `${U2}.${"b".repeat(64)}.json`); await w("clips", `${U1}.mp4`);
+    const entries = await scan(root);
+    assert.ok(report(entries).length >= 4);
+    const projects = [proj(U1, { source: "https://e.com/v" }), proj(U2, { source: "https://e.com/w", settings: { note: U1 } as unknown as Project["settings"] }, false)];
+    // production: sources and caches stay
+    assert.equal(planPolicy("production", entries, projects, new Set()).items.filter((i) => i.category === "source").length, 0);
+    // space-saver: U1 caches go (verified), U2 blocked (no verified clips); user imports/results never proposed
+    const ss = planPolicy("space-saver", entries, projects, new Set());
+    assert.deepEqual(ss.items.map((i) => i.category).sort(), ["analysis-cache"]);
+    assert.ok(ss.blocked.some((b) => /not verified/.test(b.reason)));
+    // temporary: U1 source is referenced by U2's settings -> blocked; U2 has no verified clips -> blocked
+    const tmp = planPolicy("temporary", entries, projects, new Set());
+    assert.equal(tmp.items.filter((i) => i.category === "source").length, 0);
+    assert.ok(tmp.blocked.some((b) => /referenced by project/.test(b.reason)));
+    // unreferenced + verified + downloaded -> eligible; busy -> blocked; local import -> blocked
+    const free = [proj(U1, { source: "https://e.com/v" })];
+    assert.equal(planPolicy("temporary", entries, free, new Set()).items.filter((i) => i.category === "source").length, 1);
+    assert.ok(planPolicy("temporary", entries, free, new Set([U1])).blocked.some((b) => /running job/.test(b.reason)));
+    assert.ok(planPolicy("temporary", entries, [proj(U1)], new Set()).blocked.some((b) => /cannot be downloaded again/.test(b.reason)));
+    // cache sweep: age + size limit; busy skipped
+    const sweep = planCache(entries, { olderThanDays: 5, busy: new Set() });
+    assert.deepEqual(sweep.items.map((i) => i.category).sort(), ["analysis-cache", "ollama-cache"]);
+    assert.equal(planCache(entries, { olderThanDays: 5, busy: new Set([U1, U2]) }).items.length, 0);
+    // execute refuses anything outside the approved preview
+    const outside = path.join(root, "clips", `${U1}.mp4`);
+    const res = await execute(root, sweep, [...sweep.items.map((i) => i.path), outside]);
+    assert.equal(res.removed, 2);
+    assert.equal(res.failed.length, 1);
+    assert.ok((await fs.stat(outside)).isFile());
+    assert.ok((await fs.stat(path.join(root, "temp", `${U1}.chat.messages.json`))).isFile());
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});

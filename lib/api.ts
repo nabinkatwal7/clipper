@@ -88,6 +88,7 @@ import { parseVideoImport, trendFor, uploadFrequency, topicFrequency, type Track
 import { parseCsv } from "./clipping/chat";
 import { nicheAnalysis } from "./clipping/niche";
 import { mutateCollection } from "./clipping/collection";
+import { scan as scanStorage, report as storageReport, planCache, planPolicy, execute as executeCleanup, POLICIES, type Policy, type Category, type Plan } from "./clipping/storage";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
@@ -1407,6 +1408,43 @@ export async function handle(
       const b = await req.json();
       const vids = (await readCollection<TrackedVideo>("videos")).filter((v) => !b.creator || v.creatorId === b.creator);
       return NextResponse.json(await nicheAnalysis(vids.map((v) => v.title), await resolveModels(req.signal), ollamaGenerate, req.signal));
+    }
+    if (action === "storage-report" && req.method === "GET") {
+      const entries = await scanStorage(workspaceRoot());
+      const disk = await fs.statfs(workspaceRoot()).catch(() => null);
+      const settings = (await readCollection<{ id: string; policy: Policy; cacheLimitMb?: number; cacheDays?: number }>("settings")).find((x) => x.id === "storage") ?? { id: "storage", policy: "production" as Policy };
+      return NextResponse.json({
+        categories: storageReport(entries),
+        settings,
+        policies: POLICIES,
+        freeBytes: disk ? disk.bavail * disk.bsize : null,
+      });
+    }
+    if (action === "storage-settings" && req.method === "POST") {
+      const b = await req.json();
+      if (!POLICIES.includes(b.policy)) throw Error("Unknown storage policy.");
+      const num = (v: unknown, max: number) => (v === undefined || v === null || v === "" ? undefined : Math.max(0, Math.min(max, Number(v)) || 0));
+      return NextResponse.json(await upsert("settings", { id: "storage", policy: b.policy as Policy, cacheLimitMb: num(b.cacheLimitMb, 1_000_000), cacheDays: num(b.cacheDays, 3650) }, 20));
+    }
+    if ((action === "storage-plan" || action === "storage-execute") && req.method === "POST") {
+      const b = await req.json();
+      const entries = await scanStorage(workspaceRoot());
+      const projects = await list();
+      const busyIds = new Set(projects.filter((p) => busy(p.id)).map((p) => p.id));
+      let plan: Plan;
+      if (b.kind === "cache") {
+        const cats = Array.isArray(b.categories) ? (b.categories as Category[]) : undefined;
+        plan = planCache(entries, { olderThanDays: b.olderThanDays === undefined ? undefined : Number(b.olderThanDays), limitMb: b.limitMb === undefined ? undefined : Number(b.limitMb), categories: cats, busy: busyIds });
+      } else if (b.kind === "policy" && POLICIES.includes(b.policy)) {
+        plan = planPolicy(b.policy, entries, projects, busyIds);
+        if (action === "storage-execute" && plan.items.some((i) => i.category === "source") && b.authorizeSources !== true)
+          throw Error("Deleting downloaded sources needs explicit authorisation in the confirmation.");
+      } else throw Error("Choose a cleanup kind.");
+      if (action === "storage-plan")
+        return NextResponse.json({ ...plan, items: plan.items.slice(0, 500).map(({ path: _p, ...rest }) => ({ ...rest, id: _p })), totalItems: plan.items.length, blocked: plan.blocked.slice(0, 200) });
+      if (b.confirm !== true) throw Error("Confirmation required. Review the preview first.");
+      const chosen = Array.isArray(b.paths) ? plan.items.filter((i) => b.paths.includes(i.path)).map((i) => i.path) : plan.items.map((i) => i.path);
+      return NextResponse.json(await executeCleanup(workspaceRoot(), plan, chosen));
     }
     if (action === "moments-ai" && req.method === "POST") {
       const b = await req.json();
