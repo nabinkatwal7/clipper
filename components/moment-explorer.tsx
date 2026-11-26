@@ -5,7 +5,7 @@ import type { MomentsResult } from "@/lib/clipping/engine";
 import type { ContentProfile } from "@/lib/clipping/profiles";
 import { duration as fmt } from "./studio-media";
 
-type Meta = { profiles: ContentProfile[]; defaultWeights: Record<string, number> };
+type Meta = { profiles: ContentProfile[]; defaultWeights: Record<string, number>; resources?: { totalMb: number; freeMb: number }; models?: { main: string | null; light: string | null; reachable: boolean } };
 type Reply = { result: MomentsResult | null; hasChat: boolean; hasReplay: boolean };
 const TRACKS = [
   ["combined", "Moment score"],
@@ -169,6 +169,27 @@ export default function MomentExplorer({ project, seek }: { project: Project; se
       setBusy(false);
     }
   }
+  async function ai(mode: "intelligent" | "deep") {
+    if (mode === "deep" && meta?.resources && meta.resources.totalMb < 12000 &&
+      !confirm(`Deep analysis uses a larger context and more passes. This machine has ${Math.round(meta.resources.totalMb / 1024)} GB RAM (${Math.round(meta.resources.freeMb / 1024 * 10) / 10} GB free) and it will be slow. Continue?`)) return;
+    setBusy(true), setError(""), setMessage("");
+    try {
+      await api("/api/moments-ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: project.id, mode }) });
+      setMessage("Ollama review queued. Measured results are kept if it cannot run.");
+    } catch (e) {
+      setError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function review(ids: string[], patch: { review?: string; favorite?: boolean }) {
+    try {
+      const r = await api<MomentsResult>("/api/moments-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: project.id, ids, ...patch }) });
+      setData((d) => (d ? { ...d, result: r } : d));
+    } catch (e) {
+      setError(String(e instanceof Error ? e.message : e));
+    }
+  }
   async function importFile(kind: "chat" | "replay", f?: File) {
     if (!f) return;
     setError(""), setMessage("");
@@ -253,6 +274,12 @@ export default function MomentExplorer({ project, seek }: { project: Project; se
         <button className="button primary" disabled={busy || running || !project.duration} onClick={analyze}>
           {result ? "Re-analyze" : "Find moments"}
         </button>
+        <button className="button" disabled={busy || running || !result || !meta?.models?.main} title={meta?.models?.main ? `Uses ${meta.models.main} on this machine` : "No Ollama model available"} onClick={() => ai("intelligent")}>
+          Rank with Ollama
+        </button>
+        <button className="button" disabled={busy || running || !result || !meta?.models?.main} onClick={() => ai("deep")}>
+          Deep analysis
+        </button>
       </div>
       <div className="moment-controls">
         <label className="field">
@@ -267,6 +294,14 @@ export default function MomentExplorer({ project, seek }: { project: Project; se
       {message && <p role="status">{message}</p>}
       {error && <p role="alert">{error}</p>}
       {running && <p role="status">{project.detail}</p>}
+      {meta && !meta.models?.main && <p className="muted">Ollama {meta.models?.reachable ? "has no usable model installed" : "is not running"}: instant (no-AI) mode is fully available. Nothing is downloaded automatically.</p>}
+      {result?.aiReport && (
+        <p className="muted" role="status">
+          Ollama ({result.aiReport.mode}{result.aiReport.model ? `, ${result.aiReport.model}` : ""}): {result.aiReport.analysed} reviewed
+          {result.aiReport.notes.length ? ` · ${result.aiReport.notes.join(" ")}` : ""}
+          {result.aiReport.skipped.length ? ` · skipped: ${result.aiReport.skipped.map((x) => `${x.id} (${x.reason})`).join("; ")}` : ""}
+        </p>
+      )}
 
       {result && (
         <>
@@ -328,13 +363,20 @@ export default function MomentExplorer({ project, seek }: { project: Project; se
                   <strong>
                     {fmt(c.start)}–{fmt(c.end)}
                   </strong>{" "}
-                  · {Math.round(c.end - c.start)}s · score {Math.round(c.score * 100)}
+                  · {Math.round(c.end - c.start)}s · measured {Math.round(c.score * 100)}
+                  {c.ai ? ` · AI estimate ${Math.round(((c.ai.hook + c.ai.payoff + c.ai.completeness + c.ai.clarity) / 40) * 100)} (${c.ai.category})` : ""}
+                  {c.metadata ? <em> — {c.metadata.title}{c.metadata.source === "template" ? " (template)" : ""}</em> : null}
                   <small>
                     {" "}
                     · edges: {c.precision}
                     {c.notes.length ? ` (${c.notes.join("; ")})` : ""}
                   </small>
                 </button>
+                <span className="moment-actions">
+                  <button aria-pressed={c.review === "accepted"} onClick={() => review([c.id], { review: c.review === "accepted" ? "pending" : "accepted" })}>Accept</button>
+                  <button aria-pressed={c.review === "rejected"} onClick={() => review([c.id], { review: c.review === "rejected" ? "pending" : "rejected" })}>Reject</button>
+                  <button aria-pressed={!!c.favorite} aria-label="Favorite" onClick={() => review([c.id], { favorite: !c.favorite })}>{c.favorite ? "★" : "☆"}</button>
+                </span>
               </li>
             ))}
             {!result.candidates.length && <li>No candidate passed the minimum score. Lower it or add transcript, chat or replay data.</li>}
@@ -364,6 +406,11 @@ export default function MomentExplorer({ project, seek }: { project: Project; se
               </tbody>
             </table>
           )}
+          <div className="moment-controls">
+            <button className="button" disabled={!picked.size} onClick={() => review([...picked], { review: "accepted" })}>Accept selected</button>
+            <button className="button" disabled={!picked.size} onClick={() => review([...picked], { review: "rejected" })}>Reject selected</button>
+            <button className="button" onClick={() => setPicked(new Set(result.candidates.filter((c) => c.review === "accepted").map((c) => c.id)))}>Select accepted</button>
+          </div>
           <button className="button primary" disabled={!picked.size || busy || running} onClick={render}>
             Render {picked.size || ""} selected clip{picked.size === 1 ? "" : "s"}
           </button>

@@ -73,13 +73,14 @@ import { readOllamaResponse } from "./ollama";
 import { run, bin } from "./process";
 import { transcriptAction } from "./transcript-actions";
 import { indexStream } from "./stream-index";
-import { momentsFile, chatFile, replayFile, runMomentAnalysis, parseMomentOptions } from "./clipping/engine";
+import { momentsFile, chatFile, replayFile, runMomentAnalysis, parseMomentOptions, runMomentAi, setReview } from "./clipping/engine";
 import { readJson, writeJsonAtomic } from "./clipping/media-analysis";
 import { parseChat } from "./clipping/chat";
 import { parseReplayHeatmap } from "./clipping/replay";
 import { BUILTIN_PROFILES, DEFAULT_WEIGHTS } from "./clipping/profiles";
 import { BUILTIN_DICTIONARIES } from "./clipping/hype";
 import { snapshot as resourceSnapshot } from "./clipping/resources";
+import { resolveModels } from "./clipping/ai";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
 const noTranscript =
@@ -1288,6 +1289,7 @@ export async function handle(
         defaultWeights: DEFAULT_WEIGHTS,
         dictionaries: BUILTIN_DICTIONARIES.map((d) => ({ id: d.id, label: d.label, phrases: d.phrases.length })),
         resources: resourceSnapshot(),
+        models: await resolveModels(req.signal),
       });
     if (action === "moments") {
       const project = await read(query.get("project") || "");
@@ -1304,6 +1306,20 @@ export async function handle(
         enqueue(project.id, (signal) => runMomentAnalysis(project, options, signal));
         return NextResponse.json({ ok: true }, { status: 202 });
       }
+    }
+    if (action === "moments-ai" && req.method === "POST") {
+      const b = await req.json();
+      const project = await read(String(b.project || ""));
+      if (busy(project.id)) throw Error("Wait for the current job to finish.");
+      const mode = b.mode === "deep" ? "deep" : "intelligent";
+      enqueue(project.id, (signal) => runMomentAi(project, mode, signal, typeof b.language === "string" ? b.language.slice(0, 40) : undefined));
+      return NextResponse.json({ ok: true }, { status: 202 });
+    }
+    if (action === "moments-review" && req.method === "POST") {
+      const b = await req.json();
+      const project = await read(String(b.project || ""));
+      const ids = Array.isArray(b.ids) ? b.ids.filter((x: unknown) => typeof x === "string").slice(0, 100) : [];
+      return NextResponse.json(await setReview(project.id, ids, { review: b.review, favorite: typeof b.favorite === "boolean" ? b.favorite : undefined }));
     }
     if (action === "moments-import" && req.method === "POST") {
       const b = await req.json();

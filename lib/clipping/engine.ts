@@ -20,6 +20,7 @@ import { replayTimeline, type ReplayPoint } from "./replay";
 import { combine, type Tracks } from "./scoring";
 import { robustScale, suddenRise } from "./signals";
 import { waitForMemory } from "./resources";
+import { enrichCandidates, resolveModels, type AiMode } from "./ai";
 
 export type RawSignals = {
   version: 1;
@@ -60,6 +61,7 @@ export type MomentsResult = {
   hypeEvidence: { at: number; text: string; phrases: string[] }[];
   chat?: { totalMessages: number; perMinutePeak: number; offset: number };
   replayCoverage?: number;
+  aiReport?: import("./ai").AiReport;
 };
 
 const r3 = (v: number[]) => v.map((x) => Math.round(x * 1000) / 1000);
@@ -292,4 +294,37 @@ export function parseMomentOptions(input: unknown): MomentOptions {
   const o = r.data as MomentOptions;
   if (o.minDuration && o.maxDuration && o.maxDuration <= o.minDuration) throw Error("Maximum duration must exceed minimum duration.");
   return o;
+}
+
+/** Intelligent / Deep pass over an existing result. Any AI failure degrades to the measured result. */
+export async function runMomentAi(p: Project, mode: AiMode, signal: AbortSignal, language?: string) {
+  const current = await readJson<MomentsResult>(momentsFile(p.id));
+  if (!current) throw Error("Run the moment analysis first.");
+  p.stage = "analyzing";
+  p.status = "processing";
+  p.detail = mode === "deep" ? "Deep analysis of promising windows with local Ollama" : "Ranking promising windows with local Ollama";
+  await save(p);
+  const segments = await transcript(p.id).catch(() => [] as Segment[]);
+  let out: MomentsResult;
+  try {
+    out = await enrichCandidates(current, segments, { mode, plan: await resolveModels(signal), signal, language });
+  } catch (e) {
+    if (signal.aborted) throw e;
+    out = { ...current, aiReport: { mode, model: null, used: false, analysed: 0, skipped: [], notes: ["AI step failed (" + (e instanceof Error ? e.message : String(e)) + "); measured results were kept."] } };
+  }
+  await writeJsonAtomic(momentsFile(p.id), out);
+  p.status = "ready";
+  p.stage = "complete";
+  p.detail = out.aiReport?.used ? `Ollama reviewed ${out.aiReport.analysed} candidate(s)` : "Ollama unavailable or skipped; measured results kept";
+  await save(p);
+}
+
+/** Persist accept / reject / favorite decisions on candidates. */
+export async function setReview(id: string, ids: string[], patch: { review?: "pending" | "accepted" | "rejected"; favorite?: boolean }) {
+  const r = await readJson<MomentsResult>(momentsFile(id));
+  if (!r) throw Error("No moment analysis for this project.");
+  if (patch.review && !["pending", "accepted", "rejected"].includes(patch.review)) throw Error("Invalid review status.");
+  for (const c of r.candidates) if (ids.includes(c.id)) Object.assign(c, patch);
+  await writeJsonAtomic(momentsFile(id), r);
+  return r;
 }

@@ -19,6 +19,16 @@ export type Candidate = {
   /** transcript: sentence/subtitle aware. media: silence/scene aware. duration-only: no boundary evidence. */
   precision: "transcript" | "media" | "duration-only";
   notes: string[];
+  /** Ollama-derived estimates; subjective and separate from the measured `score`. */
+  ai?: {
+    model: string; hook: number; payoff: number; completeness: number; clarity: number;
+    category: string; reason: string; openingText?: string; kind: "ai-estimate";
+  };
+  metadata?: { title: string; description: string; hashtags: string[]; source: "ollama" | "template" };
+  /** Display ordering only: measured score blended with the AI estimate when present. */
+  rankScore?: number;
+  review?: "pending" | "accepted" | "rejected";
+  favorite?: boolean;
 };
 
 export type CandidateOptions = {
