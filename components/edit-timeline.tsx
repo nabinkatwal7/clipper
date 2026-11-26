@@ -1,5 +1,6 @@
 "use client";
 import { studioStorage } from "@/lib/client-storage";
+import { loadWorkspace, saveWorkspace } from "@/lib/workspace-presets";
 import { useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
@@ -67,6 +68,43 @@ export function EditTimeline({
   const [zoom, setZoom] = useState(1);
   const [markers, setMarkers] = useState<number[]>([]),
     [snap, setSnap] = useState(true);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
+    null,
+  );
+  useEffect(() => {
+    const preset = loadWorkspace();
+    if (preset) {
+      setZoom(preset.zoom);
+      setSnap(preset.snap);
+    }
+  }, []);
+  useEffect(() => {
+    saveWorkspace({ zoom, snap });
+  }, [zoom, snap]);
+  function mutate(next: Track[]) {
+    onTracks?.(next);
+    setDraftTracks(null);
+    latestDraft.current = null;
+  }
+  function clipAction(id: string, action: "lock" | "delete" | "duplicate") {
+    const src = tracks.find((t) => t.id === id);
+    if (!src || !onTracks) return;
+    if (action === "delete") mutate(tracks.filter((t) => t.id !== id));
+    else if (action === "lock")
+      mutate(tracks.map((t) => (t.id === id ? { ...t, locked: !t.locked } : t)));
+    else
+      mutate([
+        ...tracks,
+        {
+          ...src,
+          id: crypto.randomUUID(),
+          name: src.name + " copy",
+          at: Math.min(length, src.at + 0.1),
+          locked: false,
+        },
+      ]);
+    setMenu(null);
+  }
   const markerKey = "clipper-markers-" + project;
   useEffect(() => {
     try {
@@ -344,6 +382,11 @@ export function EditTimeline({
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
+              onContextMenu={(e) => {
+                if (!onTracks) return;
+                e.preventDefault();
+                setMenu({ id: t.id, x: e.clientX, y: e.clientY });
+              }}
             >
               {onTracks && !t.locked && (
                 <i
@@ -414,6 +457,23 @@ export function EditTimeline({
           />
         </label>
       </div>
+      {menu && onTracks && (
+        <div
+          className="timeline-context"
+          style={{ position: "fixed", left: menu.x, top: menu.y, zIndex: 40 }}
+          onPointerLeave={() => setMenu(null)}
+        >
+          <button type="button" className="tool" onClick={() => clipAction(menu.id, "duplicate")}>
+            Duplicate
+          </button>
+          <button type="button" className="tool" onClick={() => clipAction(menu.id, "lock")}>
+            Lock / unlock
+          </button>
+          <button type="button" className="tool" onClick={() => clipAction(menu.id, "delete")}>
+            Delete
+          </button>
+        </div>
+      )}
     </section>
   );
 }

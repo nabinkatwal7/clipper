@@ -5,6 +5,7 @@ import { z } from "zod";
 import { settings as validateSettings } from "./validation";
 import { workspaceRoot } from "./store";
 import type { Settings } from "./types";
+import { TEXT_TRACK_ASSET } from "./composition";
 
 const templateSchema = z.object({
   version: z.literal(1),
@@ -24,6 +25,7 @@ export type EditTemplate = {
   description: string;
   createdAt: string;
   settings: Settings;
+  assets?: string[];
 };
 
 function templatesDir() {
@@ -144,6 +146,59 @@ export function builtinTemplates(): EditTemplate[] {
           temperature: -0.08,
           effect: "letterbox",
           amount: 0.55,
+        },
+      }),
+    },
+    {
+      version: 1,
+      id: "44444444-4444-4444-8444-444444444444",
+      name: "Layered vertical story",
+      category: "Short-form",
+      description:
+        "Sample text track layout with grade and bounce captions (metadata assets list for media slots).",
+      createdAt: stamp,
+      assets: [],
+      settings: validateSettings({
+        ratio: "9:16",
+        resolution: "1080",
+        captions: true,
+        style: "bold",
+        captionAnimation: "bounce",
+        layout: "blur",
+        grade: {
+          contrast: 1.1,
+          saturation: 1.05,
+          effect: "vignette",
+          amount: 0.3,
+        },
+        composition: {
+          version: 1,
+          tracks: [
+            {
+              id: "55555555-5555-4555-8555-555555555555",
+              name: "Title card",
+              type: "text",
+              asset: TEXT_TRACK_ASSET,
+              text: "Your hook",
+              color: "#ffffff",
+              fontSize: 72,
+              at: 0,
+              length: 4,
+              slip: 0,
+              x: 0.5,
+              y: 0.35,
+              size: 0.25,
+              opacity: 1,
+              volume: 1,
+              visible: true,
+              muted: true,
+              locked: false,
+              solo: false,
+              loop: false,
+              fade: 0.25,
+              keys: {},
+            },
+          ],
         },
       }),
     },

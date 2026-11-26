@@ -125,7 +125,7 @@ Test coverage — Real split, inset and audio mix fixture; timeline gesture unit
 | Nested compositions where practical | Planned |
 | Timeline snapping | Partial |
 | Frame-accurate trimming | Partial |
-| Multi-selection | Partial |
+| Multi-selection | Implemented |
 | Range selection | Partial |
 | Timeline markers | Partial |
 | In and out points | Implemented |
@@ -391,7 +391,7 @@ Test coverage — Caption ASS timing unit tests; caption track split/merge/repla
 | Scale animation | Implemented |
 | Karaoke effects | Planned |
 | Custom text stroke | Implemented |
-| Multiple text layers | Partial |
+| Multiple text layers | Implemented |
 | Background boxes | Implemented |
 | Dynamic keyword colors | Planned |
 | Speaker-based styling when speaker information exists | Planned |
@@ -1025,7 +1025,7 @@ Test coverage — Existing progress and storage tests.
 | Configurable analysis sampling | Partial |
 | CPU-aware concurrency | Partial |
 | Memory-aware processing | Planned |
-| Hardware encoder detection | Partial |
+| Hardware encoder detection | Implemented |
 | Disk-space-aware scheduling | Planned |
 | Job checkpointing | Partial |
 | Interrupted job recovery | Partial |

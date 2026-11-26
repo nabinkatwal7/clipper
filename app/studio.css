@@ -1688,6 +1688,20 @@ time,
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+.timeline-context {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.audio-meter {
+  display: block;
+  margin-top: 0.25rem;
+}
 .overlay-track .track-clip.is-locked {
   cursor: not-allowed;
 }

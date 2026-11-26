@@ -4,21 +4,21 @@ The current editor uses source timestamps and stores clip settings and media ref
 
 | Brief sections | Current implementation | Outstanding work |
 | --- | --- | --- |
-| 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, realtime multi-layer canvas preview, hashed FFmpeg preview cache and export validation | Broader document schema; chroma-key still needs FFmpeg preview for accuracy |
-| 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, drag/trim composition lanes, optional media proxies, undo, checkpoints and asset browser | Multi-select timeline editing and deeper NLE gestures |
-| 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes, entrance/exit presets, and a draggable keyframe graph | Loop presets and custom Bézier handles |
-| 14–18 · Effects and transitions | Timed effect stack, color tools and compilation transitions | Expanded effect catalog and per-cut editor transitions |
-| 19–20 · Speed | Constant 0.5×–4× playback speed, optional velocity curves with segmented FFmpeg remapping, pitch-preserving audio, retimed sidecar captions | Reverse playback and motion interpolation |
-| 21–24 · Text and graphics | Title overlay and imported images | Rich text layers, native stickers and motion-graphics authoring |
-| 25–28 · Captions | Unicode captions, word highlighting, several ASS animations, bilingual translation, transcript cleanup, and a dedicated caption track editor (find/replace, split, merge, delete, seek) | Advanced caption motion and typography controls |
-| 29–33 · Compositing | Media layers, color-key transparency, eight blend modes, and elliptical or rectangular masks with position, size and feather keyframes | Additional mask shapes, automatic tracking and dedicated background replacement |
-| 34–39 · Audio | Waveform, track gain, EQ, filters, dynamics, ducking, onset beat detection and timeline snap | Richer audio monitoring |
-| 40–45 · Color and enhancement | Grading panel, cube LUTs, effect stacks, adjustment layers and RGB/luma scopes | Broader enhancement controls and waveform/parade scopes |
-| 46–50 · Templates and AI | Built-in and user-saved JSON settings templates (apply/save/delete), layout presets, validated Ollama Director proposals | Deeper project media bundles and review automation |
-| 51–57 · Short-form export | Aspect ratios, safe-zone previews, variations, export queue and FFmpeg quality checks | Expanded export options, hardware-accelerated export, and broader preset coverage |
-| 58–67 · Interaction | Existing studio shell, keyboard actions, inspector and workspace preferences | Expanded canvas interactions, context menus and workspace presets |
-| 68–73 · Reliability | Local caches, hashed composition preview cache, optional low-res media proxies, version checkpoints, isolated workspaces and authenticated routes | Broader autosave recovery |
-| 74–77 · Verification | Unit suite, production build, desktop checks for Speed and mask controls, FFmpeg alpha and scale-dimension checks, and matching decoded frames for one masked preview and export fixture | Chroma key screenshot coverage and broader preview-to-export comparisons |
+| 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, realtime multi-layer canvas preview (including chroma key), hashed FFmpeg preview cache and export validation | Broader document schema |
+| 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, drag/trim composition lanes, multi-select moves, optional media proxies, undo, checkpoints and asset browser | Deeper NLE gestures |
+| 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes, entrance/exit and loop presets, Bézier easing, and a draggable keyframe graph | Motion interpolation |
+| 14–18 · Effects and transitions | Timed effect stack (edge, RGB shift, posterize, invert), color tools, compilation transitions, and per-cut intro fades in the clip renderer | Broader transition catalog in the single-clip path |
+| 19–20 · Speed | Constant 0.5×–4× playback speed, optional velocity curves, reverse export, pitch-preserving audio, retimed sidecar captions | Motion interpolation |
+| 21–24 · Text and graphics | Title overlay, composition text layers (drawtext), and imported images | Native stickers and motion-graphics authoring |
+| 25–28 · Captions | Unicode captions, word highlighting, fade/pop/slide/scale/bounce/typewriter animations, spacing, bilingual translation, transcript cleanup, and a dedicated caption track editor | Further typography tooling |
+| 29–33 · Compositing | Media layers, color-key transparency, eight blend modes, ellipse/rectangle/diamond/rounded masks with keyframes, mask follow-layer, and background-slot hints | Full background-replace pipeline metadata |
+| 34–39 · Audio | Waveform, track gain, EQ, filters, dynamics, ducking, onset beat detection, timeline snap, and preview level meter | Richer audio monitoring |
+| 40–45 · Color and enhancement | Grading panel, cube LUTs, effect stacks, adjustment layers, RGB/luma histogram, waveform and parade scopes | Broader enhancement controls |
+| 46–50 · Templates and AI | Built-in and user JSON templates (including sample composition layout), layout presets, validated Ollama Director proposals | Project media bundles and review automation |
+| 51–57 · Short-form export | Aspect ratios, safe-zone previews, variations, export queue, draft/archive profiles, optional hardware H.264, and FFmpeg quality checks | Broader preset coverage |
+| 58–67 · Interaction | Studio shell, keyboard actions, inspector, clip context menu, and persisted workspace zoom/snap | Expanded canvas tool presets |
+| 68–73 · Reliability | Local caches, hashed composition preview cache, optional proxies, version checkpoints, editor draft autosave, isolated workspaces and authenticated routes | Server-side autosave |
+| 74–77 · Verification | Unit suite (including chroma key), production build, desktop checks, FFmpeg alpha checks, and masked preview fixtures | Broader preview-to-export comparisons |
 
 ## Using speed and chroma key
 

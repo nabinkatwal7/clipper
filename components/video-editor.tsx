@@ -17,6 +17,7 @@ import { EditorMonitor } from "./editor-monitor";
 import { EditorInspector, editorTools } from "./editor-inspector";
 import { EditTimeline } from "./edit-timeline";
 import { VideoScopes } from "./video-scopes";
+import { AudioMeter } from "./audio-meter";
 import { CaptionTrackEditor } from "./caption-track-editor";
 import { Undo2, Redo2, Scan, Maximize, Keyboard } from "lucide-react";
 function timecode(value: number) {
@@ -58,6 +59,9 @@ export function VideoEditor({
     [saving, setSaving] = useState(false),
     [error, setError] = useState("");
   const video = useRef<HTMLVideoElement>(null);
+  const monitorCanvas = useRef<HTMLCanvasElement>(null);
+  const draftKey = "clipper-draft-" + clip.id;
+  const [draftOffer, setDraftOffer] = useState<string | null>(null);
   const start = seconds(startText),
     end = seconds(endText),
     valid = Number.isFinite(start) && Number.isFinite(end);
@@ -169,6 +173,66 @@ export function VideoEditor({
   useEffect(() => {
     if (video.current) video.current.playbackRate = settings.playbackRate ?? 1;
   }, [settings.playbackRate]);
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      studioStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          savedAt: new Date().toISOString(),
+          title,
+          postCaption,
+          settings,
+          startText,
+          endText,
+          segments,
+        }),
+      );
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [
+    draftKey,
+    title,
+    postCaption,
+    settings,
+    startText,
+    endText,
+    segments,
+  ]);
+  useEffect(() => {
+    try {
+      const raw = studioStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { savedAt?: string };
+      if (
+        draft.savedAt &&
+        new Date(draft.savedAt).getTime() >
+          new Date(project.updatedAt).getTime()
+      )
+        setDraftOffer(draft.savedAt);
+    } catch {}
+  }, [draftKey, project.updatedAt]);
+  function restoreDraft() {
+    try {
+      const raw = studioStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as {
+        title?: string;
+        postCaption?: string;
+        settings?: typeof settings;
+        startText?: string;
+        endText?: string;
+        segments?: Segment[];
+      };
+      restoring.current = true;
+      if (draft.title) setTitle(draft.title);
+      if (draft.postCaption !== undefined) setPostCaption(draft.postCaption);
+      if (draft.settings) setSettings(draft.settings);
+      if (draft.startText) setStartText(draft.startText);
+      if (draft.endText) setEndText(draft.endText);
+      if (draft.segments) setSegments(draft.segments);
+      setDraftOffer(null);
+    } catch {}
+  }
   function toggle() {
     if (!video.current) return;
     if (!video.current.paused) video.current.pause();
@@ -436,6 +500,25 @@ export function VideoEditor({
           </button>
         </div>
       </div>
+      {draftOffer && (
+        <p className="hint" role="status">
+          A newer local draft exists (
+          {new Date(draftOffer).toLocaleString()}).{" "}
+          <button type="button" className="tool" onClick={restoreDraft}>
+            Restore draft
+          </button>{" "}
+          <button
+            type="button"
+            className="tool"
+            onClick={() => {
+              studioStorage.removeItem(draftKey);
+              setDraftOffer(null);
+            }}
+          >
+            Dismiss
+          </button>
+        </p>
+      )}
       {help && (
         <section className="shortcuts-panel">
           <label className="search-field">
@@ -533,8 +616,10 @@ export function VideoEditor({
               safe={safe}
               clipStart={valid ? start : clip.start}
               preferProxy={useProxy && proxyReady}
+              monitorCanvas={monitorCanvas}
             />
-            <VideoScopes video={video} />
+            <VideoScopes video={video} canvas={monitorCanvas} />
+            <AudioMeter video={video} />
           </div>
           <Button variant="secondary" disabled={!good} onClick={toggle}>
             <Play size={14} />

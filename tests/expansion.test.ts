@@ -5,7 +5,7 @@ import { compileWorkflow, type Workflow } from "../lib/workflow";
 import { analysisWindows, passesRules } from "../lib/discovery";
 import { defaults, type Highlight, type Segment } from "../lib/types";
 import { curve, sampleCurve, validateComposition } from "../lib/composition";
-import { layerPose } from "../lib/preview-layers";
+import { applyChromaKey, layerPose } from "../lib/preview-layers";
 import { dragTrack } from "../lib/timeline-gestures";
 import { previewKey } from "../lib/preview-cache";
 import { proxyPath } from "../lib/media-proxy";
@@ -137,7 +137,7 @@ test("animation presets write renderable entrance and exit keyframes", () => {
     fade: 0,
     keys: {},
   };
-  assert.equal(animationPresets.length, 10);
+  assert.equal(animationPresets.length, 12);
   const faded = applyAnimationPreset(track, "fade-in");
   assert.equal(faded.keys.opacity?.[0]?.value, 0);
   assert.equal(faded.keys.opacity?.at(-1)?.value, 1);
@@ -409,6 +409,57 @@ test("effect stacks apply multiple timed filters in order", () => {
 });
 
 import { detectBeats, snapToBeats } from "../lib/beat-detect";
+test("applyChromaKey zeroes pixels matching the key color", () => {
+  const image = {
+    data: new Uint8ClampedArray([
+      0, 255, 0, 255, 255, 0, 0, 255, 0, 255, 0, 255, 255, 0, 0, 255,
+    ]),
+    width: 2,
+    height: 2,
+  };
+  const ctx = {
+    getImageData: () => image,
+    putImageData: () => {},
+  } as unknown as CanvasRenderingContext2D;
+  applyChromaKey(ctx, 2, 2, { color: "#00ff00", similarity: 0.35, blend: 0.1 });
+  assert.equal(image.data[3], 0);
+  assert.ok(image.data[7] > 0);
+});
+
+test("text composition tracks validate with the nil asset id", () => {
+  assert.doesNotThrow(() =>
+    validateComposition({
+      version: 1,
+      tracks: [
+        {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          name: "Label",
+          type: "text",
+          asset: "00000000-0000-0000-0000-000000000000",
+          text: "Hi",
+          color: "#ffffff",
+          fontSize: 48,
+          at: 0,
+          length: 2,
+          slip: 0,
+          x: 0.5,
+          y: 0.5,
+          size: 0.2,
+          opacity: 1,
+          volume: 1,
+          visible: true,
+          muted: true,
+          locked: false,
+          solo: false,
+          loop: false,
+          fade: 0,
+          keys: {},
+        },
+      ],
+    }),
+  );
+});
+
 test("beat detection finds periodic onsets and supports snapping", () => {
   const rate = 22050;
   const duration = 4;
