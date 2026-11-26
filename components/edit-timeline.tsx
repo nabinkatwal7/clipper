@@ -53,6 +53,9 @@ export function EditTimeline({
     originX: number;
     snapshot: Track[];
   } | null>(null);
+  const [draftTracks, setDraftTracks] = useState<Track[] | null>(null);
+  const latestDraft = useRef<Track[] | null>(null);
+  const visibleTracks = draftTracks ?? tracks;
   const [zoom, setZoom] = useState(1);
   const [markers, setMarkers] = useState<number[]>([]),
     [snap, setSnap] = useState(true);
@@ -76,7 +79,7 @@ export function EditTimeline({
       originalStart,
       originalEnd,
       ...markers,
-      ...tracks.flatMap((t) => [start + t.at, start + t.at + t.length]),
+      ...visibleTracks.flatMap((t) => [start + t.at, start + t.at + t.length]),
       ...segments.flatMap((s) => [s.start, s.end]),
     ];
     let best = at,
@@ -109,27 +112,33 @@ export function EditTimeline({
     event.preventDefault();
     event.stopPropagation();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    const snapshot = tracks.map((track) => ({
+      ...track,
+      keys: { ...track.keys },
+    }));
     drag.current = {
       id,
       gesture,
       originX: event.clientX,
-      snapshot: tracks.map((track) => ({ ...track, keys: { ...track.keys } })),
+      snapshot,
     };
+    latestDraft.current = snapshot;
+    setDraftTracks(snapshot);
   }
 
   function moveDrag(event: React.PointerEvent) {
-    if (!drag.current || !onTracks || !bed.current) return;
+    if (!drag.current || !bed.current) return;
     const width = bed.current.getBoundingClientRect().width || 1;
     const deltaSeconds = ((event.clientX - drag.current.originX) / width) * span;
-    onTracks(
-      dragTrack(
-        drag.current.snapshot,
-        drag.current.id,
-        drag.current.gesture,
-        deltaSeconds,
-        clipLength,
-      ),
+    const next = dragTrack(
+      drag.current.snapshot,
+      drag.current.id,
+      drag.current.gesture,
+      deltaSeconds,
+      clipLength,
     );
+    latestDraft.current = next;
+    setDraftTracks(next);
   }
 
   function endDrag(event: React.PointerEvent) {
@@ -139,7 +148,22 @@ export function EditTimeline({
         event.pointerId,
       );
     } catch {}
+    const finalTracks = latestDraft.current;
+    const started = drag.current.snapshot;
     drag.current = null;
+    latestDraft.current = null;
+    setDraftTracks(null);
+    if (
+      onTracks &&
+      finalTracks &&
+      finalTracks.some(
+        (track, index) =>
+          track.at !== started[index]?.at ||
+          track.length !== started[index]?.length ||
+          track.slip !== started[index]?.slip,
+      )
+    )
+      onTracks(finalTracks);
   }
 
   return (
@@ -248,7 +272,7 @@ export function EditTimeline({
             </span>
           </div>
         )}
-        {tracks.map((t) => (
+        {visibleTracks.map((t) => (
           <div
             key={t.id}
             className="overlay-track"
