@@ -14,6 +14,9 @@ Copy `.env.example` to `.env.local` and restart the server after changes. `.env*
 | `MAX_UPLOAD_MB` | `5120` | Maximum upload or download size (MiB). |
 | `MAX_VIDEO_HOURS` | `12` | Longest source accepted. |
 | `CLIPPER_STORAGE_DIR` | `./storage` | Absolute path to relocate all data. |
+| `CLIPPER_SPEECH_BIN`, `CLIPPER_SPEECH_MODEL` | auto-detected in `tools/whisper` | whisper.cpp CLI and multilingual GGML model paths. |
+| `CLIPPER_SPEECH_LANGUAGE` | `auto` | Speech language hint, such as `en`, `ne`, or `hi`. |
+| `CLIPPER_COORDINATOR_URL` | unset | Only for web replicas. Loopback HTTP URL of the coordinator. |
 | `CLIPPER_SETUP_TOKEN` | none | Token the first account must present when created via a non-localhost address. |
 
 ## Accounts
@@ -40,5 +43,9 @@ Back up the whole `storage/` directory while the server is stopped, or use **Bac
 Any text model installed in Ollama can be selected. Capability depends on the model: context size, instruction following and the languages it handles all vary. The studio does not claim that a model supports a language or modality it has not been verified for; review all model output.
 
 ## Running on a network
+
+### Multiple web instances on one host
+
+Start one coordinator on port 4000 with an absolute `CLIPPER_STORAGE_DIR` and leave `CLIPPER_COORDINATOR_URL` unset. To run additional Next.js web instances, use the same absolute storage directory and set `CLIPPER_COORDINATOR_URL=http://127.0.0.1:4000` on those instances only. Start each on a different loopback port with `npx next start --hostname 127.0.0.1 --port 4001` (increment the port for each replica). Complete initial owner setup on the coordinator before starting replicas. Replicas read account information for rendered pages and forward authenticated API operations, uploads, media streams and job control to the coordinator. Run only one coordinator per storage directory. If the coordinator is unavailable, replica API requests return 503.
 
 Bound to `127.0.0.1` by default (`npm run dev` / `npm start`). If you expose it, use HTTPS via a reverse proxy, set `CLIPPER_SETUP_TOKEN`, close registration after creating the owner, and read [SECURITY.md](../SECURITY.md).

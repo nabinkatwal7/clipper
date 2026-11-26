@@ -15,6 +15,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { availableParallelism, freemem } from "node:os";
+import { recognizeSpeech, speechConfig } from "./speech";
 import { run, bin } from "./process";
 import { file, read, save, transcript } from "./store";
 import { downloadProxy } from "./network";
@@ -360,8 +361,13 @@ export async function transcribe(
   p: Project,
   signal: AbortSignal,
 ): Promise<boolean> {
-  try {
-    await transcript(p.id);
+  const existing = await transcript(p.id).catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    },
+  );
+  if (existing.length) {
     beginProgress(
       p,
       "transcribing",
@@ -372,8 +378,24 @@ export async function transcribe(
     completeProgress(p, "transcribing");
     await save(p);
     return true;
-  } catch {}
-  // No transcript: skip it instead of failing. Callers fall back to fixed-length clips without captions.
+  }
+  const config = p.hasAudio !== false && (await speechConfig());
+  if (config) {
+    await stage(p, "transcribing", "Recognizing speech locally…");
+    const progress = reporter(p, "transcribing");
+    const found = await recognizeSpeech(p, config, signal, (seconds) =>
+      progress.update(
+        seconds,
+        p.duration,
+        "seconds",
+        "Recognizing speech locally…",
+      ),
+    );
+    await progress.flush();
+    completeProgress(p, "transcribing");
+    await save(p);
+    if (found) return true;
+  }
   p.detail =
     "No transcript available; continuing without one. Import a timed subtitle file in Transcript explorer to enable captions and AI highlights.";
   await save(p);
@@ -546,11 +568,8 @@ export async function render(
 ): Promise<Clip> {
   const [w, height] = dimensions(s);
   const sourceLength = h.end - h.start;
-  const {
-    outputDuration,
-    speedRemapFilters,
-    atempoChain,
-  } = await import("./speed-curve");
+  const { outputDuration, speedRemapFilters, atempoChain } =
+    await import("./speed-curve");
   const rate = s.playbackRate ?? 1;
   const curved = !!s.speedCurve?.length;
   const duration = curved
@@ -591,18 +610,14 @@ export async function render(
       `crop=w='iw*min(1,t/${cut.duration})':h=ih:x='iw-iw*min(1,t/${cut.duration})':y=0`,
     );
   else if (cut?.type === "slideright")
-    transforms.push(
-      `crop=w='iw*min(1,t/${cut.duration})':h=ih:x=0:y=0`,
-    );
+    transforms.push(`crop=w='iw*min(1,t/${cut.duration})':h=ih:x=0:y=0`);
   else if (cut?.type === "wipeleft" || cut?.type === "wiperight")
     transforms.push(`fade=t=in:st=0:d=${cut.duration}:alpha=1`);
   if (s.motionInterpolation)
     transforms.push("minterpolate=fps=30:mi_mode=blend");
   for (const span of s.spanTransitions || []) {
     if (span.type === "fade" || span.type.startsWith("wipe"))
-      transforms.push(
-        `fade=t=in:st=${span.at}:d=${span.duration}:alpha=1`,
-      );
+      transforms.push(`fade=t=in:st=${span.at}:d=${span.duration}:alpha=1`);
     else if (span.type === "fadeblack")
       transforms.push(`fade=t=in:st=${span.at}:d=${span.duration}:c=black`);
     else if (span.type === "fadewhite")
@@ -773,17 +788,16 @@ export async function render(
         "-c:v",
         videoCodec,
         ...(videoCodec === "libx264"
-          ? [
-              "-preset",
-              enc.preset,
-              "-crf",
-              enc.crf,
-            ]
+          ? ["-preset", enc.preset, "-crf", enc.crf]
           : [
               "-preset",
               profile === "draft" ? "p1" : "p4",
               "-b:v",
-              profile === "archive" ? "12M" : profile === "quality" ? "8M" : "5M",
+              profile === "archive"
+                ? "12M"
+                : profile === "quality"
+                  ? "8M"
+                  : "5M",
             ]),
         "-pix_fmt",
         "yuv420p",

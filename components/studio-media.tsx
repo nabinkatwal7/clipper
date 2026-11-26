@@ -1,4 +1,5 @@
 "use client";
+import { useStudioLocale } from "./studio-locale";
 
 import { variantLabels, type VariantFormat } from "@/lib/variant-formats";
 import { studioStorage } from "@/lib/client-storage";
@@ -40,6 +41,7 @@ export function ProjectRows({
   projects: Project[];
   open: (id: string) => void;
 }) {
+  const { t, locale } = useStudioLocale();
   return (
     <div className="project-rows">
       {projects.map((p) => (
@@ -52,16 +54,27 @@ export function ProjectRows({
           <span>
             <strong>{p.title}</strong>
             <small>
-              {platform(p)} · {duration(p.duration)} · {p.clips.length} clips
+              {t(platform(p))} · {duration(p.duration)} · {p.clips.length}{" "}
+              {t("clips")}
             </small>
           </span>
           <time>
-            {new Date(p.updatedAt).toLocaleDateString(undefined, {
+            {new Date(p.updatedAt).toLocaleDateString(locale, {
               month: "short",
               day: "numeric",
             })}
           </time>
-          <em>{p.status}</em>
+          <em>
+            {t(
+              {
+                ready: "Ready",
+                queued: "Queued",
+                processing: "Processing",
+                cancelled: "Cancelled",
+                error: "Needs attention",
+              }[p.status] || p.status,
+            )}
+          </em>
           <ChevronRight size={15} />
         </button>
       ))}
@@ -528,6 +541,7 @@ export function Overview({
   go: (s: string) => void;
   create: (url?: string, upload?: boolean) => void;
 } & MediaProps) {
+  const { t } = useStudioLocale();
   const [url, setUrl] = useState("");
   const recents = projects
     .slice()
@@ -552,11 +566,11 @@ export function Overview({
     <>
       <div className="section-title">
         <div>
-          <h1>Studio overview</h1>
+          <h1>{t("Studio overview")}</h1>
           <p>
-            {projects.length} projects <b>·</b>{" "}
-            {projects.reduce((a, p) => a + p.clips.length, 0)} clips in your
-            workspace
+            {projects.length} {t("projects")} <b>·</b>{" "}
+            {projects.reduce((a, p) => a + p.clips.length, 0)} {t("clips")}{" "}
+            {t("in your workspace")}
           </p>
         </div>
       </div>
@@ -565,8 +579,8 @@ export function Overview({
           <span className="import-icon">
             <ScissorsMark />
           </span>
-          <h2>Import a video</h2>
-          <p>Find highlights in a stream or recording.</p>
+          <h2>{t("Import a video")}</h2>
+          <p>{t("Find highlights in a stream or recording.")}</p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -578,7 +592,7 @@ export function Overview({
               type="url"
               required
               aria-label="Video URL"
-              placeholder="Paste a video link"
+              placeholder={t("Paste a video link")}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
@@ -587,14 +601,15 @@ export function Overview({
             </button>
           </form>
           <button className="upload-shortcut" onClick={() => create("", true)}>
-            <Upload size={15} /> Upload a file <small>Up to 5 GB</small>
+            <Upload size={15} /> {t("Upload a file")}{" "}
+            <small>{t("Up to 5 GB")}</small>
           </button>
           <div className="home-quick-actions">
             <button className="tool" onClick={() => go("Live clipping")}>
-              Clip a live stream
+              {t("Clip a live stream")}
             </button>
             <button className="tool" onClick={() => go("Clip library")}>
-              Browse clips
+              {t("Browse clips")}
             </button>
           </div>
         </div>
@@ -606,12 +621,12 @@ export function Overview({
             {current.thumbnail && <img alt="" src={current.thumbnail} />}
             <span className="resume-copy">
               <small>
-                <FolderOpen size={13} /> Last edited project
+                <FolderOpen size={13} /> {t("Last edited project")}
               </small>
               <strong>{current.title}</strong>
               <span>
                 {duration(current.duration)} <i>·</i> {current.clips.length}{" "}
-                clips <ArrowUpRight size={16} />
+                {t("clips")} <ArrowUpRight size={16} />
               </span>
             </span>
           </button>
@@ -620,9 +635,9 @@ export function Overview({
       {jobs.length > 0 && (
         <section className="studio-section">
           <div className="section-row">
-            <h2>Processing now</h2>
+            <h2>{t("Processing now")}</h2>
             <button onClick={() => go("Processing queue")}>
-              View queue <ChevronRight size={14} />
+              {t("View queue")} <ChevronRight size={14} />
             </button>
           </div>
           {jobs.map((p) => (
@@ -642,9 +657,9 @@ export function Overview({
       {projects.length > 0 && (
         <section className="studio-section">
           <div className="section-row">
-            <h2>Recent projects</h2>
+            <h2>{t("Recent projects")}</h2>
             <button onClick={() => go("Projects")}>
-              All projects <ChevronRight size={14} />
+              {t("All projects")} <ChevronRight size={14} />
             </button>
           </div>
           <ProjectRows projects={recents.slice(0, 3)} open={openProject} />
@@ -653,9 +668,9 @@ export function Overview({
       {projects.some((p) => p.clips.length > 0) && (
         <section className="studio-section">
           <div className="section-row">
-            <h2>Recent clips</h2>
+            <h2>{t("Recent clips")}</h2>
             <button onClick={() => go("Clip library")}>
-              Open library <ChevronRight size={14} />
+              {t("Open library")} <ChevronRight size={14} />
             </button>
           </div>
           <MediaLibrary projects={projects} open={open} recent />

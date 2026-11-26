@@ -1,4 +1,5 @@
 "use client";
+import { useStudioLocale } from "./studio-locale";
 import { studioStorage } from "@/lib/client-storage";
 import { useRef, useState, useEffect } from "react";
 import {
@@ -29,6 +30,7 @@ export function CreateClips({
   onClose: () => void;
   onCreated: (id: string) => Promise<void>;
 }) {
+  const { t } = useStudioLocale();
   const [tab, setTab] = useState(initialUpload ? "upload" : "link"),
     [url, setUrl] = useState(initialUrl),
     [file, setFile] = useState<File | null>(null),
@@ -158,7 +160,7 @@ export function CreateClips({
   }
   return (
     <Modal
-      title={reuse ? "Create more clips" : "Generate clips"}
+      title={t(reuse ? "Create more clips" : "Generate clips")}
       description={
         reuse
           ? reuse.title
@@ -190,7 +192,7 @@ export function CreateClips({
                   onClick={() => setTab("link")}
                 >
                   <Link2 size={16} />
-                  Video link
+                  {t("Video link")}
                 </button>
                 <button
                   type="button"
@@ -201,20 +203,20 @@ export function CreateClips({
                   onClick={() => setTab("upload")}
                 >
                   <Upload size={16} />
-                  Upload file
+                  {t("Upload file")}
                 </button>
               </div>
               {tab === "link" ? (
                 <div>
                   <label className="field source-url">
-                    <span>Video link</span>
+                    <span>{t("Video link")}</span>
                     <input
                       autoFocus
                       type="url"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="Paste your video link here"
-                      aria-label="Video link"
+                      aria-label={t("Video link")}
                       required
                       disabled={working}
                     />
@@ -327,7 +329,7 @@ export function CreateClips({
             <h3>
               {settings.mode === "manual"
                 ? "Selected range"
-                : "Quick clip settings"}
+                : t("Quick clip settings")}
             </h3>
             {settings.mode === "manual" ? (
               <p className="hint">One clip from your selected time range.</p>
@@ -335,7 +337,7 @@ export function CreateClips({
               <>
                 <BasicSettings value={settings} onChange={setSettings} />
                 <Toggle
-                  label="Burn available subtitles into clips"
+                  label={t("Burn available subtitles into clips")}
                   checked={settings.captions}
                   onChange={(captions) =>
                     setSettings({ ...settings, captions })
@@ -351,7 +353,7 @@ export function CreateClips({
             </div>
             <details className="advanced-disclosure">
               <summary>
-                Advanced project settings
+                {t("Advanced project settings")}
                 <ChevronDown size={16} />
               </summary>
               <ProfilePicker
@@ -401,7 +403,7 @@ export function CreateClips({
               ? uploadProgress !== null
                 ? "Uploading…"
                 : "Starting…"
-              : "Generate clips"}
+              : t("Generate clips")}
           </Button>
         </footer>
       </form>

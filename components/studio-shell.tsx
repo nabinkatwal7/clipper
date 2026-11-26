@@ -1,4 +1,5 @@
 "use client";
+import { useStudioLocale } from "./studio-locale";
 import { studioStorage } from "@/lib/client-storage";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -67,6 +68,7 @@ export function StudioShell({
   account: ReactNode;
   children: ReactNode;
 }) {
+  const { t } = useStudioLocale();
   const [collapsed, setCollapsed] = useState(false),
     [drawer, setDrawer] = useState(false),
     [light, setLight] = useState(false),
@@ -191,7 +193,11 @@ export function StudioShell({
   ];
   const matches = commands
     .filter((c) => {
-      const hay = c.name.toLowerCase();
+      const hay = (
+        c.name +
+        " " +
+        (c.kind === "Page" || c.kind === "Action" ? t(c.name) : "")
+      ).toLowerCase();
       let at = -1;
       return [...query.trim().toLowerCase()].every(
         (ch) => (at = hay.indexOf(ch, at + 1)) >= 0,
@@ -234,7 +240,10 @@ export function StudioShell({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      aria-label={group.label + " workspace"}
+                      aria-label={
+                        t(group.label) +
+                        (t(group.label) === group.label ? " workspace" : "")
+                      }
                       aria-current={
                         group.id === activeSection.id ? "true" : undefined
                       }
@@ -249,11 +258,11 @@ export function StudioShell({
                       }}
                     >
                       <group.Icon size={17} strokeWidth={1.8} />
-                      <span>{group.label}</span>
+                      <span>{t(group.label)}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    {group.description}
+                    {t(group.description)}
                   </TooltipContent>
                 </Tooltip>
               );
@@ -303,15 +312,15 @@ export function StudioShell({
                   type="button"
                   className="workspace-current"
                   aria-expanded={wsOpen}
-                  title={activeSection.label}
+                  title={t(activeSection.label)}
                   onClick={() => setWsOpen((o) => !o)}
                 >
                   <WsIcon size={16} strokeWidth={1.75} />
                   {!collapsed && (
                     <>
                       <span className="workspace-current-copy">
-                        <strong>{activeSection.label}</strong>
-                        <small>{activeSection.description}</small>
+                        <strong>{t(activeSection.label)}</strong>
+                        <small>{t(activeSection.description)}</small>
                       </span>
                       <ChevronDown
                         size={14}
@@ -355,8 +364,8 @@ export function StudioShell({
                     >
                       <Icon size={15} strokeWidth={1.75} />
                       <span>
-                        <strong>{g.label}</strong>
-                        <small>{g.description}</small>
+                        <strong>{t(g.label)}</strong>
+                        <small>{t(g.description)}</small>
                       </span>
                     </button>
                   );
@@ -368,7 +377,7 @@ export function StudioShell({
           <nav className="studio-nav" aria-label="Studio pages">
             {!collapsed && (
               <p className="nav-group" id="nav-pages-label">
-                {activeSection.label}
+                {t(activeSection.label)}
               </p>
             )}
             {activeSection.items.map((item) => {
@@ -377,7 +386,7 @@ export function StudioShell({
               const btn = (
                 <button
                   type="button"
-                  title={item.label}
+                  title={t(item.label)}
                   aria-current={current ? "page" : undefined}
                   className={`nav-item ${current ? "current" : ""}`}
                   onClick={() => {
@@ -388,7 +397,7 @@ export function StudioShell({
                   }}
                 >
                   <Icon size={16} strokeWidth={1.75} />
-                  <span>{item.label}</span>
+                  <span>{t(item.label)}</span>
                   {item.page === "Processing queue" && active > 0 && (
                     <small>{active}</small>
                   )}
@@ -398,7 +407,9 @@ export function StudioShell({
                 return (
                   <Tooltip key={item.page}>
                     <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
+                    <TooltipContent side="right">
+                      {t(item.label)}
+                    </TooltipContent>
                   </Tooltip>
                 );
               }
@@ -409,7 +420,7 @@ export function StudioShell({
           <div className="side-foot">
             <button className="nav-item" title="Local settings" onClick={setup}>
               <Settings2 size={16} strokeWidth={1.75} />
-              <span>Settings</span>
+              <span>{t("Settings")}</span>
             </button>
             <button
               className="engine"
@@ -418,13 +429,13 @@ export function StudioShell({
             >
               <Cpu size={18} strokeWidth={1.75} />
               <span>
-                <strong>Local engine</strong>
+                <strong>{t("Local engine")}</strong>
                 <small>
                   {ollama === undefined
-                    ? "Checking Ollama…"
+                    ? t("Checking Ollama…")
                     : ollama
-                      ? "Ollama connected"
-                      : "Ollama unavailable"}
+                      ? t("Ollama connected")
+                      : t("Ollama unavailable")}
                 </small>
               </span>
               <i className={ollama ? "online" : ""} />
@@ -440,17 +451,19 @@ export function StudioShell({
               variant="ghost"
               size="icon"
               className="mobile-menu"
-              aria-label="Navigation"
+              aria-label={t("Navigation")}
               onClick={() => setDrawer(!drawer)}
             >
               <Menu size={18} />
             </Button>
             <span className="crumb">
-              <Workflow size={15} /> {activeSection.label}{" "}
+              <Workflow size={15} /> {t(activeSection.label)}{" "}
               <ChevronRight size={13} />
               <strong>
-                {activeSection.items.find((i) => i.page === page)?.label ||
-                  page}
+                {t(
+                  activeSection.items.find((i) => i.page === page)?.label ||
+                    page,
+                )}
               </strong>
             </span>
             <div className="bar-tools">
@@ -472,7 +485,7 @@ export function StudioShell({
                 title={"Search studio (Ctrl+" + shortcut.toUpperCase() + ")"}
               >
                 <Search size={15} />
-                <span>Search studio</span>
+                <span>{t("Search studio")}</span>
                 <kbd>Ctrl {shortcut.toUpperCase()}</kbd>
               </Button>
               <Tooltip>
@@ -493,7 +506,7 @@ export function StudioShell({
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Change theme"
+                    aria-label={t("Change theme")}
                     onClick={theme}
                   >
                     {light ? <Moon size={16} /> : <Sun size={16} />}
@@ -505,10 +518,10 @@ export function StudioShell({
               <Button
                 size="sm"
                 className="primary studio-create"
-                aria-label="New project"
+                aria-label={t("New project")}
                 onClick={create}
               >
-                <Plus size={15} /> <span>New project</span>
+                <Plus size={15} /> <span>{t("New project")}</span>
               </Button>
               {account}
             </div>
@@ -526,7 +539,9 @@ export function StudioShell({
                   <CommandInput
                     ref={input}
                     aria-label="Find command"
-                    placeholder="Search pages, commands, projects and clips"
+                    placeholder={t(
+                      "Search pages, commands, projects and clips",
+                    )}
                     value={query}
                     onValueChange={setQuery}
                   />
@@ -543,7 +558,11 @@ export function StudioShell({
                           command.run();
                         }}
                       >
-                        <span>{command.name}</span>
+                        <span>
+                          {command.kind === "Page" || command.kind === "Action"
+                            ? t(command.name)
+                            : command.name}
+                        </span>
                         <small>{command.kind}</small>
                       </CommandItem>
                     ))}

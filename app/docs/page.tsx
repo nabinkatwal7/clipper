@@ -17,7 +17,7 @@ export default function Docs() {
       <DocLayout sections={[
         { id: "overview", title: "Overview", body: <>
           <p>Clipper Studio is a self-hosted Next.js application. It imports a recording, reads its subtitles (published with the video, or a file you import), asks a local Ollama model for highlight candidates, and renders vertical clips with FFmpeg. Projects and media are stored as files on your machine; there is no database or paid API.</p>
-          {note(<>AI output is a suggestion. Highlights are based on the transcript, so purely visual moments can be missed, and scores are model estimates rather than measured engagement. Built-in speech recognition is not included: without a transcript you can still make fixed-length and manual clips.</>)}
+          {note(<>AI output is a suggestion. Highlights are based on the transcript, so purely visual moments can be missed, and scores are model estimates rather than measured engagement. With whisper.cpp installed, Studio can generate a transcript locally. Fixed-length and manual clipping remain available without a transcript.</>)}
         </> },
         { id: "requirements", title: "Requirements", body: <>
           {table(["Component", "Needed for", "Notes"], [
@@ -63,7 +63,7 @@ export default function Docs() {
             <li>Download an MP4, an MP4 with caption text, or a ZIP of a whole project.</li>
           </ol>
           <h3>Transcripts</h3>
-          <p>If the video publishes subtitles, they are imported automatically. Otherwise import an SRT or VTT file in <b>Transcript explorer</b>. With no transcript, AI highlights and captions are skipped: the studio falls back to fixed-length clips and says so on each clip.</p>
+          <p>If the video publishes subtitles, they are imported automatically. Otherwise use local speech recognition or import an SRT or VTT file in <b>Transcript explorer</b>. With no transcript, AI highlights and captions are skipped: the studio falls back to fixed-length clips and says so on each clip.</p>
           <p>Press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>K</kbd> to jump to any project, clip, channel, page or command. Live broadcasts are rejected; use completed recordings.</p>
         </> },
         { id: "config", title: "Configuration", body: <>
@@ -81,7 +81,7 @@ export default function Docs() {
         </> },
         { id: "storage", title: "Where data lives", body: <>
           {code("storage/\n  auth/                  accounts, sessions, security log\n  workspaces/<user-id>/  one folder per account:\n    uploads/ audio/ transcripts/ projects/ clips/ assets/ temp/ backups/\n  backups/               legacy-claim backups")}
-          <p>Everything is plain files written with temporary files and atomic renames. Persistence is designed for one application instance, not multiple servers.</p>
+          <p>Everything is plain files written with temporary files and atomic renames. Same-host web replicas can forward API traffic to a single local coordinator that owns writes and media jobs.</p>
         </> },
         { id: "backups", title: "Backups", body: <p>Open <b>Backup &amp; recovery</b> to create checksummed backups and restore them into a separate folder. You can also stop the server and copy the whole storage folder.</p> },
         { id: "api", title: "API and automation", body: <>

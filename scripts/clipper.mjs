@@ -2,7 +2,8 @@ import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 const [command, arg, extra] = process.argv.slice(2);
-const base = "http://127.0.0.1:4000/api/";
+import { studioClient } from "./studio-client.mjs";
+let client;
 try {
   let endpoint,
     options = {};
@@ -22,6 +23,7 @@ try {
       endpoint = "import";
       options = post({ url: arg, settings: extra ? JSON.parse(extra) : {} });
       break;
+    case "transcribe":
     case "analyze":
     case "generate":
     case "cancel":
@@ -44,10 +46,11 @@ try {
       break;
     default:
       throw Error(
-        "Usage: npm run clipper -- jobs | health | import URL [settings-json] | analyze PROJECT | generate PROJECT [settings-json] | render PROJECT edit-json | cancel PROJECT | report PROJECT | export PROJECT new.zip",
+        "Usage: npm run clipper -- jobs | health | import URL [settings-json] | transcribe PROJECT | analyze PROJECT | generate PROJECT [settings-json] | render PROJECT edit-json | cancel PROJECT | report PROJECT | export PROJECT new.zip",
       );
   }
-  const r = await fetch(base + endpoint, options);
+  client = await studioClient();
+  const r = await client.request("/api/" + endpoint, options);
   if (!r.ok) throw Error((await r.json()).error || r.statusText);
   if (command === "export") {
     await pipeline(
@@ -59,4 +62,6 @@ try {
 } catch (e) {
   console.error(e.message);
   process.exitCode = 1;
+} finally {
+  await client?.close().catch(() => {});
 }

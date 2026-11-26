@@ -8,6 +8,13 @@ const browser = await chromium.launch({
   headless: true,
 });
 const dest = process.env.SCREENSHOT_DIR || "tools/visual-regression";
+const base = new URL(process.env.STUDIO_URL || "http://127.0.0.1:4000");
+const identifier = process.env.STUDIO_TEST_EMAIL;
+const password = process.env.STUDIO_TEST_PASSWORD;
+assert.ok(
+  identifier && password,
+  "Provide credentials for a dedicated visual test account.",
+);
 await mkdir(dest, { recursive: true });
 try {
   const page = await browser.newPage({
@@ -16,7 +23,11 @@ try {
   const errors = [];
   await page.emulateMedia({ reducedMotion: "reduce" });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(process.env.STUDIO_URL || "http://127.0.0.1:4000");
+  const login = await page.request.post(new URL("/api/auth/login", base).href, {
+    headers: { origin: base.origin },
+    data: { identifier, password },
+  });
+  assert.equal(login.status(), 200);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const name of [
@@ -28,11 +39,9 @@ try {
       "Backup & recovery",
       "Content calendar",
     ]) {
-      if (width < 600)
-        await page
-          .getByRole("button", { name: "Navigation", exact: true })
-          .click();
-      await page.getByRole("button", { name, exact: true }).click();
+      await page.goto(
+        new URL("/app#" + name.toLowerCase().replaceAll(" ", "-"), base).href,
+      );
       await page.getByRole("heading", { name, exact: true }).first().waitFor();
       if (name === "Production desk")
         await page

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useStudioLocale } from "./studio-locale";
 import { ChevronDown } from "lucide-react";
 import type { Settings } from "@/lib/types";
 export function Select({
@@ -65,28 +66,29 @@ export function BasicSettings({
   value: Settings;
   onChange: (s: Settings) => void;
 }) {
+  const { t } = useStudioLocale();
   return (
     <div className="field-grid">
       <Select
-        label="Clip length"
+        label={t("Clip length")}
         value={value.duration}
         onChange={(v) =>
           onChange({ ...value, duration: v as Settings["duration"] })
         }
         options={["15-30", "30-60", "60-90"].map((v) => [
           v,
-          v.replace("-", "–") + " seconds",
+          v.replace("-", "–") + " " + t("seconds"),
         ])}
       />
       <Select
-        label="How many clips?"
+        label={t("How many clips?")}
         value={value.count}
         onChange={(v) => onChange({ ...value, count: Number(v) })}
         options={[
-          ["5", "5 clips"],
-          ["10", "10 clips"],
-          ["20", "20 clips"],
-          ["0", "Let AI decide"],
+          ["5", "5 " + t("clips")],
+          ["10", "10 " + t("clips")],
+          ["20", "20 " + t("clips")],
+          ["0", t("Let AI decide")],
         ]}
       />
     </div>
@@ -354,7 +356,27 @@ export function AdvancedSettings({
           <div className="field-grid">
             <label className="field">
               Content category
-              <input list="highlight-categories" value={value.category||""} maxLength={60} placeholder="General or custom category" onChange={e=>onChange({...value,category:e.target.value})}/><datalist id="highlight-categories">{["Gaming","Interview","Sports","Education","Comedy","Commentary"].map(c=><option key={c}>{c}</option>)}</datalist>
+              <input
+                list="highlight-categories"
+                value={value.category || ""}
+                maxLength={60}
+                placeholder="General or custom category"
+                onChange={(e) =>
+                  onChange({ ...value, category: e.target.value })
+                }
+              />
+              <datalist id="highlight-categories">
+                {[
+                  "Gaming",
+                  "Interview",
+                  "Sports",
+                  "Education",
+                  "Comedy",
+                  "Commentary",
+                ].map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </datalist>
             </label>
             <label className="field">
               Ollama model

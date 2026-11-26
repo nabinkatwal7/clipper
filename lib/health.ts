@@ -1,10 +1,10 @@
 import { bin, run } from "./process";
+import { speechConfig } from "./speech";
 export async function health() {
   const commands: [string, string, string[]][] = [
     ["FFmpeg", bin.ffmpeg, ["-version"]],
     ["FFprobe", bin.ffprobe, ["-version"]],
     ["yt-dlp", bin.ytdlp, ["--version"]],
-
   ];
   const checks = await Promise.all(
     commands.map(async ([name, command, args]) => {
@@ -25,6 +25,14 @@ export async function health() {
       }
     }),
   );
+  const speech = await speechConfig();
+  checks.push({
+    name: "Speech recognition",
+    ok: Boolean(speech),
+    detail: speech
+      ? "Local whisper.cpp model configured"
+      : "Configure whisper.cpp with CLIPPER_SPEECH_BIN and CLIPPER_SPEECH_MODEL",
+  });
   try {
     const res = await fetch(
       `${process.env.OLLAMA_URL || "http://127.0.0.1:11434"}/api/tags`,

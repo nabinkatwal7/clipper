@@ -30,6 +30,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { SourceTool } from "./studio-tools";
+import { useStudioLocale } from "./studio-locale";
 
 function fmt(n: number) {
   const m = Math.floor(n / 60),
@@ -44,6 +45,9 @@ export function TranscriptStudio({
   project: Project;
   generate: (a: number, b: number) => void;
 }) {
+  const { t } = useStudioLocale();
+  const [speechJob, setSpeechJob] = useState<string | null>(null);
+  const [transcriptVersion, refreshTranscript] = useState(0);
   const [rows, setRows] = useState<Segment[]>([]);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -84,7 +88,43 @@ export function TranscriptStudio({
           setError(e.message || "Transcript unavailable");
       });
     return () => ctrl.abort();
-  }, [project.id, project.duration]);
+  }, [project.id, project.duration, transcriptVersion]);
+
+  useEffect(() => {
+    if (
+      !speechJob ||
+      project.updatedAt === speechJob ||
+      ["queued", "processing"].includes(project.status)
+    )
+      return;
+    setSpeechJob(null);
+    if (project.status === "ready") refreshTranscript((v) => v + 1);
+    else setError(project.error || "Speech recognition did not finish.");
+  }, [speechJob, project.updatedAt, project.status, project.error]);
+
+  async function generateTranscript() {
+    setError("");
+    setSpeechJob(project.updatedAt);
+    try {
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project: project.id }),
+      });
+      if (!response.ok)
+        throw Error(
+          (await response.json()).error ||
+            "Could not queue speech recognition.",
+        );
+    } catch (error) {
+      setSpeechJob(null);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not queue speech recognition.",
+      );
+    }
+  }
 
   function push(next: TranscriptCutState) {
     setHistory((h) => [...h.slice(-40), cut]);
@@ -109,7 +149,9 @@ export function TranscriptStudio({
       return;
     }
     setSelected((cur) =>
-      cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i].sort((x, y) => x - y),
+      cur.includes(i)
+        ? cur.filter((x) => x !== i)
+        : [...cur, i].sort((x, y) => x - y),
     );
   }
 
@@ -169,13 +211,24 @@ export function TranscriptStudio({
     <div className="transcript-studio">
       <header className="panel-head">
         <div>
-          <h2>Transcript Studio</h2>
+          <h2>{t("Transcript Studio")}</h2>
           <p>
             Edit the rough cut by selecting dialogue. Caption fixes never remove
             audio.
           </p>
         </div>
         <div className="bar-tools">
+          {!timed && project.hasAudio !== false && project.duration > 0 && (
+            <Button
+              size="sm"
+              disabled={
+                !!speechJob || ["queued", "processing"].includes(project.status)
+              }
+              onClick={generateTranscript}
+            >
+              {t(speechJob ? "Transcription queued" : "Transcribe audio")}
+            </Button>
+          )}
           <Badge variant={timed ? "default" : "secondary"}>
             {timed ? "Timed transcript" : "No timestamps"}
           </Badge>
@@ -187,8 +240,9 @@ export function TranscriptStudio({
 
       {!timed && (
         <p className="notice">
-          Timestamped transcripts are required for transcript-based video cuts.
-          You can still search text and use manual clip ranges below.
+          {t(
+            "Transcribe the audio or import a subtitle file to edit by dialogue.",
+          )}
         </p>
       )}
 
@@ -214,7 +268,12 @@ export function TranscriptStudio({
         >
           <Columns2 size={14} /> Compare
         </Button>
-        <Button size="sm" variant="outline" disabled={!history.length} onClick={undo}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!history.length}
+          onClick={undo}
+        >
           <RotateCcw size={14} /> Undo
         </Button>
         <label className="search-field">
@@ -282,10 +341,19 @@ export function TranscriptStudio({
       <div className="transcript-actions">
         {mode === "video" ? (
           <>
-            <Button size="sm" disabled={!selected.length || !timed} onClick={removeSelected}>
+            <Button
+              size="sm"
+              disabled={!selected.length || !timed}
+              onClick={removeSelected}
+            >
               <Scissors size={14} /> Delete selected dialogue
             </Button>
-            <Button size="sm" variant="secondary" disabled={!selected.length} onClick={makeClip}>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!selected.length}
+              onClick={makeClip}
+            >
               <Clapperboard size={14} /> Create clip from selection
             </Button>
           </>
@@ -367,9 +435,7 @@ export function TranscriptStudio({
             <select
               aria-label="Filler language"
               value={language}
-              onChange={(e) =>
-                setLanguage(e.target.value as DialogueLanguage)
-              }
+              onChange={(e) => setLanguage(e.target.value as DialogueLanguage)}
             >
               <option value="mixed">Mixed</option>
               <option value="en">English</option>
@@ -404,12 +470,10 @@ export function TranscriptStudio({
                     const data = await r.json();
                     if (!r.ok) throw Error(data.error || "Suggestion failed");
                     setSuggestions(
-                      (data.suggestions || []).map(
-                        (s: DialogueSuggestion) => ({
-                          ...s,
-                          approved: false,
-                        }),
-                      ),
+                      (data.suggestions || []).map((s: DialogueSuggestion) => ({
+                        ...s,
+                        approved: false,
+                      })),
                     );
                   })
                   .catch((e) =>
@@ -435,9 +499,7 @@ export function TranscriptStudio({
                   onChange={(e) =>
                     setSuggestions((rows) =>
                       rows.map((row, j) =>
-                        j === i
-                          ? { ...row, approved: e.target.checked }
-                          : row,
+                        j === i ? { ...row, approved: e.target.checked } : row,
                       ),
                     )
                   }
@@ -481,7 +543,12 @@ export function TranscriptStudio({
 
       <details className="transcript-manual">
         <summary>Manual clip tools</summary>
-        <SourceTool project={project} thumbnail={false} generate={generate} />
+        <SourceTool
+          key={transcriptVersion}
+          project={project}
+          thumbnail={false}
+          generate={generate}
+        />
       </details>
     </div>
   );

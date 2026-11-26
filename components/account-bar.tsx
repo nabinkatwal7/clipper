@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { Button } from "./ui/button";
+import { chooseStudioLocale, useStudioLocale } from "./studio-locale";
 
 export function AccountBar({ name, role }: { name: string; role: string }) {
+  const { locale, t } = useStudioLocale();
   const [legacy, setLegacy] = useState<{
     available: boolean;
     projects: number;
@@ -42,7 +44,7 @@ export function AccountBar({ name, role }: { name: string; role: string }) {
           variant="outline"
           size="icon"
           className="account-trigger"
-          aria-label="Account menu"
+          aria-label={t("Account menu")}
         >
           <UserRound size={16} />
         </Button>
@@ -60,7 +62,7 @@ export function AccountBar({ name, role }: { name: string; role: string }) {
           <Menu.Separator />
           <Menu.Item asChild>
             <a href="/app/account">
-              <Settings size={15} /> Account settings
+              <Settings size={15} /> {t("Account settings")}
             </a>
           </Menu.Item>
           {legacy && (
@@ -79,6 +81,29 @@ export function AccountBar({ name, role }: { name: string; role: string }) {
             </Menu.Item>
           )}
           {note && <p role="status">{note}</p>}
+          <Menu.Separator />
+          <Menu.Label>{t("Interface language")}</Menu.Label>
+          <Menu.RadioGroup
+            value={locale}
+            onValueChange={(value) => {
+              if (value === "en" || value === "ne" || value === "hi")
+                chooseStudioLocale(value);
+            }}
+          >
+            {(
+              [
+                ["en", "English"],
+                ["ne", "नेपाली"],
+                ["hi", "हिन्दी"],
+              ] as const
+            ).map(([code, label]) => (
+              <Menu.RadioItem key={code} value={code}>
+                <Menu.ItemIndicator>✓</Menu.ItemIndicator>
+                {label}
+              </Menu.RadioItem>
+            ))}
+          </Menu.RadioGroup>
+          <Menu.Separator />
           <Menu.Item
             onSelect={async (event) => {
               event.preventDefault();
@@ -95,7 +120,7 @@ export function AccountBar({ name, role }: { name: string; role: string }) {
               }
             }}
           >
-            <LogOut size={15} /> Sign out
+            <LogOut size={15} /> {t("Sign out")}
           </Menu.Item>
         </Menu.Content>
       </Menu.Portal>

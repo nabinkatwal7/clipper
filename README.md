@@ -16,7 +16,7 @@ A self-hosted, local-first video clipping studio. Import a long recording, find 
 
 - **Local-first.** Media, accounts and projects are plain files on your machine. No database, no paid API, no subscription.
 - **Local AI.** Ollama is the only AI service. Without it you can still clip manually.
-- **Multilingual.** Unicode captions in any script, translation through an installed model, and an interface in English, Nepali and Hindi (home page today).
+- **Multilingual.** Unicode captions, a local speech recognizer and Ollama translation. English, Nepali and Hindi cover the landing page and core studio navigation and clipping controls.
 - **Accounts built in.** First-party sign-in with Argon2id password hashing, hashed server-side sessions and per-user workspaces.
 
 > **Status:** usable and actively developed, but young. Read [Known limitations](#known-limitations) before relying on it.
@@ -65,12 +65,17 @@ More detail: [docs/INSTALL.md](docs/INSTALL.md) · [docs/CONFIGURATION.md](docs/
 
 ## How transcripts work
 
-Clipper Studio does **not** include speech recognition. Transcripts come from:
+Clipper Studio can create timestamped transcripts locally with the open-source [whisper.cpp](https://github.com/ggml-org/whisper.cpp) engine. Install a multilingual GGML model, then enable captions when generating clips or choose **Transcribe audio** in Transcript Studio. The studio reuses saved transcripts and available source subtitles first. You can also import SRT or VTT files.
 
-1. subtitles published with the video (imported automatically for URL imports), or
-2. a timed subtitle file (SRT/VTT) you import in **Transcript explorer**.
+On Windows, place the extracted runtime under `tools/whisper/runtime` and the model at `tools/whisper/ggml-base.bin`. On other systems, or to use a different model, set `CLIPPER_SPEECH_BIN` and `CLIPPER_SPEECH_MODEL` in `.env.local`. See [Configuration](docs/CONFIGURATION.md).
 
 With no transcript, AI highlights and captions are skipped and the studio falls back to fixed-length clips, labelled as such. Model output is a suggestion; review it before publishing. See [docs/LANGUAGE_SUPPORT.md](docs/LANGUAGE_SUPPORT.md).
+
+## Authenticated command line
+
+Run `npm run clipper -- jobs` or `npm run clipper -- transcribe PROJECT_ID` with `CLIPPER_USER` and `CLIPPER_PASSWORD` supplied through your environment. Each command signs in, uses its session, and attempts sign-out on exit. An existing `CLIPPER_SESSION` can be supplied instead. The CLI only sends credentials to a loopback Studio URL.
+
+Run `node scripts/authenticated-smoke.mjs` against a dedicated test account to check the authenticated HTTP API. Set `CLIPPER_SMOKE_VIDEO` to a local MP4 made from the upstream whisper.cpp JFK sample to also test speech recognition and an actual render. The in-process FFmpeg fixture `scripts/expansion-smoke.ts` runs against temporary storage independently of authentication.
 
 ## Documentation
 
@@ -97,10 +102,8 @@ Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
 ## Known limitations
 
-- **No built-in speech recognition** (see above).
-- **Single instance.** Persistence is files written by one Node process; it is not designed for several servers.
-- **Command-line tool and smoke scripts** (`npm run clipper`, `scripts/*.ts`) predate accounts and call the API without a session, so they need updating.
-- **Interface translation** covers the home page only; the studio is English.
+- **Deployment.** Multiple loopback web instances can share a same-host coordinator. The coordinator owns the render queue and filesystem writes. Active-active workers and multi-host failover remain unsupported.
+- **Interface translation.** Core studio navigation, Home, quick import and selected project and transcript controls support Nepali and Hindi. Untranslated advanced-tool text falls back to English.
 - **Authentication** has no two-factor support, session management page or email flows yet.
 - The editor's visual tests rely on Playwright, which is not installed by default.
 

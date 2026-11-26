@@ -1,4 +1,5 @@
 "use client";
+import { useStudioLocale } from "./studio-locale";
 import { studioStorage } from "@/lib/client-storage";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
@@ -85,6 +86,7 @@ const post = (action: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 export default function Workspace({ account }: { account: ReactNode }) {
+  const { t } = useStudioLocale();
   useChannelMonitor();
   const [projects, setProjects] = useState<Project[]>([]),
     [selected, setSelected] = useState(""),
@@ -316,7 +318,7 @@ export default function Workspace({ account }: { account: ReactNode }) {
           <>
             <div className="section-title">
               <div>
-                <h1>{page}</h1>
+                <h1>{t(page)}</h1>
                 <p>
                   {
                     (
@@ -365,7 +367,7 @@ export default function Workspace({ account }: { account: ReactNode }) {
                         <Search size={16} />
                         <input
                           aria-label="Find project"
-                          placeholder="Find a project"
+                          placeholder={t("Find a project")}
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                         />
@@ -375,11 +377,11 @@ export default function Workspace({ account }: { account: ReactNode }) {
                         value={projectStatus}
                         onChange={(e) => filterProjects(e.target.value)}
                       >
-                        <option value="all">All statuses</option>
-                        <option value="ready">Ready</option>
-                        <option value="active">Processing</option>
-                        <option value="error">Needs attention</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="all">{t("All statuses")}</option>
+                        <option value="ready">{t("Ready")}</option>
+                        <option value="active">{t("Processing")}</option>
+                        <option value="error">{t("Needs attention")}</option>
+                        <option value="cancelled">{t("Cancelled")}</option>
                       </select>
                     </div>
                     <ProjectRows projects={visible} open={openProject} />
