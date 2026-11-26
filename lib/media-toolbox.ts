@@ -125,6 +125,75 @@ export async function convertProjectMedia(
   };
 }
 
+/** Extract a single elementary stream into exports/toolbox. */
+export async function extractTrack(
+  projectId: string,
+  kind: "audio" | "video",
+  signal?: AbortSignal,
+) {
+  if (kind !== "audio" && kind !== "video")
+    throw Error("Extract kind must be audio or video");
+  const source = file("uploads", projectId, "mp4");
+  await fs.access(source);
+  const dir = path.join(workspaceRoot(), "exports", "toolbox", projectId);
+  await fs.mkdir(dir, { recursive: true });
+  const id = uuid();
+  const output =
+    kind === "audio"
+      ? path.join(dir, `${id}-audio.m4a`)
+      : path.join(dir, `${id}-video.mp4`);
+  const tmp = output + ".tmp";
+  const args =
+    kind === "audio"
+      ? ["-y", "-i", source, "-vn", "-c:a", "aac", "-b:a", "192k", tmp]
+      : ["-y", "-i", source, "-an", "-c:v", "copy", tmp];
+  try {
+    await run(bin.ffmpeg, args, signal);
+    await fs.rename(tmp, output);
+  } finally {
+    await fs.rm(tmp, { force: true });
+  }
+  const stat = await fs.stat(output);
+  return { id, kind, path: output, bytes: stat.size };
+}
+
+/** Convert multiple projects sequentially (max 8). Continues after per-item failures. */
+export async function batchConvert(
+  projectIds: string[],
+  profile: ConvertProfile,
+  signal?: AbortSignal,
+) {
+  const ids = [...new Set(projectIds)].slice(0, 8);
+  if (!ids.length) throw Error("Select at least one project");
+  const p = validateProfile(profile);
+  const results: {
+    projectId: string;
+    ok: boolean;
+    error?: string;
+    output?: Awaited<ReturnType<typeof convertProjectMedia>>;
+  }[] = [];
+  for (const projectId of ids) {
+    signal?.throwIfAborted();
+    try {
+      const output = await convertProjectMedia(projectId, p, signal || new AbortController().signal);
+      results.push({ projectId, ok: true, output });
+    } catch (e) {
+      results.push({
+        projectId,
+        ok: false,
+        error: e instanceof Error ? e.message : "Convert failed",
+      });
+    }
+  }
+  return {
+    profile: p,
+    total: results.length,
+    ok: results.filter((r) => r.ok).length,
+    failed: results.filter((r) => !r.ok).length,
+    results,
+  };
+}
+
 export async function inspectMediaReport(
   projectId: string,
   signal: AbortSignal,

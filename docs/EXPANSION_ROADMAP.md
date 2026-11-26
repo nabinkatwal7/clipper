@@ -15,7 +15,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 7 | Motion Studio | Partial — presets, canvas preview, animation recipes → composition |
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
 | 9 | Compositing Studio | Partial — node graph + FFmpeg bake to asset (60s cap) |
-| 10 | Media Toolbox | Partial — convert/inspect live |
+| 10 | Media Toolbox | Partial — inspect/convert/extract/batch (8) |
 | 11 | Production and Review | Partial (desk/calendar live) |
 | 12 | Automation | Partial (workflow builder live) |
 | 13 | Optional 3D Studio | Planned |
@@ -66,4 +66,4 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 21. ~~Deeper motion presets + preview~~
 22. ~~Separate-track recording (mic/system split where supported)~~
 23. ~~Tutorial callouts / cursor markers scaffold~~
-24. Media toolbox batch encode + track extract
+24. ~~Media toolbox batch encode + track extract~~

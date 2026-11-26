@@ -833,7 +833,11 @@ test("edit recipes apply structured ops without inventing media", () => {
 });
 
 import { buildClipFamily } from "../lib/clip-family";
-import { validateProfile, buildConvertArgs } from "../lib/media-toolbox";
+import {
+  validateProfile,
+  buildConvertArgs,
+  batchConvert,
+} from "../lib/media-toolbox";
 import { uuid } from "../lib/id";
 test("clip family preserves source provenance without inventing clips", () => {
   const tree = buildClipFamily({
@@ -868,6 +872,14 @@ test("media toolbox validates codec/container pairs", () => {
     validateProfile({ container: "webm", videoCodec: "copy", audioCodec: "aac" }),
   );
   assert.match(uuid(), /^[0-9a-f-]{36}$/i);
+});
+test("media toolbox batch convert rejects empty project lists", async () => {
+  const profile = validateProfile({
+    container: "mp4",
+    videoCodec: "copy",
+    audioCodec: "copy",
+  });
+  await assert.rejects(() => batchConvert([], profile));
 });
 
 import { computeSpectrogram, fft } from "../lib/spectrogram";

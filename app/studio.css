@@ -2484,6 +2484,19 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
   gap: 14px;
   max-width: 1100px;
 }
+.batch-picks {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  max-height: 180px;
+  overflow: auto;
+}
+.batch-pick {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
 .tutorial-list {
   list-style: none;
   margin: 0;

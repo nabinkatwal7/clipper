@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Wrench, FileSearch, RefreshCw } from "lucide-react";
+import { Wrench, FileSearch, RefreshCw, SplitSquareVertical } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -17,6 +17,9 @@ type Profile = {
 export function MediaToolboxPanel({ projects }: { projects: Project[] }) {
   const ready = projects.filter((p) => p.duration > 0);
   const [projectId, setProjectId] = useState(ready[0]?.id || "");
+  const [batchIds, setBatchIds] = useState<string[]>(
+    ready.slice(0, 3).map((p) => p.id),
+  );
   const [container, setContainer] = useState<Profile["container"]>("mp4");
   const [videoCodec, setVideoCodec] =
     useState<NonNullable<Profile["videoCodec"]>>("libx264");
@@ -30,6 +33,16 @@ export function MediaToolboxPanel({ projects }: { projects: Project[] }) {
   const [error, setError] = useState("");
 
   const audioOnly = ["mp3", "wav", "aac"].includes(container);
+
+  function profile(): Profile {
+    return {
+      container,
+      videoCodec: audioOnly ? undefined : videoCodec,
+      audioCodec,
+      crf: audioOnly || videoCodec === "copy" ? undefined : Number(crf),
+      scale: scale || undefined,
+    };
+  }
 
   async function inspect() {
     if (!projectId) return;
@@ -52,18 +65,11 @@ export function MediaToolboxPanel({ projects }: { projects: Project[] }) {
     setBusy(true);
     setError("");
     setResult("");
-    const profile: Profile = {
-      container,
-      videoCodec: audioOnly ? undefined : videoCodec,
-      audioCodec,
-      crf: audioOnly || videoCodec === "copy" ? undefined : Number(crf),
-      scale: scale || undefined,
-    };
     try {
       const r = await fetch("/api/media-toolbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project: projectId, profile }),
+        body: JSON.stringify({ project: projectId, profile: profile() }),
       });
       const data = await r.json();
       if (!r.ok) throw Error(data.error || "Convert failed");
@@ -77,14 +83,65 @@ export function MediaToolboxPanel({ projects }: { projects: Project[] }) {
     }
   }
 
+  async function extract(kind: "audio" | "video") {
+    if (!projectId) return;
+    setBusy(true);
+    setError("");
+    setResult("");
+    try {
+      const r = await fetch("/api/media-toolbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "extract", project: projectId, kind }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error || "Extract failed");
+      setResult(
+        `Extracted ${kind} · ${(data.bytes / 1024 / 1024).toFixed(1)} MB`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Extract failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function batch() {
+    if (!batchIds.length) return;
+    setBusy(true);
+    setError("");
+    setResult("");
+    try {
+      const r = await fetch("/api/media-toolbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          op: "batch",
+          projects: batchIds.slice(0, 8),
+          profile: profile(),
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error || "Batch failed");
+      setResult(
+        `Batch ${data.ok}/${data.total} ok` +
+          (data.failed ? ` · ${data.failed} failed` : ""),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Batch failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="media-toolbox">
       <header className="panel-head">
         <div>
           <h2>Media toolbox</h2>
           <p>
-            Inspect streams with FFprobe and convert with validated FFmpeg
-            profiles. Lossless remux uses stream copy when compatible.
+            Inspect, convert, extract tracks, and batch-encode local project
+            uploads with validated FFmpeg profiles.
           </p>
         </div>
         <Badge variant="outline">
@@ -109,6 +166,22 @@ export function MediaToolboxPanel({ projects }: { projects: Project[] }) {
       <div className="bar-tools">
         <Button size="sm" variant="outline" disabled={busy || !projectId} onClick={() => void inspect()}>
           <FileSearch size={14} /> Inspect
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy || !projectId}
+          onClick={() => void extract("audio")}
+        >
+          <SplitSquareVertical size={14} /> Extract audio
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy || !projectId}
+          onClick={() => void extract("video")}
+        >
+          <SplitSquareVertical size={14} /> Extract video
         </Button>
       </div>
 
@@ -198,6 +271,34 @@ export function MediaToolboxPanel({ projects }: { projects: Project[] }) {
         </div>
         <Button disabled={busy || !projectId} onClick={() => void convert()}>
           <RefreshCw size={14} /> {busy ? "Working…" : "Convert"}
+        </Button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Batch convert (max 8)</legend>
+        <div className="batch-picks">
+          {ready.map((p) => (
+            <label key={p.id} className="batch-pick">
+              <input
+                type="checkbox"
+                checked={batchIds.includes(p.id)}
+                onChange={(e) =>
+                  setBatchIds((ids) =>
+                    e.target.checked
+                      ? [...ids, p.id].slice(0, 8)
+                      : ids.filter((id) => id !== p.id),
+                  )
+                }
+              />
+              {p.title}
+            </label>
+          ))}
+        </div>
+        <Button
+          disabled={busy || !batchIds.length}
+          onClick={() => void batch()}
+        >
+          <RefreshCw size={14} /> Batch convert ({batchIds.length})
         </Button>
       </fieldset>
 

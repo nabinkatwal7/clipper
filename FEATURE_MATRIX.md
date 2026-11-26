@@ -1222,3 +1222,5 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | 3D Studio | Planned |
 | Reel Factory / Language Factory | Implemented |
 | Universal Media Toolbox | Partial |
+| Media toolbox track extract | Implemented |
+| Media toolbox batch convert (≤8) | Implemented |

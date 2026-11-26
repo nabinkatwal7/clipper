@@ -910,13 +910,32 @@ export async function handle(
       }
       if (req.method === "POST") {
         const b = await req.json();
-        const project = await read(b.project);
-        if (busy(project.id)) throw Error("Project busy");
         if (b.op === "validate")
           return NextResponse.json({
             ok: true,
             profile: box.validateProfile(b.profile),
           });
+        if (b.op === "extract") {
+          const project = await read(b.project);
+          if (busy(project.id)) throw Error("Project busy");
+          return NextResponse.json(
+            await box.extractTrack(project.id, b.kind, req.signal),
+          );
+        }
+        if (b.op === "batch") {
+          if (!Array.isArray(b.projects) || !b.projects.length)
+            throw Error("Select projects for batch convert");
+          for (const id of b.projects.slice(0, 8)) {
+            const project = await read(id);
+            if (busy(project.id))
+              throw Error(`Project busy: ${project.title || id}`);
+          }
+          return NextResponse.json(
+            await box.batchConvert(b.projects, b.profile, req.signal),
+          );
+        }
+        const project = await read(b.project);
+        if (busy(project.id)) throw Error("Project busy");
         return NextResponse.json(
           await box.convertProjectMedia(
             project.id,
