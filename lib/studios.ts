@@ -36,6 +36,7 @@ export const studioGroups: StudioGroup[] = [
     description: "Dashboard, recent work and quick actions",
     routes: [
       { id: "overview", label: "Overview", page: "Overview", status: "live" },
+      { id: "quick-clip", label: "Quick Clip", page: "Quick Clip", status: "live" },
       {
         id: "new-project",
         label: "New project",

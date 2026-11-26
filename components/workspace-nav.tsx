@@ -64,6 +64,7 @@ const pageIcons: Record<string, LucideIcon> = {
   "Instant clipping": Scissors,
   "Reel Factory": Clapperboard,
   Campaigns: Workflow,
+  "Quick Clip": Scissors,
   "System health": Cpu,
   "Moment finder": Scissors,
   Autopilot: Bot,
@@ -150,7 +151,7 @@ const destinations = [
     label: "Home",
     Icon: PanelsTopLeft,
     groups: [],
-    pages: ["Overview", "New project"],
+    pages: ["Overview", "Quick Clip", "New project"],
     description: "Start or resume a video",
   },
   {

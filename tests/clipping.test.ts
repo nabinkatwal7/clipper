@@ -447,3 +447,23 @@ test("system metrics are measured (CPU in range) and encoder claims come from a 
   assert.equal(x264.verified, true, x264.detail);
   for (const e of enc) assert.ok(!e.verified || e.listed, "verified implies listed");
 });
+
+test("collection store survives constant concurrent readers while writing (Windows rename-over-open-file)", async () => {
+  const user = "00000000-0000-4000-8000-" + String(Date.now() + 7).padStart(12, "0");
+  await workspaceScope.run(user, async () => {
+    let stop = false;
+    const readers = Array.from({ length: 6 }, async () => {
+      while (!stop) { await readCollection("runs"); await new Promise((r) => setImmediate(r)); }
+    });
+    const writes = [];
+    for (let i = 0; i < 150; i++) writes.push(mutateCollection<{ id: string }, void>("runs", (rows) => { rows.push({ id: "w" + i }); }));
+    try {
+      await Promise.all(writes);
+    } finally {
+      stop = true;
+      await Promise.all(readers);
+    }
+    assert.equal((await readCollection("runs")).length, 150);
+  });
+  await fs.rm(path.join(storageBase, "workspaces", user), { recursive: true, force: true });
+});

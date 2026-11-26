@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { bin, run } from "../process";
 import type { Span } from "./candidates";
+import { readRetry, renameRetry } from "./fsx";
 
 /** Source is analysed in fixed chunks; each finished chunk is persisted so work can resume. */
 export const CHUNK_SECONDS = 1800;
@@ -123,16 +124,16 @@ export async function analyzeVisualChunk(
 }
 
 export async function readJson<T>(path: string): Promise<T | null> {
-  try {
-    return JSON.parse(await fs.readFile(path, "utf8")) as T;
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw e;
-  }
+  const text = await readRetry(path);
+  return text === null ? null : (JSON.parse(text) as T);
 }
 
 export async function writeJsonAtomic(path: string, value: unknown) {
-  const tmp = path + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(value));
-  await fs.rename(tmp, path);
+  const tmp = path + "." + Math.random().toString(36).slice(2) + ".tmp";
+  try {
+    await fs.writeFile(tmp, JSON.stringify(value));
+    await renameRetry(tmp, path);
+  } finally {
+    await fs.rm(tmp, { force: true });
+  }
 }

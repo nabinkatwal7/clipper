@@ -65,7 +65,7 @@ async function pipeline(runId: string, signal: AbortSignal, language?: string) {
     }
     await step(runId, "analyze", async () => {
       const profile = chooseProfile(ap, language);
-      await runMomentAnalysis(await read(pid), parseMomentOptions({ profile, count: Math.min(20, ap.count * 2), minScore: ap.minScore }), signal);
+      await runMomentAnalysis(await read(pid), parseMomentOptions({ profile, count: Math.min(20, ap.count * 2), minScore: ap.minScore, minDuration: ap.minDuration, maxDuration: ap.maxDuration }), signal);
       return { detail: `profile ${profile}` };
     });
     await step(runId, "ai", async () => {
@@ -97,6 +97,10 @@ async function pipeline(runId: string, signal: AbortSignal, language?: string) {
       const moments = (await readJson<MomentsResult>(momentsFile(pid)))!;
       const chosen = new Set((await getRun()).selected);
       const camp = ap.campaignId ? (await readCollection<Campaign>("campaigns")).find((c) => c.id === ap.campaignId) : undefined;
+      if (ap.output) {
+        p.settings = { ...p.settings, ...Object.fromEntries(Object.entries(ap.output).filter(([, v]) => v !== undefined)) };
+        await save(p);
+      }
       if (camp) {
         p.settings = {
           ...p.settings,

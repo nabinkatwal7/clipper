@@ -3194,3 +3194,11 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
 .system-health input[type="radio"], .storage-manager input[type="checkbox"], .storage-manager input[type="radio"] { width: 15px; height: 15px; min-width: 15px; padding: 0; margin: 0 0.35rem 0 0; accent-color: var(--accent, #14b8a6); vertical-align: middle; }
 .system-health h4 { margin: 1rem 0 0.25rem; }
 .system-health .field small { display: block; margin-top: 0.25rem; }
+
+.quick-clip { display: grid; gap: 0.75rem; max-width: 980px; }
+.quick-clip input[type="radio"], .quick-clip input[type="checkbox"] { width: 15px; height: 15px; min-width: 15px; padding: 0; margin: 0 0.35rem 0 0; accent-color: var(--accent, #14b8a6); vertical-align: middle; }
+.quick-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+.quick-results figure { margin: 0; display: grid; gap: 0.4rem; }
+.quick-results video { width: 100%; aspect-ratio: 9 / 16; max-height: 360px; background: #000; border-radius: 8px; object-fit: contain; }
+.quick-results figcaption { display: grid; gap: 0.25rem; font-size: 13px; }
+.quick-results figcaption small { opacity: 0.75; }

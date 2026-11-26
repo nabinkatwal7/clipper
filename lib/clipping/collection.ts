@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { workspaceRoot } from "../identity";
+import { readRetry, renameRetry } from "./fsx";
 
 /**
  * Tiny per-user JSON document store (no database). One file per collection under
@@ -14,13 +15,29 @@ function target(name: string) {
   return path.join(workspaceRoot(), "data", name + ".json");
 }
 
+// Parsed rows keyed by file, validated by size+mtime. Readers stat() the file (no open handle),
+// so they do not block a writer's rename on Windows; they only re-read after the file changed.
+const cache = new Map<string, { size: number; mtimeMs: number; rows: unknown[] }>();
+
 export async function readCollection<T extends { id: string }>(name: string): Promise<T[]> {
-  try {
-    const v = JSON.parse(await fs.readFile(target(name), "utf8"));
-    return Array.isArray(v) ? v : [];
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw e;
+  const file = target(name);
+  for (let attempt = 0; ; attempt++) {
+    const st = await fs.stat(file).catch((e: NodeJS.ErrnoException) => {
+      if (e.code === "ENOENT") return null;
+      throw e;
+    });
+    if (!st) { cache.delete(file); return []; }
+    const hit = cache.get(file);
+    if (hit && hit.size === st.size && hit.mtimeMs === st.mtimeMs) return structuredClone(hit.rows) as T[];
+    const text = await readRetry(file);
+    if (text === null) return [];
+    const v = JSON.parse(text);
+    const rows = Array.isArray(v) ? v : [];
+    // Only trust the cache entry if the file did not change while we were reading it.
+    const after = await fs.stat(file).catch(() => null);
+    if (after && after.size === st.size && after.mtimeMs === st.mtimeMs) cache.set(file, { size: st.size, mtimeMs: st.mtimeMs, rows });
+    else if (attempt < 3) continue;
+    return structuredClone(rows) as T[];
   }
 }
 
@@ -35,7 +52,7 @@ export async function mutateCollection<T extends { id: string }, R>(name: string
     const tmp = file + "." + randomUUID() + ".tmp";
     try {
       await fs.writeFile(tmp, JSON.stringify(rows, null, 1));
-      await fs.rename(tmp, file);
+      await renameRetry(tmp, file);
     } finally {
       await fs.rm(tmp, { force: true });
     }

@@ -93,7 +93,7 @@ import { mutateCollection } from "./clipping/collection";
 import { scan as scanStorage, report as storageReport, planCache, planPolicy, execute as executeCleanup, POLICIES, type Policy, type Category, type Plan } from "./clipping/storage";
 import { PLATFORM_PRESETS } from "./clipping/postkit";
 import { parseAutopilot, startRun, retryRun, approveRun, rejectRun, evaluateDue, touchScheduler } from "./clipping/autopilot";
-import type { Autopilot, Run } from "./clipping/autopilot-core";
+import { AutopilotSchema, VIDEO_EXT, type Autopilot, type Run } from "./clipping/autopilot-core";
 import { systemSnapshot, encoderChecks, HARDWARE_PROFILES, recommendProfile, canSelect, type ProfileId } from "./clipping/system";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
@@ -1476,8 +1476,44 @@ export async function handle(
       const chosen = Array.isArray(b.paths) ? plan.items.filter((i) => b.paths.includes(i.path)).map((i) => i.path) : plan.items.map((i) => i.path);
       return NextResponse.json(await executeCleanup(workspaceRoot(), plan, chosen));
     }
+    if (action === "quick-clip" && req.method === "POST") {
+      const b = await req.json();
+      const hasSource = [b.url, b.path, b.projectId].filter((x) => typeof x === "string" && x).length;
+      if (hasSource !== 1) throw Error("Give exactly one source: a URL, a local file path, or an existing project.");
+      if (typeof b.path === "string" && b.path) {
+        const st = await fs.stat(b.path).catch(() => null);
+        if (!path.isAbsolute(b.path) || !st?.isFile() || !VIDEO_EXT.test(b.path)) throw Error("Enter the absolute path of an existing video file (mp4, mkv, mov, webm, avi, m4v, ts, flv).");
+      }
+      const instant = b.mode !== "intelligent";
+      const ap = AutopilotSchema.parse({
+        id: "quick-clip-default",
+        name: "Quick Clip",
+        enabled: false,
+        trigger: { kind: "manual" },
+        profile: typeof b.contentType === "string" ? b.contentType : "general",
+        count: b.count ?? 5,
+        minScore: 0,
+        useAi: !instant,
+        requireApproval: false,
+        render: true,
+        minDuration: b.minDuration,
+        maxDuration: b.maxDuration,
+        language: typeof b.language === "string" && b.language !== "auto" ? b.language : undefined,
+        output: {
+          ratio: b.ratio ?? "9:16",
+          resolution: b.resolution ?? "1080",
+          captions: b.captions !== false,
+          layout: b.layout,
+        },
+        campaignId: typeof b.campaignId === "string" && b.campaignId ? b.campaignId : undefined,
+      });
+      if (ap.minDuration && ap.maxDuration && ap.maxDuration <= ap.minDuration) throw Error("Maximum duration must exceed minimum duration.");
+      await upsert("autopilots", ap, 100);
+      const run = await startRun(ap, { url: b.url || undefined, file: b.path || undefined, projectId: b.projectId || undefined, language: ap.language });
+      return NextResponse.json(run, { status: 202 });
+    }
     if (action === "autopilots") {
-      if (req.method === "GET") return NextResponse.json(await readCollection("autopilots"));
+      if (req.method === "GET") return NextResponse.json((await readCollection<Autopilot>("autopilots")).filter((a) => !a.id.startsWith("quick-clip")));
       if (req.method === "POST") {
         const input = await req.json();
         const prev = (await readCollection<Autopilot>("autopilots")).find((x) => x.id === input?.id);

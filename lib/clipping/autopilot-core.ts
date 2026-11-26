@@ -30,6 +30,17 @@ export const AutopilotSchema = z.object({
   /** Branch: stop (not fail) when the source has no transcript. */
   requireTranscript: z.boolean().default(false),
   maxPerRun: z.number().int().min(1).max(5).default(1),
+  /** Optional overrides of the content profile's duration range (seconds). */
+  minDuration: z.number().min(3).max(300).optional(),
+  maxDuration: z.number().min(5).max(600).optional(),
+  language: z.string().trim().max(20).optional(),
+  /** Output settings applied to the project before rendering. */
+  output: z.object({
+    ratio: z.enum(["9:16", "1:1", "4:5", "16:9"]).optional(),
+    resolution: z.enum(["720", "1080"]).optional(),
+    captions: z.boolean().optional(),
+    layout: z.enum(["center", "blur", "crop", "facecam", "original"]).optional(),
+  }).optional(),
   lastRun: z.string().optional(),
   baselined: z.boolean().default(false),
   seen: z.array(z.string().max(300)).max(1000).default([]),
