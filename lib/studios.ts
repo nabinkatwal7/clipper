@@ -81,6 +81,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Reel Factory",
         status: "live",
       },
+      {
+        id: "campaigns",
+        label: "Campaigns",
+        page: "Campaigns",
+        status: "live",
+      },
     ],
   },
   {

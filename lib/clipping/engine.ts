@@ -1,11 +1,12 @@
 import { promises as fs } from "node:fs";
 import { z } from "zod";
+import { readCollection } from "./collection";
 import { file, save, transcript } from "../store";
 import { beginProgress, completeProgress, reporter } from "../progress";
 import type { Project, Segment } from "../types";
 import { chatTimeline, type ChatMessage } from "./chat";
 import { generateCandidates, type Candidate, type Span } from "./candidates";
-import { hypeTimeline, selectDictionaries, type HypeDictionary } from "./hype";
+import { normalizeText, hypeTimeline, selectDictionaries, type HypeDictionary } from "./hype";
 import {
   CHUNK_SECONDS,
   analyzeAudioChunk,
@@ -148,7 +149,7 @@ export function computeMoments(input: {
   const mix = combine(tracks, weights, Math.max(1, Math.round(3 / interval)), bins);
   if (!mix.used.length) warnings.push("No informative signals were available; no candidates can be produced.");
 
-  const candidates = mix.used.length
+  const candidates: Candidate[] = mix.used.length
     ? generateCandidates(
         mix.combined,
         tracks,
@@ -172,6 +173,16 @@ export function computeMoments(input: {
         duration,
       )
     : [];
+  if (segments.length && (profile.includeWords?.length || profile.excludeWords?.length)) {
+    const inc = (profile.includeWords ?? []).map((w) => normalizeText(w)).filter(Boolean);
+    const exc = (profile.excludeWords ?? []).map((w) => normalizeText(w)).filter(Boolean);
+    const kept = candidates.filter((c) => {
+      const text = normalizeText(segments.filter((s) => s.end > c.start && s.start < c.end).map((s) => s.text).join(" "));
+      return !exc.some((w) => text.includes(w)) && (!inc.length || inc.some((w) => text.includes(w)));
+    });
+    if (kept.length !== candidates.length) warnings.push(`${candidates.length - kept.length} candidate(s) removed by the profile's include/exclude words.`);
+    candidates.splice(0, candidates.length, ...kept);
+  } else if (profile.includeWords?.length || profile.excludeWords?.length) warnings.push("Include/exclude words were not applied: no transcript is available.");
   if (candidates.some((c) => c.precision === "duration-only"))
     warnings.push("Some candidates have no transcript, silence or scene evidence at their edges; boundaries are approximate.");
   if (mix.used.length === 1 && mix.used[0] === "audio")
@@ -267,7 +278,8 @@ export async function runMomentAnalysis(p: Project, options: MomentOptions, sign
   const segments = await transcript(p.id).catch(() => [] as Segment[]);
   const chat = await readJson<ChatMessage[]>(chatFile(p.id));
   const replay = await readJson<ReplayPoint[]>(replayFile(p.id));
-  const result = computeMoments({ duration: p.duration, signals: raw, segments, chat: chat ?? undefined, replay: replay ?? undefined, options });
+  const customProfiles = await readCollection<ContentProfile>("profiles");
+  const result = computeMoments({ duration: p.duration, signals: raw, segments, chat: chat ?? undefined, replay: replay ?? undefined, options: { ...options, customProfiles } });
   await writeJsonAtomic(momentsFile(p.id), result);
   completeProgress(p, "indexing");
   p.status = "ready";

@@ -48,6 +48,9 @@ import { InstantClipping } from "./instant-clipping";
 import { MomentSearchPanel } from "./moment-search-panel";
 import { CreatorMemoryPanel } from "./creator-memory-panel";
 import { ReelFactory } from "./reel-factory";
+import dynamic from "next/dynamic";
+const CampaignManager = dynamic(() => import("./campaign-manager").then((m) => m.CampaignManager), { ssr: false });
+const ProfileBuilder = dynamic(() => import("./campaign-manager").then((m) => m.ProfileBuilder), { ssr: false });
 import { LanguageFactory } from "./language-factory";
 import { ProjectBinsPanel } from "./project-bins-panel";
 import { MediaToolboxPanel } from "./media-toolbox-panel";
@@ -541,6 +544,12 @@ export default function Workspace({ account }: { account: ReactNode }) {
               <InstantClipping projects={projects} />
             )}
             {page === "Reel Factory" && <ReelFactory projects={projects} />}
+            {page === "Campaigns" && (
+              <>
+                <CampaignManager projects={projects} />
+                <ProfileBuilder />
+              </>
+            )}
             {page === "Language Factory" && (
               <LanguageFactory projects={projects} />
             )}

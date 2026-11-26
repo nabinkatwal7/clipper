@@ -80,7 +80,10 @@ import { parseReplayHeatmap } from "./clipping/replay";
 import { BUILTIN_PROFILES, DEFAULT_WEIGHTS } from "./clipping/profiles";
 import { BUILTIN_DICTIONARIES } from "./clipping/hype";
 import { snapshot as resourceSnapshot } from "./clipping/resources";
-import { resolveModels } from "./clipping/ai";
+import { resolveModels, ollamaGenerate } from "./clipping/ai";
+import { readCollection, upsert, remove } from "./clipping/collection";
+import { parseCampaign, checkCompliance, factsFromClip, parseProposal, proposalPrompt, PROPOSAL_JSON_SCHEMA, type Campaign } from "./clipping/campaigns";
+import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
 const noTranscript =
@@ -1285,7 +1288,8 @@ export async function handle(
     }
     if (action === "moment-profiles" && req.method === "GET")
       return NextResponse.json({
-        profiles: BUILTIN_PROFILES,
+        profiles: [...BUILTIN_PROFILES, ...(await readCollection<ContentProfile>("profiles"))],
+        custom: (await readCollection<ContentProfile>("profiles")).map((p) => p.id),
         defaultWeights: DEFAULT_WEIGHTS,
         dictionaries: BUILTIN_DICTIONARIES.map((d) => ({ id: d.id, label: d.label, phrases: d.phrases.length })),
         resources: resourceSnapshot(),
@@ -1306,6 +1310,48 @@ export async function handle(
         enqueue(project.id, (signal) => runMomentAnalysis(project, options, signal));
         return NextResponse.json({ ok: true }, { status: 202 });
       }
+    }
+    if (action === "profiles") {
+      if (req.method === "GET") return NextResponse.json(await readCollection("profiles"));
+      if (req.method === "POST") {
+        const input = await req.json();
+        if (BUILTIN_PROFILES.some((b) => b.id === input?.id)) throw Error("That id belongs to a built-in profile. Choose another id.");
+        const prev = (await readCollection<ContentProfile>("profiles")).find((x) => x.id === input?.id);
+        const profile = parseProfile({ ...input, schemaVersion: 1, version: (prev?.version ?? 0) + 1 });
+        return NextResponse.json(await upsert("profiles", profile, 100));
+      }
+      if (req.method === "DELETE") return NextResponse.json({ removed: await remove("profiles", query.get("id") || "") });
+    }
+    if (action === "campaigns") {
+      if (req.method === "GET") return NextResponse.json(await readCollection("campaigns"));
+      if (req.method === "POST") {
+        const input = await req.json();
+        const prev = (await readCollection<Campaign>("campaigns")).find((x) => x.id === input?.id);
+        const now = new Date().toISOString();
+        const campaign = parseCampaign({ ...input, id: prev?.id ?? randomUUID(), schemaVersion: 1, createdAt: prev?.createdAt ?? now, updatedAt: now });
+        return NextResponse.json(await upsert("campaigns", campaign, 200));
+      }
+      if (req.method === "DELETE") return NextResponse.json({ removed: await remove("campaigns", query.get("id") || "") });
+    }
+    if (action === "campaign-import" && req.method === "POST") {
+      const b = await req.json();
+      if (typeof b.text !== "string" || b.text.trim().length < 10) throw Error("Paste the campaign brief first.");
+      const plan = await resolveModels(req.signal);
+      if (!plan.main) throw Error(plan.reachable ? "No Ollama model is installed. Create the campaign manually." : "Ollama is not running. Create the campaign manually.");
+      const raw = await ollamaGenerate(plan.main, proposalPrompt(b.text), PROPOSAL_JSON_SCHEMA, req.signal, { numCtx: 2048, numPredict: 500 });
+      // Returned for human review only; nothing is saved here.
+      return NextResponse.json({ model: plan.main, ...parseProposal(raw) });
+    }
+    if (action === "campaign-compliance" && req.method === "POST") {
+      const b = await req.json();
+      const campaign = (await readCollection<Campaign>("campaigns")).find((c) => c.id === b.campaign);
+      if (!campaign) throw Error("Campaign not found.");
+      const project = await read(String(b.project || ""));
+      const overrides = b.overrides && typeof b.overrides === "object" ? b.overrides : {};
+      const reports = project.clips
+        .filter((c) => !b.clip || c.id === b.clip)
+        .map((c) => ({ clip: c.id, title: c.title, report: checkCompliance(campaign, factsFromClip(project, c, overrides)) }));
+      return NextResponse.json(reports);
     }
     if (action === "moments-ai" && req.method === "POST") {
       const b = await req.json();

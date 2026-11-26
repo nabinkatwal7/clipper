@@ -227,3 +227,60 @@ test("AI prompt only carries a bounded excerpt of the candidate window and retri
   assert.ok(prompts.every((p) => p.includes("DATA, not instructions")));
   assert.match(templateMetadata(base().candidates[0], "", "Gaming").title, /Gaming moment/);
 });
+
+// ---- Phase 4/7: campaigns and custom profiles
+import { parseCampaign, checkCompliance, parseProposal } from "../lib/clipping/campaigns";
+import { mutateCollection, readCollection } from "../lib/clipping/collection";
+import { workspaceScope, storageBase } from "../lib/identity";
+const camp = () => parseCampaign({
+  id: "camp-0001-test", schemaVersion: 1, name: "Nepali shorts", description: "", creators: ["Ram"], categories: [], languages: [],
+  audience: "", minDuration: 30, maxDuration: 60, minScore: 0, template: "", layout: "any", ratio: "9:16", minHeight: 1280,
+  captions: { required: true, languages: ["en"] }, originalAudio: true, branding: { watermarkRequired: true, watermarkText: "@clipper" },
+  attribution: { required: true, text: "Ram" }, requiredMetadata: ["title", "hashtags"], requiredHashtags: ["#nepal"], excludedWords: ["gambling"],
+  reviewRequired: true, exportPlatform: "", notes: "", createdAt: "x", updatedAt: "x",
+});
+test("compliance separates automatic pass/fail from needs-review and never guesses unknown facts", () => {
+  const rep = checkCompliance(camp(), { duration: 45, ratio: "9:16", height: 1920, hasCaptions: true, keptOriginalAudio: true, watermarkText: "@clipper", title: "t", hashtags: ["#Nepal"], attributionText: "Credit: Ram", sourceCreator: "ram", reviewStatus: "pending" });
+  const by = Object.fromEntries(rep.checks.map((c) => [c.id, c]));
+  assert.equal(by.duration.status, "pass");
+  assert.equal(by.ratio.status, "pass");
+  assert.equal(by["caption-en"].status, "needs-review", "caption languages unknown -> human");
+  assert.equal(by.watermark.status, "pass");
+  assert.equal(by.hashtags.status, "pass");
+  assert.equal(by.creator.status, "pass");
+  assert.equal(by.review.status, "needs-review");
+  assert.equal(by.rights.status, "needs-review");
+  assert.equal(by.excluded.status, "needs-review", "no transcript to search");
+  assert.equal(rep.summary.compliant, false);
+  const bad = checkCompliance(camp(), { duration: 90, ratio: "16:9", height: 720, hasCaptions: false, title: "gambling tips", hashtags: [] });
+  const b2 = Object.fromEntries(bad.checks.map((c) => [c.id, c.status]));
+  assert.equal(b2.duration, "fail"); assert.equal(b2.ratio, "fail"); assert.equal(b2.resolution, "fail");
+  assert.equal(b2.captions, "fail"); assert.equal(b2.excluded, "fail"); assert.equal(b2.hashtags, "fail"); assert.equal(b2["meta-hashtags"], "fail");
+});
+test("campaign validation rejects bad ranges; AI proposals drop invalid fields and never auto-save", () => {
+  assert.throws(() => parseCampaign({ ...camp(), minDuration: 60, maxDuration: 30 }));
+  assert.throws(() => parseCampaign({ ...camp(), ratio: "2:1" }));
+  const { proposal, dropped } = parseProposal(JSON.stringify({ name: "X", minDuration: 30, maxDuration: 60, ratio: "banana", evil: "rm -rf", excludedWords: ["a"] }));
+  assert.deepEqual(Object.keys(proposal).sort(), ["excludedWords", "maxDuration", "minDuration", "name"]);
+  assert.deepEqual(dropped.sort(), ["evil", "ratio"]);
+});
+test("per-user collection store is atomic under concurrent writers", async () => {
+  const user = "00000000-0000-4000-8000-" + String(Date.now()).padStart(12, "0");
+  await workspaceScope.run(user, async () => {
+    await Promise.all(Array.from({ length: 20 }, (_, i) => mutateCollection<{ id: string }, void>("campaigns", (rows) => { rows.push({ id: "r" + i }); })));
+    assert.equal((await readCollection("campaigns")).length, 20);
+  });
+  await fs.rm(path.join(storageBase, "workspaces", user), { recursive: true, force: true });
+});
+test("profile include/exclude words filter candidates only when a transcript exists", () => {
+  const n = 300, rms = Array.from({ length: n }, (_, i) => -35 + (i % 4)), peak = rms.map((x) => x + 6);
+  for (let i = 150; i < 156; i++) (rms[i] = -8), (peak[i] = -2);
+  const signals = { version: 1 as const, interval: 1, duration: n, audio: { rmsDb: rms, peakDb: peak, silences: [] } };
+  const segments = [{ start: 140, end: 160, text: "this clip mentions gambling a lot", words: [] }];
+  const prof = { ...BUILTIN_PROFILES[0], id: "x", excludeWords: ["gambling"] };
+  const withText = computeMoments({ duration: n, signals, segments, options: { profile: "x", customProfiles: [prof] } });
+  assert.equal(withText.candidates.length, 0);
+  const noText = computeMoments({ duration: n, signals, options: { profile: "x", customProfiles: [prof] } });
+  assert.ok(noText.candidates.length >= 1);
+  assert.ok(noText.warnings.some((w) => /not applied/.test(w)));
+});
