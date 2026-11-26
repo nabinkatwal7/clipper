@@ -3191,3 +3191,6 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
 .campaigns aside li button.selected, .campaigns aside > button.selected { border-color: var(--accent, #14b8a6); }
 .campaigns input[type="checkbox"] { width: 15px; height: 15px; min-width: 15px; padding: 0; accent-color: var(--accent, #14b8a6); }
 @media (max-width: 800px) { .campaigns { grid-template-columns: 1fr; } .moment-labels { display: none; } }
+.system-health input[type="radio"], .storage-manager input[type="checkbox"], .storage-manager input[type="radio"] { width: 15px; height: 15px; min-width: 15px; padding: 0; margin: 0 0.35rem 0 0; accent-color: var(--accent, #14b8a6); vertical-align: middle; }
+.system-health h4 { margin: 1rem 0 0.25rem; }
+.system-health .field small { display: block; margin-top: 0.25rem; }

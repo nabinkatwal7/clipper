@@ -425,3 +425,25 @@ test("platform presets are advisory and warn on mismatches", () => {
   assert.equal(w.length, 2);
   assert.match(p.note, /Verify/);
 });
+
+// ---- Phase 9: system health and hardware profiles
+import { recommendProfile, canSelect, profileById, HARDWARE_PROFILES, cpuUsage, encoderChecks } from "../lib/clipping/system";
+test("hardware profiles never auto-select Performance and gate it on small machines", () => {
+  assert.equal(recommendProfile(8192), "balanced");
+  assert.equal(recommendProfile(4096), "eco");
+  assert.equal(recommendProfile(65536), "balanced", "even a big machine is only recommended Balanced");
+  assert.equal(canSelect("performance", 8192, false), false);
+  assert.equal(canSelect("performance", 8192, true), true);
+  assert.equal(canSelect("performance", 32768, false), true);
+  assert.equal(canSelect("eco", 4096, false), true);
+  assert.equal(profileById("nonsense").id, "eco");
+  assert.ok(HARDWARE_PROFILES.every((p) => p.heavyJobs === 1), "one heavy job in every profile");
+});
+test("system metrics are measured (CPU in range) and encoder claims come from a real test encode", { skip: !haveFfmpeg && "FFMPEG_BIN not configured" }, async () => {
+  const cpu = await cpuUsage(200);
+  assert.ok(cpu.usagePercent !== null && cpu.usagePercent >= 0 && cpu.usagePercent <= 100);
+  const enc = await encoderChecks(undefined, 0);
+  const x264 = enc.find((e) => e.encoder === "libx264")!;
+  assert.equal(x264.verified, true, x264.detail);
+  for (const e of enc) assert.ok(!e.verified || e.listed, "verified implies listed");
+});

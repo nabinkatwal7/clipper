@@ -22,6 +22,7 @@ import { combine, type Tracks } from "./scoring";
 import { robustScale, suddenRise } from "./signals";
 import { waitForMemory } from "./resources";
 import { enrichCandidates, resolveModels, type AiMode } from "./ai";
+import { profileById } from "./system";
 
 export type RawSignals = {
   version: 1;
@@ -319,7 +320,7 @@ export async function runMomentAi(p: Project, mode: AiMode, signal: AbortSignal,
   const segments = await transcript(p.id).catch(() => [] as Segment[]);
   let out: MomentsResult;
   try {
-    out = await enrichCandidates(current, segments, { mode, plan: await resolveModels(signal), signal, language });
+    out = await enrichCandidates(current, segments, { mode, plan: await resolveModels(signal, profileById((await readCollection<{ id: string; profile?: string }>("settings")).find((x) => x.id === "hardware")?.profile).model), signal, language });
   } catch (e) {
     if (signal.aborted) throw e;
     out = { ...current, aiReport: { mode, model: null, used: false, analysed: 0, skipped: [], notes: ["AI step failed (" + (e instanceof Error ? e.message : String(e)) + "); measured results were kept."] } };

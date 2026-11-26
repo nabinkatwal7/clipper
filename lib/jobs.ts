@@ -49,6 +49,9 @@ const jobs = (globalJobs.clipJobs ??= { queue: [] });
 export function busy(id: string) {
   return jobs.active?.id === id || jobs.queue.some((t) => t.id === id);
 }
+export function queueState() {
+  return { active: jobs.active?.id ?? null, queued: jobs.queue.map((t) => t.id) };
+}
 export function cancel(id: string) {
   const active = jobs.active?.id === id;
   if (active) jobs.active!.controller.abort();

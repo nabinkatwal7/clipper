@@ -22,14 +22,16 @@ const PREFER: Record<ModelRole, string[]> = {
 };
 
 /** Resolve models from what is really installed. Never pulls or downloads anything. */
-export async function resolveModels(signal?: AbortSignal): Promise<ModelPlan> {
+export async function resolveModels(signal?: AbortSignal, prefer: "light" | "main" | "user" = "main"): Promise<ModelPlan> {
   try {
     const r = await fetch(url() + "/api/tags", { signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(4000)]) });
     if (!r.ok) throw Error("tags");
     const installed: string[] = ((await r.json()).models ?? []).map((m: { name: string }) => m.name);
     const pick = (role: ModelRole) => PREFER[role].find((p) => installed.some((i) => i === p || i === p + ":latest")) ?? null;
     const main = pick("main");
-    return { main, light: pick("light") ?? main, embed: pick("embed"), installed, reachable: true };
+    const light = pick("light") ?? main;
+    // Eco: the small model does everything. Balanced/Performance: the main model leads.
+    return { main: prefer === "light" ? light : main, light, embed: pick("embed"), installed, reachable: true };
   } catch {
     return { main: null, light: null, embed: null, installed: [], reachable: false };
   }

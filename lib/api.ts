@@ -57,6 +57,7 @@ import { settings, validId } from "./validation";
 import { validateUrl } from "./network";
 import {
   enqueue,
+  queueState,
   busy,
   cancel,
   ingest,
@@ -93,6 +94,7 @@ import { scan as scanStorage, report as storageReport, planCache, planPolicy, ex
 import { PLATFORM_PRESETS } from "./clipping/postkit";
 import { parseAutopilot, startRun, retryRun, approveRun, rejectRun, evaluateDue, touchScheduler } from "./clipping/autopilot";
 import type { Autopilot, Run } from "./clipping/autopilot-core";
+import { systemSnapshot, encoderChecks, HARDWARE_PROFILES, recommendProfile, canSelect, type ProfileId } from "./clipping/system";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
@@ -1507,6 +1509,28 @@ export async function handle(
       return NextResponse.json(b.reject ? await rejectRun(String(b.run)) : await approveRun(String(b.run), Array.isArray(b.ids) ? b.ids : undefined));
     }
     if (action === "autopilot-retry" && req.method === "POST") return NextResponse.json(await retryRun(String((await req.json()).run)), { status: 202 });
+    if (action === "system" && req.method === "GET") {
+      const snap = await systemSnapshot(workspaceRoot(), req.signal);
+      const saved = (await readCollection<{ id: string; profile?: ProfileId }>("settings")).find((x) => x.id === "hardware")?.profile;
+      const projects = await list();
+      return NextResponse.json({
+        ...snap,
+        queue: { ...queueState(), processing: projects.filter((p) => p.status === "processing").map((p) => ({ id: p.id, title: p.title, stage: p.stage, detail: p.detail })) },
+        profiles: HARDWARE_PROFILES,
+        profile: saved ?? null,
+        recommended: recommendProfile(snap.memory.totalMb),
+        health: await health(),
+      });
+    }
+    if (action === "system-encoders" && req.method === "GET") return NextResponse.json(await encoderChecks(req.signal, query.has("refresh") ? 0 : undefined));
+    if (action === "hardware-profile" && req.method === "POST") {
+      const b = await req.json();
+      const id = b.profile as ProfileId;
+      if (!HARDWARE_PROFILES.some((p) => p.id === id)) throw Error("Unknown profile.");
+      const total = Math.round((await import("node:os")).totalmem() / 1048576);
+      if (!canSelect(id, total, b.acknowledge === true)) throw Error(`Performance is not recommended with ${Math.round(total / 1024)} GB RAM. Confirm to use it anyway.`);
+      return NextResponse.json(await upsert("settings", { id: "hardware", profile: id }, 20));
+    }
     if (action === "moments-ai" && req.method === "POST") {
       const b = await req.json();
       const project = await read(String(b.project || ""));

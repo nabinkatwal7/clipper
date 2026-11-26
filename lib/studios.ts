@@ -344,6 +344,7 @@ export const studioGroups: StudioGroup[] = [
     routes: [
       { id: "branding", label: "Branding", page: "Branding", status: "live" },
       { id: "storage", label: "Storage", page: "Storage", status: "live" },
+      { id: "system-health", label: "System health", page: "System health", status: "live" },
       {
         id: "backup",
         label: "Backup & recovery",
