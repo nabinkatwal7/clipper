@@ -157,6 +157,19 @@ export function LayersPanel({
             Lock track
           </label>
           <fieldset disabled={t.locked}>
+            {t.type !== "audio" && <details className="clip-context">
+              <summary>Chroma key</summary>
+              <label className="check-row"><input type="checkbox" checked={!!t.keyColor}
+                onChange={e => patch({ keyColor: e.target.checked ? { color: "#00ff00", similarity: 0.2, blend: 0.08 } : undefined })} /> Remove a background color</label>
+              {t.keyColor && <div className="field-grid">
+                <label className="field">Key color<input type="color" value={t.keyColor.color}
+                  onChange={e => patch({ keyColor: { ...t.keyColor!, color: e.target.value } })} /></label>
+                {(["similarity", "blend"] as const).map(k => <label className="field" key={k}>{k === "similarity" ? "Similarity" : "Edge blend"} · {t.keyColor![k]}
+                  <input type="range" min={k === "similarity" ? ".01" : "0"} max="1" step=".01" value={t.keyColor![k]}
+                    onChange={e => patch({ keyColor: { ...t.keyColor!, [k]: +e.target.value } })} /></label>)}
+              </div>}
+              <p className="hint">Render the layer preview to inspect the effect.</p>
+            </details>}
             <label className="field">
               Track name
               <input

@@ -616,15 +616,20 @@ function Comparison({ p, c }: { p: Project; c: Clip }) {
         compare it here.
       </p>
     );
-  const sync = () => {
-    if (a.current && b.current)
-      b.current.currentTime = Math.max(
+  const firstRate = c.settings.playbackRate ?? 1;
+  const secondRate = other.settings.playbackRate ?? 1;
+  const comparisonTime = (time: number) => Math.max(
         0,
         Math.min(
-          other.end - other.start,
-          a.current.currentTime + c.start - other.start,
+          (other.end - other.start) / secondRate,
+          (time * firstRate + c.start - other.start) / secondRate,
         ),
       );
+  const sync = () => {
+    if (a.current && b.current) {
+      b.current.currentTime = comparisonTime(a.current.currentTime);
+      b.current.playbackRate = firstRate / secondRate;
+    }
   };
   return (
     <>
@@ -651,7 +656,7 @@ function Comparison({ p, c }: { p: Project; c: Clip }) {
               b.current &&
               Math.abs(
                 b.current.currentTime -
-                  (a.current.currentTime + c.start - other.start),
+                  comparisonTime(a.current.currentTime),
               ) > 0.25
             )
               sync();

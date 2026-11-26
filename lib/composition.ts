@@ -19,6 +19,7 @@ export type Track = {
   solo: boolean;
   loop: boolean;
   fade: number;
+  keyColor?: { color: string; similarity: number; blend: number };
   keys: Partial<Record<"x" | "y" | "volume", Keyframe[]>>;
 };
 export type Composition = { version: 1; tracks: Track[] };
@@ -41,6 +42,11 @@ export function validateComposition(v: Composition) {
     )
       throw Error("Invalid timeline track");
     ids.add(t.id);
+    if (t.keyColor !== undefined && (
+      !t.keyColor || t.type === "audio" || typeof t.keyColor.color !== "string" ||
+      !/^#[0-9a-f]{6}$/i.test(t.keyColor.color) ||
+      !within(t.keyColor.similarity, 0.01, 1) || !within(t.keyColor.blend, 0, 1)
+    )) throw Error("Invalid layer chroma key.");
     for (const n of ["visible", "muted", "locked", "solo", "loop"] as const)
       if (typeof t[n] !== "boolean") throw Error("Invalid track switch");
     for (const [k, min, max] of [

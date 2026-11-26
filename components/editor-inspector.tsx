@@ -24,6 +24,7 @@ export const editorTools = [
   ["branding", "Branding", Palette],
   ["grade", "Grading", Palette],
   ["effects", "Effects", SlidersHorizontal],
+  ["speed", "Speed", SlidersHorizontal],
   ["history", "History", LayoutTemplate],
   ["templates", "Templates", LayoutTemplate],
 ] as const;
@@ -43,6 +44,18 @@ export function EditorInspector({
   return (
     <div className="editor-fields">
       <h3>{editorTools.find((t) => t[0] === tab)?.[1]}</h3>
+      {tab === "speed" && <>
+        <label className="field">Playback speed · {settings.playbackRate ?? 1}×
+          <input type="range" min=".5" max="4" step=".05" value={settings.playbackRate ?? 1}
+            onChange={e => adjust({ playbackRate: +e.target.value })} />
+        </label>
+        <div className="candidate-actions">
+          {[0.5, 1, 1.5, 2, 4].map(rate => <button className="tool" key={rate}
+            aria-pressed={(settings.playbackRate ?? 1) === rate}
+            onClick={() => adjust({ playbackRate: rate })}>{rate}×</button>)}
+        </div>
+        <p className="hint">Speed applies to the entire composition. The editor timeline uses source time.</p>
+      </>}
       {tab === "media" && (
         <>
           <strong>{project.title}</strong>

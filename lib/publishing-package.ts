@@ -28,6 +28,7 @@ export function subtitleTrack(
   start: number,
   end: number,
   vtt = false,
+  rate = 1,
 ) {
   return (
     (vtt ? "WEBVTT\n\n" : "") +
@@ -38,9 +39,9 @@ export function subtitleTrack(
           i +
           1 +
           "\n" +
-          stamp(Math.max(0, r.start - start), vtt) +
+          stamp(Math.max(0, r.start - start) / rate, vtt) +
           " --> " +
-          stamp(Math.min(end, r.end) - start, vtt) +
+          stamp((Math.min(end, r.end) - start) / rate, vtt) +
           "\n" +
           r.text.trim(),
       )
@@ -100,7 +101,7 @@ export async function buildPackage(
         name: folder + "thumbnail.jpg",
       });
       for (const ext of ["srt", "vtt"])
-        zip.append(subtitleTrack(c.segments, c.start, c.end, ext === "vtt"), {
+        zip.append(subtitleTrack(c.segments, c.start, c.end, ext === "vtt", c.settings.playbackRate), {
           name: folder + "subtitles." + ext,
         });
       const description = captionFile(c);

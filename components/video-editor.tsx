@@ -164,6 +164,9 @@ export function VideoEditor({
   useEffect(() => {
     if (video.current) video.current.volume = Math.min(1, settings.volume ?? 1);
   }, [settings.volume]);
+  useEffect(() => {
+    if (video.current) video.current.playbackRate = settings.playbackRate ?? 1;
+  }, [settings.playbackRate]);
   function toggle() {
     if (!video.current) return;
     if (!video.current.paused) video.current.pause();
@@ -681,12 +684,14 @@ export function VideoEditor({
               }}
             />
           ) : tab !== "subtitles" ? (
-            <EditorInspector
+            <><EditorInspector
               tab={tab}
               settings={settings}
               change={setSettings}
               project={project}
             />
+            {tab === "speed" && <RenderPreview settings={settings} project={project.id} clip={clip.id} start={start} end={end} />}
+            </>
           ) : (
             <div className="editor-fields">
               <SubtitleSettings value={settings} onChange={setSettings} />
