@@ -11,11 +11,21 @@ test.before(async () => {
   process.env.CLIPPER_STORAGE_DIR = dir;
   auth = await import("../lib/auth");
 });
-const base = { name: "Owner", username: "owner", email: "Owner@Example.com", password: "correct horse battery", confirm: "correct horse battery", terms: true };
+const base = {
+  name: "Owner",
+  username: "owner",
+  email: "Owner@Example.com",
+  password: "correct horse battery",
+  confirm: "correct horse battery",
+  terms: true,
+};
 
 test("first account becomes owner on localhost without a token; remote first-run needs one", async () => {
   assert.equal((await auth.registrationState()).first, true);
-  await assert.rejects(auth.register({ ...base, setup: "wrong" }, false), /setup token/i);
+  await assert.rejects(
+    auth.register({ ...base, setup: "wrong" }, false),
+    /setup token/i,
+  );
   const { user, recovery } = await auth.register(base, true);
   assert.equal(user.role, "owner");
   assert.equal(user.email, "owner@example.com");
@@ -24,16 +34,84 @@ test("first account becomes owner on localhost without a token; remote first-run
 });
 
 test("open registration creates members with generated usernames; duplicates are refused", async () => {
-  const m = await auth.register({ name: "Mem", email: "owner@other.com", password: "another long passphrase", terms: true });
+  const owner = await auth.login("owner", base.password);
+  const details = {
+    name: "Mem",
+    email: "owner@other.com",
+    password: "another long passphrase",
+    terms: true,
+  };
+  await assert.rejects(auth.register(details), /registration is closed/i);
+  await auth.manage(owner, {
+    operation: "mode",
+    password: base.password,
+    value: "open",
+  });
+  const m = await auth.register({
+    name: "Mem",
+    email: "owner@other.com",
+    password: "another long passphrase",
+    terms: true,
+  });
   assert.equal(m.user.role, "member");
   assert.match(m.user.username, /^owner-[0-9a-f]{4}$/);
-  await assert.rejects(auth.register({ name: "Mem", email: "OWNER@example.com", password: "another long passphrase", terms: true }), /unavailable/);
+  await assert.rejects(
+    auth.register({
+      name: "Mem",
+      email: "OWNER@example.com",
+      password: "another long passphrase",
+      terms: true,
+    }),
+    /unavailable/,
+  );
+});
+
+test("invitations are single use and members cannot change registration mode", async () => {
+  const owner = await auth.login("owner", base.password);
+  await auth.manage(owner, {
+    operation: "mode",
+    password: base.password,
+    value: "invite",
+  });
+  const invitation = await auth.manage(owner, {
+    operation: "invite",
+    password: base.password,
+  });
+  const details = {
+    name: "Invited",
+    email: "invited@example.com",
+    password: "long invited passphrase",
+    terms: true,
+    invitation,
+  };
+  const { user } = await auth.register(details);
+  await assert.rejects(
+    auth.register({ ...details, email: "second@example.com" }),
+    /invitation/i,
+  );
+  await assert.rejects(
+    auth.manage(user, {
+      operation: "mode",
+      password: details.password,
+      value: "open",
+    }),
+    /owner access/i,
+  );
 });
 
 test("login uses generic errors and passwords are never stored in plaintext", async () => {
-  await assert.rejects(auth.login("owner", "wrong password!!"), /Invalid sign-in details/);
-  await assert.rejects(auth.login("nobody", "wrong password!!"), /Invalid sign-in details/);
-  const stored = await readFile(path.join(dir, "auth", "accounts.json"), "utf8");
+  await assert.rejects(
+    auth.login("owner", "wrong password!!"),
+    /Invalid sign-in details/,
+  );
+  await assert.rejects(
+    auth.login("nobody", "wrong password!!"),
+    /Invalid sign-in details/,
+  );
+  const stored = await readFile(
+    path.join(dir, "auth", "accounts.json"),
+    "utf8",
+  );
   assert.ok(!stored.includes(base.password));
   assert.match(stored, /\$argon2id\$/);
 });
@@ -50,6 +128,10 @@ test("sessions validate, expire on logout and are stored hashed", async () => {
 test("password change invalidates existing sessions", async () => {
   const user = await auth.login("owner", base.password);
   const s = await auth.issue(user.id, true);
-  await auth.manage(user, { password: base.password, operation: "password", value: "another long passphrase" });
+  await auth.manage(user, {
+    password: base.password,
+    operation: "password",
+    value: "another long passphrase",
+  });
   assert.equal(await auth.session(s.value), null);
 });

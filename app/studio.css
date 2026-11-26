@@ -1203,6 +1203,13 @@ time,
 .selection-tools > * {
   font-size: 12px;
 }
+.selection-tools details[open] {
+  flex-basis: 100%;
+}
+.selection-tools details .candidate-actions {
+  margin-block: 8px;
+  flex-wrap: wrap;
+}
 .selection-tools a {
   display: inline-flex;
   align-items: center;

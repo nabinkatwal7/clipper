@@ -1,5 +1,7 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
+
+import { variantLabels, type VariantFormat } from "@/lib/variant-formats";
+import { studioStorage } from "@/lib/client-storage";
 import { useDeferredValue, useEffect, useState } from "react";
 import {
   Ellipsis,
@@ -93,6 +95,37 @@ export function MediaLibrary({
     [category, setCategory] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+  const [formats, setFormats] = useState<VariantFormat[]>([
+    "portrait",
+    "square",
+  ]);
+  async function renderVariants() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/batch-variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clips: selectedHere.map(({ c }) => c.id),
+          formats,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw Error(result.error || "Unable to queue variations.");
+      setSelected([]);
+      setMessage(
+        `${result.count} variations queued. Follow their progress in Processing queue.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to queue variations.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   useEffect(() => {
     try {
       setPub(JSON.parse(studioStorage.getItem("clipper-publishing") || "{}"));
@@ -285,6 +318,15 @@ export function MediaLibrary({
           </button>
         </div>
       )}
+      {!recent && items.length > 0 && (
+        <button
+          className="tool"
+          disabled={busy}
+          onClick={() => setSelected(items.map(({ c }) => c.id))}
+        >
+          Select all {items.length} shown
+        </button>
+      )}
       {!recent && selectedHere.length > 0 && (
         <div className="selection-tools">
           <strong>{selectedHere.length} selected</strong>
@@ -313,6 +355,44 @@ export function MediaLibrary({
             Delete
           </button>
           <button onClick={() => setSelected([])}>Clear</button>
+          <details>
+            <summary>Batch render variations</summary>
+            <div className="candidate-actions">
+              {(Object.keys(variantLabels) as VariantFormat[]).map((format) => (
+                <label className="check-row" key={format}>
+                  <input
+                    type="checkbox"
+                    checked={formats.includes(format)}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setFormats(
+                        e.target.checked
+                          ? [...formats, format]
+                          : formats.filter((v) => v !== format),
+                      )
+                    }
+                  />
+                  {variantLabels[format]}
+                </label>
+              ))}
+            </div>
+            <p className="hint">
+              Up to 20 clips and 40 outputs per batch. Variations are saved
+              alongside the originals.
+            </p>
+            <button
+              className="tool"
+              disabled={
+                busy ||
+                !formats.length ||
+                selectedHere.length > 20 ||
+                selectedHere.length * formats.length > 40
+              }
+              onClick={renderVariants}
+            >
+              Queue {selectedHere.length * formats.length} variations
+            </button>
+          </details>
         </div>
       )}
       {message && <p role="status">{message}</p>}

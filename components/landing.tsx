@@ -22,7 +22,7 @@ export function ProductPreview() {
   return (
     <figure className="preview" aria-label="Illustration of the Clipper Studio editor">
       <div className="pv-window">
-        <div className="pv-bar"><i /><i /><i /><span>Clipper Studio — editor</span></div>
+        <div className="pv-bar"><i /><i /><i /><span>Clipper Studio · Editor illustration</span></div>
         <div className="pv-body">
           <aside className="pv-side">
             {["Overview", "Projects", "Discover", "Video editor", "Subtitle studio", "Streamers", "Workflows"].map((n, i) => (

@@ -29,6 +29,7 @@ import { JobProgress } from "./job-progress";
 import type { Project, Clip } from "@/lib/types";
 import { Channels, useChannelMonitor } from "./channels";
 import { RecoveryPanel } from "./recovery-panel";
+import { LiveClipping } from "./live-clipping";
 import { WorkflowPanel } from "./workflow-panel";
 import { DiscoverySearch } from "./discovery-search";
 import { CompilationBuilder } from "./compilation-builder";
@@ -434,6 +435,7 @@ export default function Workspace() {
             {page === "Content calendar" && (
               <Calendar projects={projects} open={openClip} />
             )}
+            {page === "Live clipping" && <LiveClipping open={openProject} projects={projects} />}
             {["Streamers", "Automatic clipping"].includes(page) && (
               <Channels
                 automation={page === "Automatic clipping"}
@@ -542,6 +544,12 @@ export default function Workspace() {
                 </div>
               </div>
               <div className="project-heading-actions">
+                {project.duration > 0 && (
+                  <Button variant="secondary" onClick={() => go("Transcript explorer")}>
+                    <Scissors size={16} />
+                    Quick clips
+                  </Button>
+                )}
                 {!!project.clips.length && (
                   <Button asChild>
                     <a

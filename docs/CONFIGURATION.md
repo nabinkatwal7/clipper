@@ -19,7 +19,7 @@ Copy `.env.example` to `.env.local` and restart the server after changes. `.env*
 ## Accounts
 
 - The first account becomes the **owner**; later accounts are **members**.
-- Registration mode is `open` (default), `invite` or `closed`. The owner changes it from the account management API (`POST /api/auth/manage`, operation `mode`) after confirming their password. A management screen in the UI is not built yet.
+- New installations close registration after owner setup. In **Account settings**, the owner can confirm their password to switch to open or invitation-only registration, create single-use invitations, and enable or disable member accounts. Existing registration settings are preserved.
 - Passwords: 12–200 characters; no composition rules.
 - Sessions last one day, or 30 days with "Keep me signed in". Changing a password signs out all other sessions.
 - **Recovery:** each account gets a one-time recovery code at sign-up. Use it at `/recover`; a new code is issued after a successful reset. There is no email service.

@@ -1,5 +1,17 @@
 # Clipper Studio
 
+## Batch clip delivery
+
+In **Transcript explorer**, use **Find and replace across this transcript** to correct repeated text. Preview the changes before applying them. In **Clip library**, choose **Use latest transcript captions** under **Batch render variations** to render the corrections into new copies of existing clips.
+
+In **Clip library**, select clips individually or apply a filter and choose **Select all shown**. Open **Batch render variations** to queue portrait, square, landscape or caption-free copies. You can select clips from different projects, with up to 20 clips and 40 outputs per batch. The existing versions remain available for comparison in Production desk.
+
+**Download ZIP** exports the selected MP4s, post-caption text, available SRT files and a JSON index with each clip’s source timestamps and aspect ratio.
+
+## Clip an ongoing stream
+
+Open **Live clipping** in the studio sidebar. Play the stream in a separate desktop browser tab, then choose **Share stream tab** and include tab audio in the browser picker. Capture the previous 15 or 30 seconds, or select a custom length of 5–30 seconds. With Studio focused, Shift+J captures 15 seconds and Shift+K captures 30. Review the source preview, name the clip and queue the 720p export. The draft stays in memory until you queue or discard it. Keep the Live clipping page open while capturing.
+
 A self-hosted, local-first video clipping studio. Import a long recording, find highlight candidates with a local [Ollama](https://ollama.com) model, cut vertical clips, edit them on a multi-track timeline, caption them in your language, and export ready-to-post videos.
 
 - **Local-first.** Media, accounts and projects are plain files on your machine. No database, no paid API, no subscription.

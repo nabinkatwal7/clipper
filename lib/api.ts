@@ -16,17 +16,32 @@ import { preferences, preference } from "./preferences";
 import { compilation } from "./compilation";
 import { checkpoint, checkpoints } from "./checkpoints";
 import { assetList, importAsset, editAsset, asset } from "./assets";
-import { buildPackage, packageLocation } from "./publishing-package";
+import {
+  buildPackage,
+  packageLocation,
+  subtitleTrack,
+} from "./publishing-package";
 import { ledger, updateLedger } from "./production-store";
 import { report, reportText, escapeHtml } from "./production";
 import { advise } from "./director";
 import { NextRequest, NextResponse } from "next/server";
+import { manualBatch } from "./manual-batch";
+import { queueVariants } from "./batch-variants";
 import { randomUUID, createHash } from "node:crypto";
 import { promises as fs, createWriteStream, createReadStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { ZipArchive } from "archiver";
-import { init, file, read, save, list, transcript, workspaceRoot, dirs } from "./store";
+import {
+  init,
+  file,
+  read,
+  save,
+  list,
+  transcript,
+  workspaceRoot,
+  dirs,
+} from "./store";
 import { settings, validId } from "./validation";
 import { validateUrl } from "./network";
 import {
@@ -585,19 +600,42 @@ export async function handle(
         }),
       );
       const clips = (await list())
-        .flatMap((p) => p.clips)
-        .filter((c) => selected.has(c.id));
+        .flatMap((p) => p.clips.map((c) => ({ p, c })))
+        .filter(({ c }) => selected.has(c.id));
       if (clips.length !== selected.size)
         throw Error(
           "Selection changed. Refresh the library and select the clips again.",
         );
       const zip = new ZipArchive({ zlib: { level: 0 } });
-      for (const c of clips) {
+      for (const { c } of clips) {
         const path = file("clips", c.id, "mp4");
         await fs.access(path);
         zip.file(path, { name: clipBasename(c) + ".mp4" });
         zip.append(captionFile(c), { name: clipBasename(c) + ".txt" });
+        const rows = c.segments.filter(
+          (s) => s.text.trim() && s.end > c.start && s.start < c.end,
+        );
+        if (rows.length)
+          zip.append(subtitleTrack(rows, c.start, c.end), {
+            name: clipBasename(c) + ".srt",
+          });
       }
+      zip.append(
+        JSON.stringify(
+          clips.map(({ p, c }) => ({
+            title: c.title,
+            video: clipBasename(c) + ".mp4",
+            postCaption: clipBasename(c) + ".txt",
+            project: p.title,
+            sourceStart: c.start,
+            sourceEnd: c.end,
+            ratio: c.settings.ratio,
+          })),
+          null,
+          2,
+        ),
+        { name: "clip-index.json" },
+      );
       const stream = Readable.toWeb(zip) as ReadableStream;
       void zip.finalize().catch((e) => zip.destroy(e));
       return new Response(stream, {
@@ -638,7 +676,9 @@ export async function handle(
       const usage = await Promise.all(
         dirs.map(async (name) => {
           const entries = (
-            await fs.readdir(workspaceRoot() + "/" + name, { withFileTypes: true })
+            await fs.readdir(workspaceRoot() + "/" + name, {
+              withFileTypes: true,
+            })
           ).filter((entry) => entry.isFile());
           const sizes = await Promise.all(
             entries.map((entry) =>
@@ -769,6 +809,10 @@ export async function handle(
         headers: { "Cache-Control": "no-store" },
       });
     }
+    if (req.method === "POST" && action === "batch-variants")
+      return NextResponse.json(await queueVariants(await req.json()), {
+        status: 202,
+      });
     if (req.method === "POST" && action === "import") {
       const id = randomUUID();
       let s;
@@ -777,6 +821,13 @@ export async function handle(
       let auto = true;
       const upload =
         req.headers.get("content-type") === "application/octet-stream";
+      const replay =
+        upload && query.has("replay") ? Number(query.get("replay")) : undefined;
+      if (
+        replay !== undefined &&
+        (!Number.isInteger(replay) || replay < 5 || replay > 30)
+      )
+        throw Error("Choose a live replay between 5 and 30 seconds.");
       if (upload) {
         s = settings(JSON.parse(query.get("settings") || "{}"));
         title = decodeURIComponent(
@@ -809,7 +860,13 @@ export async function handle(
         if (!req.body) throw Error("Missing video");
         const digest = createHash("sha256");
         let bytes = 0;
-        const limit = Number(process.env.MAX_UPLOAD_MB || 5120) * 1024 * 1024;
+        const limit =
+          Math.min(
+            replay ? 100 : Infinity,
+            Number(process.env.MAX_UPLOAD_MB || 5120),
+          ) *
+          1024 *
+          1024;
         try {
           await pipeline(
             Readable.fromWeb(req.body as never),
@@ -834,8 +891,56 @@ export async function handle(
       }
       await save(p);
       enqueue(id, async (signal) => {
+        if (replay !== undefined) {
+          const input = file("uploads", id, "mp4");
+          const normalized = file("temp", id, "replay.mp4");
+          try {
+            // Browser recordings can omit duration until remuxed.
+            await run(
+              bin.ffmpeg,
+              [
+                "-v",
+                "error",
+                "-protocol_whitelist",
+                "file,pipe",
+                "-format_whitelist",
+                "mov,mp4,m4a,3gp,3g2,mj2,matroska,webm",
+                "-i",
+                input,
+                "-t",
+                "91",
+                "-map",
+                "0:v:0",
+                "-map",
+                "0:a:0?",
+                "-vf",
+                "scale=1280:720:force_original_aspect_ratio=decrease:force_divisible_by=2",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "superfast",
+                "-threads",
+                "2",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "aac",
+                "-movflags",
+                "+faststart",
+                normalized,
+              ],
+              signal,
+              undefined,
+              120_000,
+            );
+            await fs.rename(normalized, input);
+          } finally {
+            await fs.rm(normalized, { force: true });
+          }
+        }
         const cached = (await list()).find(
           (other) =>
+            replay === undefined &&
             other.id !== id &&
             other.duration > 0 &&
             !busy(other.id) &&
@@ -869,7 +974,31 @@ export async function handle(
           await probe(p, signal);
         } else if (source) await ingest(p, signal);
         else await probe(p, signal);
-        if (auto) await generate(p, signal);
+        if (replay !== undefined) {
+          if (p.duration > 90)
+            throw Error("Live replay recordings must be at most 90 seconds.");
+          p.settings = {
+            ...p.settings,
+            mode: "manual",
+            captions: false,
+            manualStart: Math.max(0, p.duration - replay),
+            manualEnd: p.duration,
+          };
+          await generate(
+            p,
+            signal,
+            manualBatch(
+              [
+                {
+                  start: p.settings.manualStart,
+                  end: p.duration,
+                  title: p.title,
+                },
+              ],
+              p.duration,
+            ),
+          );
+        } else if (auto) await generate(p, signal);
         else {
           p.status = "ready";
           p.stage = "imported";
@@ -1061,7 +1190,11 @@ export async function handle(
         });
         return NextResponse.json({ ok: true }, { status: 202 });
       }
-      if (body.settings) p.settings = settings(body.settings);
+      const ranges =
+        action === "generate" && body.ranges !== undefined
+          ? manualBatch(body.ranges, p.duration)
+          : undefined;
+      if (body.settings && !ranges) p.settings = settings(body.settings);
       p.progress = {};
       if (p.duration > 0) {
         beginProgress(
@@ -1082,7 +1215,7 @@ export async function handle(
           if (p.source) await ingest(p, signal);
           else await probe(p, signal);
         }
-        if (action === "generate") await generate(p, signal);
+        if (action === "generate") await generate(p, signal, ranges);
         else {
           if (action === "transcribe") {
             if (!(await transcribe(p, signal))) throw Error(noTranscript);

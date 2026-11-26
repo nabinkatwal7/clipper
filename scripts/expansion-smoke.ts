@@ -158,6 +158,34 @@ async function main() {
   };
   assert.equal((await req("transcript", "", "POST", body)).status, 200);
   assert.equal((await req("transcript", "", "POST", body)).status, 400);
+  const replacement = { project: id, query: "edited", text: "Corrected $1" };
+  const preview = await req("transcript", "", "POST", {
+    ...replacement,
+    action: "replace-preview",
+  });
+  assert.equal(preview.status, 200, await preview.clone().text());
+  const { revision, changes } = await preview.json();
+  assert.equal(changes[0].after, "Corrected $1");
+  assert.equal(
+    (
+      await req("transcript", "", "POST", {
+        ...replacement,
+        action: "replace-apply",
+        revision,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await req("transcript", "", "POST", {
+        ...replacement,
+        action: "replace-apply",
+        revision,
+      })
+    ).status,
+    400,
+  );
   const signal = new AbortController().signal;
   const { importAsset } = await import("../lib/assets");
   const a = await importAsset(
@@ -319,6 +347,104 @@ async function main() {
   }
   console.log(
     "PASS animated media layer, graded variation, original preservation, publishing ZIP, dissolve compilation, backup restore",
+  );
+  const before = await read(id);
+  const invalid = await req("generate", "", "POST", {
+    project: id,
+    ranges: [{ start: 0, end: 999 }],
+  });
+  assert.equal(invalid.status, 400);
+  const batch = await req("generate", "", "POST", {
+    project: id,
+    ranges: [
+      { start: 0, end: 0.8, title: "Marked opening" },
+      { start: 1, end: 2 },
+    ],
+  });
+  assert.equal(batch.status, 202, await batch.clone().text());
+  const after = await wait();
+  assert.deepEqual(after.highlights, before.highlights);
+  assert.deepEqual(after.settings, before.settings);
+  assert.deepEqual(
+    after.clips.slice(-2).map((c) => c.title),
+    ["Marked opening", "Manual clip 2"],
+  );
+  console.log(
+    "PASS quick clipping batch, real renders, and preserved discovery results",
+  );
+  const formats = await req("batch-variants", "", "POST", {
+    clips: [after.clips.at(-2)!.id],
+    formats: ["square", "clean", "refreshed"],
+  });
+  assert.equal(formats.status, 202, await formats.clone().text());
+  const withVariants = await wait();
+  assert.equal(withVariants.clips.length, after.clips.length + 3);
+  const [square, clean, updated] = withVariants.clips.slice(-3);
+  assert.equal(square.qa?.width, square.qa?.height);
+  assert.equal(clean.settings.captions, false);
+  assert.equal(square.familyId, clean.familyId);
+  assert.equal(updated.settings.captions, true);
+  assert.equal(updated.segments[0].text, "Corrected $1");
+  const variantZip = await req(
+    "export",
+    "clip=" + square.id + "&clip=" + clean.id,
+  );
+  assert.equal(variantZip.status, 200);
+  assert.ok(
+    Buffer.from(await variantZip.arrayBuffer()).includes(
+      Buffer.from("clip-index.json"),
+    ),
+  );
+  console.log("PASS batch variations and selected-clip ZIP index");
+  const webm = path.join(tmp, "live.webm");
+  await run(bin.ffmpeg, [
+    "-v",
+    "error",
+    "-f",
+    "lavfi",
+    "-i",
+    "testsrc2=size=128x96:rate=12",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=350",
+    "-t",
+    "17",
+    "-c:v",
+    "libvpx",
+    "-c:a",
+    "libopus",
+    "-live",
+    "1",
+    webm,
+  ]);
+  const replay = await handle(
+    new NextRequest("http://127.0.0.1:4000/api/import?replay=12", {
+      method: "POST",
+      headers: {
+        host: "127.0.0.1:4000",
+        "Content-Type": "application/octet-stream",
+      },
+      body: new Uint8Array(await fs.readFile(webm)),
+    }),
+    "import",
+  );
+  assert.equal(replay.status, 202, await replay.clone().text());
+  const { id: replayId } = await replay.json();
+  const timeout = Date.now() + 30_000;
+  while (busy(replayId) && Date.now() < timeout)
+    await new Promise((r) => setTimeout(r, 100));
+  const captured = await read(replayId);
+  assert.equal(captured.status, "ready", captured.error);
+  assert.ok(captured.clips[0].start > 1);
+  assert.equal(captured.clips[0].end - captured.clips[0].start, 12);
+  assert.ok(captured.clips[0].qa?.audio);
+  assert.equal(
+    (await req("cleanup", "project=" + replayId, "DELETE")).status,
+    200,
+  );
+  console.log(
+    "PASS custom 12-second live replay from durationless WebM with audio",
   );
   assert.equal((await req("cleanup", "project=" + id, "DELETE")).status, 200);
   console.log("PASS transcript edit, stale edit recovery and fixture cleanup");

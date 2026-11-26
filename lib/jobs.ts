@@ -1,10 +1,11 @@
-import {workspaceScope} from "./identity";
+import { workspaceScope } from "./identity";
 import { evidence, windowEvidence } from "./activity-evidence";
 import { ledger } from "./production-store";
 import { compose } from "./composite-render";
 import { gradeFilters, mixFilters } from "./grading";
 import {
-  analysisWindows,distinctEvidence,
+  analysisWindows,
+  distinctEvidence,
   passesRules,
   cachedText,
   ollamaJson,
@@ -35,7 +36,7 @@ import {
 import { importSourceSubtitles } from "./source-subtitles";
 import { readOllamaResponse } from "./ollama";
 type Task = {
- scope?:string;
+  scope?: string;
   id: string;
   controller: AbortController;
   work: (signal: AbortSignal) => Promise<void>;
@@ -59,7 +60,14 @@ export function cancel(id: string) {
 }
 export function enqueue(id: string, work: Task["work"]) {
   if (busy(id)) throw Error("Project already has a running job");
-  const scope=workspaceScope.getStore();jobs.queue.push({id,work:signal=>scope?workspaceScope.run(scope,()=>work(signal)):work(signal),controller:new AbortController(),scope});
+  const scope = workspaceScope.getStore();
+  jobs.queue.push({
+    id,
+    work: (signal) =>
+      scope ? workspaceScope.run(scope, () => work(signal)) : work(signal),
+    controller: new AbortController(),
+    scope,
+  });
   void drain();
 }
 async function drain() {
@@ -71,7 +79,9 @@ async function drain() {
     await t.work(t.controller.signal);
   } catch (e) {
     try {
-      const p = await (t.scope?workspaceScope.run(t.scope,()=>read(t.id)):read(t.id));
+      const p = await (t.scope
+        ? workspaceScope.run(t.scope, () => read(t.id))
+        : read(t.id));
       p.status = t.controller.signal.aborted ? "cancelled" : "error";
       p.stage = p.status;
       p.error = t.controller.signal.aborted
@@ -82,7 +92,7 @@ async function drain() {
       p.detail = t.controller.signal.aborted
         ? "Processing cancelled. Existing files are available to retry."
         : "Processing stopped. Resolve the error and try again.";
-      await (t.scope?workspaceScope.run(t.scope,()=>save(p)):save(p));
+      await (t.scope ? workspaceScope.run(t.scope, () => save(p)) : save(p));
     } catch {}
   } finally {
     jobs.active = undefined;
@@ -346,7 +356,10 @@ export async function ingest(p: Project, signal: AbortSignal) {
   }
   await probe(p, signal);
 }
-export async function transcribe(p: Project, signal: AbortSignal): Promise<boolean> {
+export async function transcribe(
+  p: Project,
+  signal: AbortSignal,
+): Promise<boolean> {
   try {
     await transcript(p.id);
     beginProgress(
@@ -426,7 +439,8 @@ export async function analyze(p: Project, signal: AbortSignal) {
                         title: { type: "string" },
                         reason: { type: "string" },
                         score: { type: "number" },
-                        postCaption: { type: "string" }, category:{type:"string"},
+                        postCaption: { type: "string" },
+                        category: { type: "string" },
                       },
                       required: [
                         "start",
@@ -434,7 +448,8 @@ export async function analyze(p: Project, signal: AbortSignal) {
                         "title",
                         "reason",
                         "score",
-                        "postCaption","category",
+                        "postCaption",
+                        "category",
                       ],
                     },
                   },
@@ -497,9 +512,18 @@ export async function analyze(p: Project, signal: AbortSignal) {
   const unique = validateHighlights(results, p.duration, p.settings).sort(
     (a, b) => (b.score ?? 0) - (a.score ?? 0),
   );
-  const rejected=p.clips.filter(c=>feedbackLedger.reviews[c.editorialId||c.id]?.status==="rejected");
-  const eligible=unique.filter(h=>!rejected.some(c=>Math.max(0,Math.min(h.end,c.end)-Math.max(h.start,c.start))>.5*Math.min(h.end-h.start,c.end-c.start)));
-  p.highlights = distinctEvidence(eligible,segments)
+  const rejected = p.clips.filter(
+    (c) => feedbackLedger.reviews[c.editorialId || c.id]?.status === "rejected",
+  );
+  const eligible = unique.filter(
+    (h) =>
+      !rejected.some(
+        (c) =>
+          Math.max(0, Math.min(h.end, c.end) - Math.max(h.start, c.start)) >
+          0.5 * Math.min(h.end - h.start, c.end - c.start),
+      ),
+  );
+  p.highlights = distinctEvidence(eligible, segments)
     .slice(0, p.settings.count || 20)
     .sort((a, b) => a.start - b.start);
   if (!p.highlights.length)
@@ -520,6 +544,9 @@ export async function render(
   onProgress?: (seconds: number) => void,
 ): Promise<Clip> {
   const [w, height] = dimensions(s);
+  const rate = s.playbackRate ?? 1;
+  const duration = (h.end - h.start) / rate;
+  const tempo = rate > 2 ? `atempo=2,atempo=${rate / 2}` : `atempo=${rate}`;
   const ass = file("temp", id, "ass");
   await fs.writeFile(
     ass,
@@ -550,6 +577,7 @@ export async function render(
   const master = [
     "volume=" + (s.volume ?? 1),
     ...(s.mix ? mixFilters(s.mix, h.end - h.start) : []),
+    ...(rate === 1 ? [] : [tempo, "apad", `atrim=duration=${duration}`]),
   ].join(",");
   let sourceAudio = p.hasAudio;
   if (s.composition?.tracks.length && sourceAudio === undefined) {
@@ -600,7 +628,7 @@ export async function render(
       (lutGraph.length ? "[prelut]" : "[base]"),
     ...lutGraph,
     ...comp.graph,
-    `[${comp.video}]${finalOverlay}[out]`,
+    `[${comp.video}]${finalOverlay}${rate === 1 ? "" : `,setpts=(PTS-STARTPTS)/${rate},fps=30,tpad=stop_mode=clone:stop_duration=0.1,trim=duration=${duration}`}[out]`,
   ].join(";");
   const temporary = file("temp", id, "mp4");
   const space = await fs.statfs(path.dirname(temporary)).catch(() => null);
@@ -673,7 +701,7 @@ export async function render(
       signal,
       (line) => {
         const seconds = ffmpegSeconds(line);
-        if (seconds !== undefined) onProgress?.(seconds);
+        if (seconds !== undefined) onProgress?.(seconds * rate);
       },
     );
     signal.throwIfAborted();
@@ -681,7 +709,7 @@ export async function render(
       temporary,
       w,
       height,
-      h.end - h.start,
+      duration,
       comp.hasAudio || p.hasAudio,
       signal,
     );
@@ -693,13 +721,19 @@ export async function render(
     await fs.rm(temporary, { force: true });
   }
 }
-export async function generate(p: Project, signal: AbortSignal) {
+export async function generate(
+  p: Project,
+  signal: AbortSignal,
+  ranges?: Highlight[],
+) {
   const s = p.settings;
   const hasTranscript =
-    s.mode === "ai" || s.captions ? await transcribe(p, signal) : true;
+    (!ranges && s.mode === "ai") || s.captions
+      ? await transcribe(p, signal)
+      : true;
   // AI mode without a transcript falls through to explicit fixed-length splitting below.
-  if (s.mode === "ai" && hasTranscript) await analyze(p, signal);
-  else if (s.mode === "manual") {
+  if (!ranges && s.mode === "ai" && hasTranscript) await analyze(p, signal);
+  else if (!ranges && s.mode === "manual") {
     if (s.manualEnd <= s.manualStart || s.manualEnd > p.duration)
       throw Error("Trim range must fit inside the source video");
     p.highlights = [
@@ -711,7 +745,7 @@ export async function generate(p: Project, signal: AbortSignal) {
         score: null,
       },
     ];
-  } else {
+  } else if (!ranges) {
     const length = Number(s.duration.split("-")[1]);
     p.highlights = [];
     for (
@@ -730,41 +764,38 @@ export async function generate(p: Project, signal: AbortSignal) {
     }
   }
   const segments = s.captions && hasTranscript ? await transcript(p.id) : [];
+  const highlights = ranges ?? p.highlights;
   const rendering = reporter(p, "rendering");
-  for (let i = 0; i < p.highlights.length; i++) {
+  for (const [i, highlight] of highlights.entries()) {
     signal.throwIfAborted();
     await stage(
       p,
       "rendering",
-      `Rendering clip ${i + 1} of ${p.highlights.length} with FFmpeg…`,
+      `Rendering clip ${i + 1} of ${highlights.length} with FFmpeg…`,
     );
     const clip = await render(
       p,
-      p.highlights[i],
+      highlight,
       s,
       segments.filter(
-        (x) => x.end > p.highlights[i].start && x.start < p.highlights[i].end,
+        (x) => x.end > highlight.start && x.start < highlight.end,
       ),
       signal,
       randomUUID(),
       (seconds) =>
         rendering.update(
-          i +
-            Math.min(
-              1,
-              seconds / (p.highlights[i].end - p.highlights[i].start),
-            ),
-          p.highlights.length,
+          i + Math.min(1, seconds / (highlight.end - highlight.start)),
+          highlights.length,
           "clips",
-          `Rendering clip ${i + 1} of ${p.highlights.length} · ${Math.round(seconds)}s encoded`,
+          `Rendering clip ${i + 1} of ${highlights.length} · ${Math.round(seconds)}s encoded`,
         ),
     );
     p.clips.push(clip);
     rendering.update(
       i + 1,
-      p.highlights.length,
+      highlights.length,
       "clips",
-      `Rendered ${i + 1} of ${p.highlights.length} clips`,
+      `Rendered ${i + 1} of ${highlights.length} clips`,
     );
     await save(p);
     await rendering.flush();

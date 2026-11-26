@@ -22,6 +22,8 @@ export function settings(input: unknown): Settings {
     ...defaults,
     ...(typeof input === "object" && input ? input : {}),
   } as Settings;
+  if (s.playbackRate !== undefined && (!Number.isFinite(s.playbackRate) || s.playbackRate < 0.5 || s.playbackRate > 4))
+    throw Error("Playback speed must be between 0.5× and 4×.");
   if (
     s.encodeProfile !== undefined &&
     !["fast", "balanced", "quality"].includes(s.encodeProfile)

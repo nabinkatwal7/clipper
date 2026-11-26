@@ -1,9 +1,11 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
+import { studioStorage } from "@/lib/client-storage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Download } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
 import { StreamIndex } from "./stream-index";
+import { QuickClips } from "./quick-clips";
+import { TranscriptReplace } from "./transcript-replace";
 import { duration } from "./studio-media";
 import type { Project, Segment } from "@/lib/types";
 export function SourceTool({
@@ -221,6 +223,22 @@ export function SourceTool({
             )
           }
         />
+        {!thumbnail && (
+          <QuickClips
+            project={project}
+            time={time}
+            seek={seek}
+            highlighted={
+              candidate < 0
+                ? undefined
+                : {
+                    start: bounds[0],
+                    end: bounds[1],
+                    title: project.highlights[candidate]?.title,
+                  }
+            }
+          />
+        )}
         {thumbnail && (
           <div className={"thumb-stage " + (guides ? "with-guides" : "")}>
             <canvas
@@ -559,6 +577,19 @@ export function SourceTool({
                   </button>
                   <small>{filtered.length} segments</small>
                 </div>
+                {!!rows.length && (
+                  <TranscriptReplace
+                    project={project.id}
+                    refresh={async () => {
+                      const response = await fetch(
+                        "/api/transcript?project=" + project.id,
+                      );
+                      if (!response.ok)
+                        throw Error("Could not refresh transcript");
+                      setRows(await response.json());
+                    }}
+                  />
+                )}
                 {selected && (
                   <div className="segment-edit">
                     <label className="field">

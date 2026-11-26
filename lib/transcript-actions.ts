@@ -1,7 +1,54 @@
 import { transcript, read, file } from "./store";
 import { busy } from "./jobs";
 import { promises as fs } from "node:fs";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import type { Segment } from "./types";
+
+function replaceTranscript(
+  rows: Segment[],
+  body: { query?: string; text?: string; matchCase?: boolean },
+) {
+  if (
+    typeof body.query !== "string" ||
+    !body.query.trim() ||
+    body.query.length > 200 ||
+    typeof body.text !== "string" ||
+    body.text.length > 400
+  )
+    throw Error(
+      "Enter a search phrase and a replacement of up to 400 characters.",
+    );
+  const pattern = new RegExp(
+    body.query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    body.matchCase ? "gu" : "giu",
+  );
+  const changes: { start: number; before: string; after: string }[] = [];
+  const updated = rows.map((row) => {
+    const text = row.text.replace(pattern, () => body.text!).trim();
+    if (text === row.text.trim()) return row;
+    if (!text || text.length > 4000)
+      throw Error(
+        "A replacement would leave a segment empty or exceed 4000 characters.",
+      );
+    changes.push({ start: row.start, before: row.text, after: text });
+    return { ...row, text, words: [] };
+  });
+  const revision = createHash("sha256")
+    .update(JSON.stringify([body.query, body.text, !!body.matchCase, rows]))
+    .digest("hex");
+  return { updated, revision, changes };
+}
+
+async function writeTranscript(id: string, rows: Segment[]) {
+  const target = file("transcripts", id, "json");
+  const tmp = target + "." + randomUUID() + ".tmp";
+  try {
+    await fs.writeFile(tmp, JSON.stringify(rows), { flag: "wx" });
+    await fs.rename(tmp, target);
+  } finally {
+    await fs.rm(tmp, { force: true });
+  }
+}
 export async function transcriptAction(
   body: {
     project: string;
@@ -11,6 +58,8 @@ export async function transcriptAction(
     start?: number;
     text?: string;
     original?: string;
+    matchCase?: boolean;
+    revision?: string;
   },
   signal: AbortSignal,
 ) {
@@ -19,7 +68,14 @@ export async function transcriptAction(
     studioTranscriptWriters?: Set<string>;
   };
   const writers = (edits.studioTranscriptWriters ??= new Set<string>());
-  if (body.action === "edit") {
+  if (body.action === "replace-preview") {
+    const { changes, revision } = replaceTranscript(
+      await transcript(project.id),
+      body,
+    );
+    return { changes: changes.slice(0, 20), count: changes.length, revision };
+  }
+  if (body.action === "edit" || body.action === "replace-apply") {
     if (busy(project.id) || writers.has(project.id))
       throw Error(
         "Wait for this project to finish before editing its transcript.",
@@ -27,6 +83,15 @@ export async function transcriptAction(
     writers.add(project.id);
     try {
       const rows = await transcript(project.id);
+      if (body.action === "replace-apply") {
+        const { updated, changes, revision } = replaceTranscript(rows, body);
+        if (revision !== body.revision)
+          throw Error(
+            "The transcript or replacement has changed. Preview the replacement again.",
+          );
+        if (changes.length) await writeTranscript(project.id, updated);
+        return { count: changes.length };
+      }
       const seg = rows.find((s) => s.start === body.start);
       if (!seg || !body.text?.trim() || body.text.length > 4000)
         throw Error("Enter a segment under 4000 characters.");
@@ -36,14 +101,7 @@ export async function transcriptAction(
         );
       seg.text = body.text.trim();
       seg.words = [];
-      const target = file("transcripts", project.id, "json"),
-        tmp = target + "." + randomUUID() + ".tmp";
-      try {
-        await fs.writeFile(tmp, JSON.stringify(rows));
-        await fs.rename(tmp, target);
-      } finally {
-        await fs.rm(tmp, { force: true });
-      }
+      await writeTranscript(project.id, rows);
       return { text: seg.text };
     } finally {
       writers.delete(project.id);

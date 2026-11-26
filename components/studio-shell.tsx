@@ -58,6 +58,7 @@ export const sections = [
       ["Streamers", Cpu],
       ["Processing queue", ListVideo],
       ["Automatic clipping", Workflow],
+      ["Live clipping", ListVideo],
       ["Workflow builder", Workflow],
     ],
   ],
