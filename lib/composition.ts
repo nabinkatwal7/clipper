@@ -1,9 +1,10 @@
 import { validateMask, type LayerMask } from "./layer-mask";
 import { blendModes, type BlendMode } from "./layer-blend";
+import { layerTransformFilters, type LayerTransform } from "./layer-transform";
 
 import type { Keyframe } from "./keyframe-curve";
 export { curve, type Ease, type Keyframe } from "./keyframe-curve";
-export type Track = {
+export type Track = LayerTransform & {
   id: string;
   name: string;
   group?: string;
@@ -26,7 +27,7 @@ export type Track = {
   keyColor?: { color: string; similarity: number; blend: number };
   mask?: LayerMask;
   blendMode?: BlendMode;
-  keys: Partial<Record<"x" | "y" | "volume", Keyframe[]>>;
+  keys: Partial<Record<"x" | "y" | "volume" | "rotation", Keyframe[]>>;
 };
 export type Composition = { version: 1; tracks: Track[] };
 const within = (n: unknown, min: number, max: number) =>
@@ -49,6 +50,9 @@ export function validateComposition(v: Composition) {
     )
       throw Error("Invalid timeline track");
     ids.add(t.id);
+    const transforms = layerTransformFilters(t);
+    if (t.type === "audio" && transforms.length)
+      throw Error("Visual transforms require an image or video layer.");
     if (
       t.blendMode !== undefined &&
       (t.type === "audio" ||
@@ -88,7 +92,8 @@ export function validateComposition(v: Composition) {
     if (!t.keys || typeof t.keys !== "object") throw Error("Invalid keyframes");
     for (const [k, keys] of Object.entries(t.keys)) {
       if (
-        !["x", "y", "volume"].includes(k) ||
+        !["x", "y", "volume", "rotation"].includes(k) ||
+        (k === "rotation" && t.type === "audio") ||
         !Array.isArray(keys) ||
         keys.length > 48
       )
@@ -98,7 +103,11 @@ export function validateComposition(v: Composition) {
         if (
           !within(key.time, 0, t.length) ||
           key.time <= previous ||
-          !within(key.value, 0, k === "volume" ? 2 : 1) ||
+          !within(
+            key.value,
+            k === "rotation" ? -180 : 0,
+            k === "rotation" ? 180 : k === "volume" ? 2 : 1,
+          ) ||
           !["linear", "in", "out", "in-out", "hold"].includes(key.ease)
         )
           throw Error("Invalid animation point");

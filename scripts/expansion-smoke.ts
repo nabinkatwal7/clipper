@@ -31,6 +31,83 @@ async function main() {
   }
   console.log("PASS time-limited FFmpeg effects");
   const fixture = path.join(tmp, "sample.mp4");
+  const { layerTransformFilters } = await import("../lib/layer-transform");
+  assert.throws(() => layerTransformFilters({ rotation: 181 }));
+  const checkTransform = async (
+    filters: string,
+    input: string,
+    chain: string,
+  ) => {
+    const info: string[] = [];
+    await run(
+      bin.ffmpeg,
+      [
+        "-hide_banner",
+        "-f",
+        "lavfi",
+        "-i",
+        input,
+        "-vf",
+        `${filters},${chain},showinfo`,
+        "-frames:v",
+        "1",
+        "-f",
+        "null",
+        "-",
+      ],
+      undefined,
+      (line) => {
+        if (line.includes("mean:")) info.push(line);
+      },
+    );
+    return info.join("\n");
+  };
+  const checker =
+    "color=black:s=64x32:d=0.1,drawbox=x=0:y=0:w=16:h=8:c=white:t=fill";
+  assert.match(
+    await checkTransform("hflip,vflip", checker, "crop=2:2:62:30"),
+    /mean:\[235 /,
+  );
+  const rotation = layerTransformFilters({ rotation: 45 }).join(",");
+  assert.match(
+    await checkTransform(
+      "format=rgba," + rotation,
+      checker,
+      "alphaextract,crop=2:2:0:0",
+    ),
+    /mean:\[0\]/,
+  );
+  const ninety = layerTransformFilters({ rotation: 90 }).join(",");
+  const turning = layerTransformFilters({}, [
+    { time: 0, value: 0, ease: "linear" },
+    { time: 1, value: 180, ease: "linear" },
+  ]).join(",");
+  const turned = await run(bin.ffmpeg, [
+    "-v",
+    "error",
+    "-f",
+    "lavfi",
+    "-i",
+    checker.replace("d=0.1", "r=2:d=1.5"),
+    "-vf",
+    "format=rgba," + turning,
+    "-f",
+    "framemd5",
+    "-",
+  ]);
+  const frameHashes = turned
+    .split(/\r?\n/)
+    .filter((line) => /^0,/.test(line))
+    .map((line) => line.split(",").at(-1)?.trim());
+  assert.equal(frameHashes.length, 3);
+  assert.equal(new Set(frameHashes).size, 3);
+  assert.match(
+    await checkTransform("format=rgba," + ninety, checker, "alphaextract"),
+    /s:32x64/,
+  );
+  console.log(
+    "PASS layer mirror placement, rotation bounds, and transparent corners",
+  );
   const { defaultMask, maskFilter } = await import("../lib/layer-mask");
   for (const shape of ["ellipse", "rectangle"] as const) {
     for (const invert of [false, true]) {
@@ -370,7 +447,13 @@ async function main() {
     keyColor: { color: "#00ff00", similarity: 0.2, blend: 0.08 },
     mask: moving,
     blendMode: "screen",
+    rotation: 22,
+    flipX: true,
     keys: {
+      rotation: [
+        { time: 0, value: 22, ease: "in-out" },
+        { time: 0.8, value: -45, ease: "hold" },
+      ],
       x: [
         { time: 0, value: 0, ease: "linear" },
         { time: 0.8, value: 1, ease: "hold" },

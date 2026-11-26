@@ -50,7 +50,9 @@ export function LayersPanel({
   const [selection, selectMany] = useState<string[]>([]);
   const tracks = s.composition?.tracks || [],
     [id, setId] = useState(""),
-    [param, setParam] = useState<"x" | "y" | "volume">("x"),
+    [selectedParam, setParam] = useState<"x" | "y" | "volume" | "rotation">(
+      "x",
+    ),
     [ease, setEase] = useState<Ease>("linear"),
     [ripple, setRipple] = useState(false);
   const t = tracks.find((t) => t.id === id) || tracks[0],
@@ -88,6 +90,7 @@ export function LayersPanel({
     ]);
     setId(id);
   }
+  const param = t?.type === "audio" ? "volume" : selectedParam;
   const keys = t?.keys[param] || [],
     pos = t
       ? Math.round(Math.max(0, Math.min(t.length, at - t.at)) * 1000) / 1000
@@ -213,6 +216,54 @@ export function LayersPanel({
             Lock track
           </label>
           <fieldset disabled={t.locked}>
+            {t.type !== "audio" && (
+              <details className="clip-context">
+                <summary>Layer transform</summary>
+                <label className="field">
+                  Rotation · {t.rotation ?? 0}°
+                  <input
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="1"
+                    value={t.rotation ?? 0}
+                    onChange={(e) => patch({ rotation: +e.target.value })}
+                  />
+                </label>
+                <div className="candidate-actions">
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={!!t.flipX}
+                      onChange={(e) => patch({ flipX: e.target.checked })}
+                    />{" "}
+                    Mirror horizontally
+                  </label>
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={!!t.flipY}
+                      onChange={(e) => patch({ flipY: e.target.checked })}
+                    />{" "}
+                    Mirror vertically
+                  </label>
+                  <button
+                    type="button"
+                    className="tool"
+                    disabled={!t.rotation && !t.flipX && !t.flipY}
+                    onClick={() =>
+                      patch({
+                        rotation: undefined,
+                        flipX: undefined,
+                        flipY: undefined,
+                      })
+                    }
+                  >
+                    Reset transform
+                  </button>
+                </div>
+              </details>
+            )}
             {t.type !== "audio" && (
               <label className="field">
                 Blend mode
@@ -435,8 +486,13 @@ export function LayersPanel({
                 value={param}
                 onChange={(e) => setParam(e.target.value as typeof param)}
               >
-                {["x", "y", "volume"].map((v) => (
-                  <option key={v}>{v}</option>
+                {(t.type === "audio"
+                  ? ["volume"]
+                  : ["x", "y", "volume", "rotation"]
+                ).map((v) => (
+                  <option key={v} value={v}>
+                    {v === "rotation" ? "Rotation" : v}
+                  </option>
                 ))}
               </select>
             </label>
@@ -453,14 +509,18 @@ export function LayersPanel({
             </label>
             <button
               className="tool"
-              disabled={at < t.at || at > t.at + t.length}
+              disabled={
+                at < t.at ||
+                at > t.at + t.length ||
+                (keys.length >= 48 && !keys.some((key) => key.time === pos))
+              }
               onClick={() =>
                 patch({
                   keys: {
                     ...t.keys,
                     [param]: [
                       ...keys.filter((k) => k.time !== pos),
-                      { time: pos, value: t[param], ease },
+                      { time: pos, value: t[param] ?? 0, ease },
                     ].sort((a, b) => a.time - b.time),
                   },
                 })

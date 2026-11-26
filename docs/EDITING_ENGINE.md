@@ -33,3 +33,7 @@ Move the playhead within the layer and choose **Set mask keyframe**. Adjust its 
 Choose **Preview from playhead** in Layers, Grading, Audio or Speed to render up to three seconds at the edited playback rate. FFmpeg evaluates the composition from its trim start before discarding frames prior to the preview window. This preserves mask, effect and audio timing. Previewing near the end of a long edit can therefore take longer.
 
 Choose **Blend mode** on an image or video layer. Multiply darkens, Screen brightens, and Overlay combines the two according to the underlying pixels. Darken, Lighten, Add and Difference are also available. The mode uses the layer’s existing transparency, including opacity, feathered masks, and chroma key. Use **Preview from playhead** to inspect the composite.
+
+Open **Layer transform** to rotate an image or video layer from −180° to 180°, or mirror it horizontally and vertically. Chroma key and masks move with the transformed layer. Rotation expands the layer bounds and leaves the corners transparent. The existing position controls place those bounds on the canvas.
+
+To animate rotation, choose **Rotation** under **Keyframes**. Set an angle in **Layer transform** and add a keyframe at the playhead. Repeat at another time. Each keyframe determines the interpolation toward the next one. The renderer uses a fixed transparent square large enough for every angle, so the layer turns about its center without its bounds changing during playback. Mirroring is static.
