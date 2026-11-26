@@ -248,6 +248,9 @@ try {
 
     Write-SetupStage 5
     Initialize-Ollama
+    if (!$LaunchOnly) {
+        Set-Content -LiteralPath 'node_modules\.clipper-setup-complete' -Value 'ready'
+    }
     if ($NoLaunch) {
         Write-Host 'Setup complete. To start Studio, run Install-Clipper.cmd -LaunchOnly.'
     } else {

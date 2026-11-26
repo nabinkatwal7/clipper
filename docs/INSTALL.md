@@ -16,8 +16,10 @@ Make sure each command is on your `PATH` **before** starting Next.js, or set abs
 ## Windows setup
 
 1. Clone the repository or extract its source ZIP to a folder you can write to. Use Windows 10 or 11 on an x64 PC with [App Installer](https://learn.microsoft.com/en-us/windows/package-manager/winget/) and an internet connection.
-2. Double-click **Install-Clipper.cmd** in that folder. Approve any Windows prompts for the dependency installers. The initial setup downloads several gigabytes, mostly Ollama models.
-3. Once Studio starts, open <http://127.0.0.1:4000>, choose **Get started**, and create your owner account. Save the recovery code. Keep the terminal open while using Studio.
+2. Double-click **Install-Clipper.cmd** and choose **Install and open Studio**. The wizard shows what each step is doing. If Windows asks to allow an installer, choose **Yes**. The initial setup downloads several gigabytes, mostly Ollama models.
+3. Studio opens in your browser when it is ready. Choose **Get started**, create your owner account, and save the recovery code. You can close the wizard. Leave the minimized Studio terminal running while you edit, and close that terminal when you want to stop Studio.
+
+Double-click the same file next time and choose **Open Studio**. If something needs attention during setup, follow the instructions in the wizard and choose **Try again**. Use **Show details** to see the installer output.
 
 Setup installs Node.js and npm, FFmpeg and FFprobe, yt-dlp and its Deno runtime, Ollama with the configured chat model and `all-minilm`, and whisper.cpp with the multilingual base speech model. It installs the app dependencies from the lockfile and creates `.env.local` on first run. Existing settings and stored projects are preserved.
 
