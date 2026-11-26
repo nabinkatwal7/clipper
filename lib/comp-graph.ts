@@ -11,11 +11,18 @@ export type CompNodeKind =
   | "source.video"
   | "source.image"
   | "source.solid"
+  | "source.noise"
   | "transform"
+  | "transform.crop"
+  | "transform.flip"
   | "effect.blur"
+  | "effect.sharpen"
   | "effect.vignette"
+  | "effect.grain"
+  | "effect.glow"
   | "comp.merge"
   | "comp.chroma"
+  | "comp.luma"
   | "comp.mask"
   | "output.preview"
   | "output.video";
@@ -37,9 +44,12 @@ export type CompNode = {
   assetId?: string;
   /** Hex color for solid */
   color?: string;
-  /** Chroma key hex */
+  /** Chroma / solid hex */
   keyColor?: string;
   blur?: number;
+  amount?: number;
+  flip?: "h" | "v" | "both";
+  crop?: { x: number; y: number; w: number; h: number };
   ports: CompPort[];
 };
 
@@ -60,22 +70,24 @@ export type CompGraph = {
   edges: CompEdge[];
 };
 
+const io1: CompPort[] = [
+  { id: "in", label: "In", type: "any", dir: "in" },
+  { id: "out", label: "Out", type: "any", dir: "out" },
+];
+
 const KIND_PORTS: Record<CompNodeKind, CompPort[]> = {
   "source.video": [{ id: "out", label: "Video", type: "video", dir: "out" }],
   "source.image": [{ id: "out", label: "Image", type: "image", dir: "out" }],
   "source.solid": [{ id: "out", label: "Image", type: "image", dir: "out" }],
-  transform: [
-    { id: "in", label: "In", type: "any", dir: "in" },
-    { id: "out", label: "Out", type: "any", dir: "out" },
-  ],
-  "effect.blur": [
-    { id: "in", label: "In", type: "any", dir: "in" },
-    { id: "out", label: "Out", type: "any", dir: "out" },
-  ],
-  "effect.vignette": [
-    { id: "in", label: "In", type: "any", dir: "in" },
-    { id: "out", label: "Out", type: "any", dir: "out" },
-  ],
+  "source.noise": [{ id: "out", label: "Image", type: "image", dir: "out" }],
+  transform: io1,
+  "transform.crop": io1,
+  "transform.flip": io1,
+  "effect.blur": io1,
+  "effect.sharpen": io1,
+  "effect.vignette": io1,
+  "effect.grain": io1,
+  "effect.glow": io1,
   "comp.merge": [
     { id: "base", label: "Base", type: "any", dir: "in" },
     { id: "over", label: "Over", type: "any", dir: "in" },
@@ -84,6 +96,10 @@ const KIND_PORTS: Record<CompNodeKind, CompPort[]> = {
   "comp.chroma": [
     { id: "in", label: "In", type: "video", dir: "in" },
     { id: "out", label: "Out", type: "video", dir: "out" },
+  ],
+  "comp.luma": [
+    { id: "in", label: "In", type: "any", dir: "in" },
+    { id: "out", label: "Out", type: "any", dir: "out" },
   ],
   "comp.mask": [
     { id: "in", label: "In", type: "any", dir: "in" },
@@ -99,11 +115,18 @@ export const NODE_CATALOG: { kind: CompNodeKind; label: string; group: string }[
     { kind: "source.video", label: "Video", group: "Sources" },
     { kind: "source.image", label: "Image", group: "Sources" },
     { kind: "source.solid", label: "Solid", group: "Sources" },
+    { kind: "source.noise", label: "Noise", group: "Sources" },
     { kind: "transform", label: "Transform", group: "Transform" },
+    { kind: "transform.crop", label: "Crop", group: "Transform" },
+    { kind: "transform.flip", label: "Flip", group: "Transform" },
     { kind: "effect.blur", label: "Blur", group: "Effects" },
+    { kind: "effect.sharpen", label: "Sharpen", group: "Effects" },
     { kind: "effect.vignette", label: "Vignette", group: "Effects" },
+    { kind: "effect.grain", label: "Film grain", group: "Effects" },
+    { kind: "effect.glow", label: "Glow", group: "Effects" },
     { kind: "comp.merge", label: "Merge", group: "Composite" },
     { kind: "comp.chroma", label: "Chroma key", group: "Composite" },
+    { kind: "comp.luma", label: "Luma key", group: "Composite" },
     { kind: "comp.mask", label: "Mask", group: "Composite" },
     { kind: "output.preview", label: "Preview", group: "Output" },
     { kind: "output.video", label: "Video out", group: "Output" },
@@ -131,8 +154,21 @@ export function createNode(
     x,
     y,
     color: kind === "source.solid" ? "#1e293b" : undefined,
-    keyColor: kind === "comp.chroma" ? "#00ff00" : undefined,
+    keyColor:
+      kind === "comp.chroma" || kind === "comp.luma" ? "#00ff00" : undefined,
     blur: kind === "effect.blur" ? 8 : undefined,
+    amount:
+      kind === "effect.sharpen" ||
+      kind === "effect.grain" ||
+      kind === "effect.glow" ||
+      kind === "comp.luma"
+        ? 0.35
+        : undefined,
+    flip: kind === "transform.flip" ? "h" : undefined,
+    crop:
+      kind === "transform.crop"
+        ? { x: 0.1, y: 0.1, w: 0.8, h: 0.8 }
+        : undefined,
     ports: KIND_PORTS[kind].map((p) => ({ ...p })),
   };
 }
@@ -299,14 +335,32 @@ export function compileGraph(graph: CompGraph): {
       case "source.solid":
         steps.push(`solid color ${n.color || "#000000"}`);
         break;
+      case "source.noise":
+        steps.push("procedural noise");
+        break;
       case "transform":
         steps.push("transform (position/scale/rotate)");
+        break;
+      case "transform.crop":
+        steps.push("crop");
+        break;
+      case "transform.flip":
+        steps.push(`flip ${n.flip || "h"}`);
         break;
       case "effect.blur":
         steps.push(`gblur=sigma=${n.blur ?? 8}`);
         break;
+      case "effect.sharpen":
+        steps.push(`unsharp amount=${n.amount ?? 0.35}`);
+        break;
       case "effect.vignette":
         steps.push("vignette");
+        break;
+      case "effect.grain":
+        steps.push(`noise strength=${n.amount ?? 0.35}`);
+        break;
+      case "effect.glow":
+        steps.push(`glow amount=${n.amount ?? 0.35}`);
         break;
       case "comp.merge":
         steps.push("overlay merge (base + over)");
@@ -315,6 +369,9 @@ export function compileGraph(graph: CompGraph): {
         steps.push(
           `chromakey=${n.keyColor || "#00ff00"}:similarity=0.2:blend=0.1`,
         );
+        break;
+      case "comp.luma":
+        steps.push(`lumakey threshold=${n.amount ?? 0.35}`);
         break;
       case "comp.mask":
         steps.push("alphamerge / maskedmerge");
@@ -441,11 +498,44 @@ export function buildBakePlan(
         steps.push(`solid ${n.color || "#1e293b"}`);
         break;
       }
+      case "source.noise": {
+        const d = Math.min(60, duration || 5);
+        if (!duration) duration = d;
+        filters.push(
+          `nullsrc=s=${w}x${h}:d=${d},geq=random(1)*255:128:128,format=rgba,setsar=1[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push("noise");
+        break;
+      }
       case "transform": {
         const inn = requireIn(id, "in");
         filters.push(`[${inn}]scale=iw:ih,setsar=1[${tag}]`);
         labels.set(id, tag);
         steps.push("transform");
+        break;
+      }
+      case "transform.crop": {
+        const inn = requireIn(id, "in");
+        const c = n.crop || { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+        filters.push(
+          `[${inn}]crop=iw*${c.w}:ih*${c.h}:iw*${c.x}:ih*${c.y},scale=${w}:${h},setsar=1[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push("crop");
+        break;
+      }
+      case "transform.flip": {
+        const inn = requireIn(id, "in");
+        const flip =
+          n.flip === "v"
+            ? "vflip"
+            : n.flip === "both"
+              ? "hflip,vflip"
+              : "hflip";
+        filters.push(`[${inn}]${flip}[${tag}]`);
+        labels.set(id, tag);
+        steps.push(`flip ${n.flip || "h"}`);
         break;
       }
       case "effect.blur": {
@@ -456,11 +546,39 @@ export function buildBakePlan(
         steps.push(`gblur=${sigma}`);
         break;
       }
+      case "effect.sharpen": {
+        const inn = requireIn(id, "in");
+        const amt = Math.min(5, Math.max(0.1, (n.amount ?? 0.35) * 5));
+        filters.push(`[${inn}]unsharp=5:5:${amt}:5:5:0[${tag}]`);
+        labels.set(id, tag);
+        steps.push(`unsharp ${amt}`);
+        break;
+      }
       case "effect.vignette": {
         const inn = requireIn(id, "in");
         filters.push(`[${inn}]vignette=angle=PI/4[${tag}]`);
         labels.set(id, tag);
         steps.push("vignette");
+        break;
+      }
+      case "effect.grain": {
+        const inn = requireIn(id, "in");
+        const strength = Math.min(100, Math.max(1, (n.amount ?? 0.35) * 40));
+        filters.push(
+          `[${inn}]noise=alls=${strength}:allf=t[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push(`grain ${strength}`);
+        break;
+      }
+      case "effect.glow": {
+        const inn = requireIn(id, "in");
+        const sigma = Math.min(24, Math.max(2, (n.amount ?? 0.35) * 20));
+        filters.push(
+          `[${inn}]split[${tag}a][${tag}b];[${tag}b]gblur=sigma=${sigma}[${tag}g];[${tag}a][${tag}g]blend=all_mode=screen:all_opacity=0.45[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push(`glow ${sigma}`);
         break;
       }
       case "comp.merge": {
@@ -481,6 +599,16 @@ export function buildBakePlan(
         );
         labels.set(id, tag);
         steps.push(`chromakey ${n.keyColor || "#00ff00"}`);
+        break;
+      }
+      case "comp.luma": {
+        const inn = requireIn(id, "in");
+        const thr = Math.min(1, Math.max(0, n.amount ?? 0.35));
+        filters.push(
+          `[${inn}]lumakey=threshold=${thr}:tolerance=0.1:softness=0.1[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push(`lumakey ${thr}`);
         break;
       }
       case "comp.mask": {

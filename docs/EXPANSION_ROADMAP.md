@@ -14,7 +14,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 6 | Design Studio | Partial — formats, gradients, bulk CSV, PNG export |
 | 7 | Motion Studio | Partial — presets, canvas preview, animation recipes → composition |
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
-| 9 | Compositing Studio | Partial — node graph + FFmpeg bake to asset (60s cap) |
+| 9 | Compositing Studio | Partial — expanded nodes + FFmpeg bake (60s cap) |
 | 10 | Media Toolbox | Partial — inspect/convert/extract/batch (8) |
 | 11 | Production and Review | Partial — desk/calendar + Review Studio live |
 | 12 | Automation | Partial (workflow builder live) |
@@ -77,5 +77,5 @@ Priority queue through item 27 is complete.
 
 28. ~~Design Studio depth (formats / bulk / PNG export)~~
 29. ~~Image editor (raster corrections)~~
-30. Compositing node depth
+30. ~~Compositing node depth~~
 31. 3D Studio scaffold

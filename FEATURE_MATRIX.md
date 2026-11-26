@@ -1226,6 +1226,7 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Compositing Studio node graph scaffold | Partial |
 | Compositing graph validate / compile plan | Implemented |
 | Compositing graph FFmpeg bake to asset | Implemented |
+| Compositing deepen nodes (glow/grain/luma/crop/flip) | Implemented |
 | 3D Studio | Planned |
 | Reel Factory / Language Factory | Implemented |
 | Universal Media Toolbox | Partial |

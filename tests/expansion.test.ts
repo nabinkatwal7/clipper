@@ -1007,6 +1007,7 @@ import {
   compileGraph,
   topoOrder,
   buildBakePlan,
+  NODE_CATALOG,
 } from "../lib/comp-graph";
 test("compositing graphs reject cycles and compile connected outputs", () => {
   const g = emptyGraph("Test");
@@ -1093,6 +1094,39 @@ test("compositing bake plan emits filter_complex for solid→blur→out", () => 
   assert.match(bake.filterComplex, /color=c=0x112233/);
   assert.equal(bake.duration, 2);
   assert.ok(bake.mapLabel);
+});
+test("compositing catalog includes deepen nodes that bake", () => {
+  assert.ok(NODE_CATALOG.some((n) => n.kind === "effect.glow"));
+  assert.ok(NODE_CATALOG.some((n) => n.kind === "comp.luma"));
+  const noise = createNode("source.noise", 0, 0);
+  const glow = createNode("effect.glow", 100, 0);
+  glow.amount = 0.4;
+  const out = createNode("output.preview", 200, 0);
+  const g = validateGraph({
+    version: 1,
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Glow",
+    updatedAt: new Date().toISOString(),
+    nodes: [noise, glow, out],
+    edges: [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        from: noise.id,
+        fromPort: "out",
+        to: glow.id,
+        toPort: "in",
+      },
+      {
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        from: glow.id,
+        fromPort: "out",
+        to: out.id,
+        toPort: "in",
+      },
+    ],
+  });
+  const bake = buildBakePlan(g, new Map(), { duration: 1, width: 320, height: 180 });
+  assert.match(bake.filterComplex, /gblur|blend/);
 });
 
 import {
