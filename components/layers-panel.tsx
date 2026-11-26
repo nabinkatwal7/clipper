@@ -500,6 +500,22 @@ export function LayersPanel({
                 ))}
               </select>
             </label>
+            {(param === "opacity" || param === "rotation") && (
+              <label className="field">
+                Value for next keyframe ·{" "}
+                {param === "opacity"
+                  ? Math.round(t.opacity * 100) + "%"
+                  : (t.rotation ?? 0) + "°"}
+                <input
+                  type="range"
+                  min={param === "opacity" ? 0 : -180}
+                  max={param === "opacity" ? 1 : 180}
+                  step={param === "opacity" ? ".01" : "1"}
+                  value={t[param] ?? 0}
+                  onChange={(e) => patch({ [param]: +e.target.value })}
+                />
+              </label>
+            )}
             <label className="field">
               Interpolation
               <select

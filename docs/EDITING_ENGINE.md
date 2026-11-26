@@ -37,3 +37,5 @@ Choose **Blend mode** on an image or video layer. Multiply darkens, Screen brigh
 Open **Layer transform** to rotate an image or video layer from −180° to 180°, or mirror it horizontally and vertically. Chroma key and masks move with the transformed layer. Rotation expands the layer bounds and leaves the corners transparent. The existing position controls place those bounds on the canvas.
 
 To animate rotation, choose **Rotation** under **Keyframes**. Set an angle in **Layer transform** and add a keyframe at the playhead. Repeat at another time. Each keyframe determines the interpolation toward the next one. The renderer uses a fixed transparent square large enough for every angle, so the layer turns about its center without its bounds changing during playback. Mirroring is static.
+
+Choose **Opacity** under **Keyframes** to animate an image or video layer’s transparency. Set a value from 0% to 100% and add it at the playhead. The keyframes multiply any transparency already present in the layer, including masks and chroma key. Layer fades and blend modes still apply.
