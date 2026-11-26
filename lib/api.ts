@@ -376,11 +376,20 @@ export async function handle(
         throw Error("Invalid preview range");
       const s = settings(b.settings);
       const rate = s.playbackRate ?? 1;
-      const duration = (end - start) / rate;
-      const offset = Math.min(
-        Math.max(0, duration - 0.25),
-        Math.max(0, ((b.playhead ?? start) - start) / rate),
-      );
+      const { outputDuration, sourceToOutput } = await import("./speed-curve");
+      const sourceLength = end - start;
+      const duration = s.speedCurve?.length
+        ? outputDuration(s.speedCurve, sourceLength, rate)
+        : sourceLength / rate;
+      const playheadOffset = s.speedCurve?.length
+        ? sourceToOutput(
+            s.speedCurve,
+            Math.max(0, (b.playhead ?? start) - start),
+            sourceLength,
+            rate,
+          )
+        : Math.max(0, ((b.playhead ?? start) - start) / rate);
+      const offset = Math.min(Math.max(0, duration - 0.25), playheadOffset);
       const length = Math.min(3, duration - offset);
       const { previewKey, readPreview, writePreview } = await import(
         "./preview-cache"

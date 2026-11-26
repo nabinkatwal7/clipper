@@ -8,7 +8,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, drag/trim composition lanes, optional media proxies, undo, checkpoints and asset browser | Multi-select timeline editing and deeper NLE gestures |
 | 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes, plus entrance/exit presets for supported layers | General-purpose curves, graph editor and loop presets |
 | 14–18 · Effects and transitions | Timed effects, color tools and compilation transitions | Expanded effect catalog, effect stacking and per-cut editor transitions |
-| 19–20 · Speed | Constant 0.5×–4× playback speed, pitch-preserving audio, retimed sidecar captions and source-aligned comparison | Speed curves, reverse playback and motion interpolation |
+| 19–20 · Speed | Constant 0.5×–4× playback speed, optional velocity curves with segmented FFmpeg remapping, pitch-preserving audio, retimed sidecar captions | Reverse playback and motion interpolation |
 | 21–24 · Text and graphics | Title overlay and imported images | Rich text layers, native stickers and motion-graphics authoring |
 | 25–28 · Captions | Unicode captions, word highlighting, several ASS animations, bilingual translation, transcript cleanup and caption updates | Advanced caption motion, typography controls and dedicated caption track editing |
 | 29–33 · Compositing | Media layers, color-key transparency, eight blend modes, and elliptical or rectangular masks with position, size and feather keyframes | Additional mask shapes, automatic tracking and dedicated background replacement |

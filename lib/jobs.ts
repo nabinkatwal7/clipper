@@ -545,9 +545,18 @@ export async function render(
   preview?: { offset: number; duration: number },
 ): Promise<Clip> {
   const [w, height] = dimensions(s);
+  const sourceLength = h.end - h.start;
+  const {
+    outputDuration,
+    speedRemapFilters,
+    atempoChain,
+  } = await import("./speed-curve");
   const rate = s.playbackRate ?? 1;
-  const duration = (h.end - h.start) / rate;
-  const tempo = rate > 2 ? `atempo=2,atempo=${rate / 2}` : `atempo=${rate}`;
+  const curved = !!s.speedCurve?.length;
+  const duration = curved
+    ? outputDuration(s.speedCurve, sourceLength, rate)
+    : sourceLength / rate;
+  const tempo = atempoChain(rate);
   const ass = file("temp", id, "ass");
   await fs.writeFile(
     ass,
@@ -577,8 +586,10 @@ export async function render(
       : "null";
   const master = [
     "volume=" + (s.volume ?? 1),
-    ...(s.mix ? mixFilters(s.mix, h.end - h.start) : []),
-    ...(rate === 1 ? [] : [tempo, "apad", `atrim=duration=${duration}`]),
+    ...(s.mix ? mixFilters(s.mix, sourceLength) : []),
+    ...(curved || rate === 1
+      ? []
+      : [tempo, "apad", `atrim=duration=${duration}`]),
   ].join(",");
   let sourceAudio = p.hasAudio;
   if (s.composition?.tracks.length && sourceAudio === undefined) {
@@ -603,7 +614,7 @@ export async function render(
     s.composition,
     w,
     height,
-    h.end - h.start,
+    sourceLength,
     !!sourceAudio,
     master,
     !!s.mix?.duck,
@@ -622,6 +633,41 @@ export async function render(
       `[ungraded][graded]blend=all_mode=normal:all_opacity=${1 - weight},format=yuv420p[base]`,
     );
   }
+  const composed = `[${comp.video}]${finalOverlay}[prespeed]`;
+  const mixed = comp.audioMap.includes("[mixed]");
+  const pullSourceAudio =
+    curved && !!sourceAudio && !mixed
+      ? [`[0:a]${master || "anull"}[presa]`]
+      : [];
+  const audioLabel = mixed ? "mixed" : pullSourceAudio.length ? "presa" : null;
+  const remap = curved
+    ? speedRemapFilters(
+        "prespeed",
+        audioLabel,
+        s.speedCurve,
+        sourceLength,
+        rate,
+      )
+    : rate === 1
+      ? {
+          graph: [] as string[],
+          video: "prespeed",
+          audio: audioLabel,
+          duration,
+        }
+      : {
+          graph: [
+            `[prespeed]setpts=(PTS-STARTPTS)/${rate},fps=30,tpad=stop_mode=clone:stop_duration=0.1,trim=duration=${duration}[speedv]`,
+          ],
+          video: "speedv",
+          audio: audioLabel,
+          duration,
+        };
+  const audioMap = remap.audio
+    ? (["-map", `[${remap.audio}]`] as string[])
+    : curved
+      ? []
+      : comp.audioMap;
   const filter = [
     layoutFilter(s, w, height, h.start),
     "[formatted]" +
@@ -629,7 +675,10 @@ export async function render(
       (lutGraph.length ? "[prelut]" : "[base]"),
     ...lutGraph,
     ...comp.graph,
-    `[${comp.video}]${finalOverlay}${rate === 1 ? "" : `,setpts=(PTS-STARTPTS)/${rate},fps=30,tpad=stop_mode=clone:stop_duration=0.1,trim=duration=${duration}`}[out]`,
+    composed,
+    ...pullSourceAudio,
+    ...remap.graph,
+    `[${remap.video}]null[out]`,
   ].join(";");
   const temporary = file("temp", id, "mp4");
   const space = await fs.statfs(path.dirname(temporary)).catch(() => null);
@@ -662,7 +711,7 @@ export async function render(
         filter,
         "-map",
         "[out]",
-        ...comp.audioMap,
+        ...audioMap,
         ...(preview
           ? ["-ss", String(preview.offset), "-t", String(preview.duration)]
           : []),
@@ -705,7 +754,8 @@ export async function render(
       signal,
       (line) => {
         const seconds = ffmpegSeconds(line);
-        if (seconds !== undefined) onProgress?.(seconds * rate);
+        if (seconds !== undefined)
+          onProgress?.(seconds * (sourceLength / Math.max(0.04, duration)));
       },
       preview ? 120_000 : undefined,
     );

@@ -753,6 +753,7 @@ export function VideoEditor({
                 settings={settings}
                 change={setSettings}
                 project={project}
+                length={(valid ? end : clip.end) - (valid ? start : clip.start)}
               />
               {tab === "speed" && (
                 <RenderPreview

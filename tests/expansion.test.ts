@@ -351,3 +351,25 @@ test("sampled frame recommendations reject invalid focal points", () => {
   assert.throws(() => coordinates({ x: -1, y: 0.3 }));
   assert.throws(() => coordinates({ x: Infinity, y: 0.5 }));
 });
+
+import {
+  atempoChain,
+  outputDuration,
+  sampleRate,
+  speedSegments,
+  validateSpeedCurve,
+} from "../lib/speed-curve";
+test("speed curves validate, sample and estimate output duration", () => {
+  const points = validateSpeedCurve(
+    [
+      { time: 0, rate: 1 },
+      { time: 2, rate: 2 },
+    ],
+    4,
+  );
+  assert.equal(sampleRate(points, 1, 1), 1.5);
+  assert.ok(Math.abs(outputDuration(points, 4, 1) - (2 / 1.5 + 1)) < 0.001);
+  assert.equal(speedSegments(points, 4, 1).length, 2);
+  assert.match(atempoChain(3), /atempo=2/);
+  assert.throws(() => validateSpeedCurve([{ time: 0, rate: 8 }], 2));
+});

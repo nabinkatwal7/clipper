@@ -1,5 +1,6 @@
 export type Settings = {
   playbackRate?: number;
+  speedCurve?: import("./speed-curve").SpeedPoint[];
   encodeProfile?: "fast" | "balanced" | "quality";
   cropPoints?: import("./reframe").CropPoint[];
   grade?: Partial<import("./grading").Grade>;

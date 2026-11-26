@@ -1,6 +1,7 @@
 import { validCrop } from "./reframe";
 import { validateComposition } from "./composition";
 import { gradeValue, mixFilters } from "./grading";
+import { validateSpeedCurve } from "./speed-curve";
 import { defaults, type Settings, type Highlight } from "./types";
 import ipaddr from "ipaddr.js";
 export function publicAddress(address: string) {
@@ -29,6 +30,8 @@ export function settings(input: unknown): Settings {
       s.playbackRate > 4)
   )
     throw Error("Playback speed must be between 0.5× and 4×.");
+  if (s.speedCurve !== undefined)
+    s.speedCurve = validateSpeedCurve(s.speedCurve, 600);
   if (
     s.encodeProfile !== undefined &&
     !["fast", "balanced", "quality"].includes(s.encodeProfile)

@@ -11,6 +11,11 @@ import {
   LayoutTemplate,
 } from "lucide-react";
 import type { Project, Settings } from "@/lib/types";
+import {
+  outputDuration,
+  speedPresets,
+  type SpeedPoint,
+} from "@/lib/speed-curve";
 import { ProfilePicker } from "./brand-profiles";
 export const editorTools = [
   ["director", "Director", Sparkles],
@@ -28,16 +33,159 @@ export const editorTools = [
   ["history", "History", LayoutTemplate],
   ["templates", "Templates", LayoutTemplate],
 ] as const;
+
+function SpeedControls({
+  settings,
+  length,
+  adjust,
+}: {
+  settings: Settings;
+  length: number;
+  adjust: (patch: Partial<Settings>) => void;
+}) {
+  const curve = settings.speedCurve || [];
+  const rate = settings.playbackRate ?? 1;
+  const rendered = outputDuration(curve, length, rate);
+  function setCurve(next: SpeedPoint[] | undefined) {
+    adjust({ speedCurve: next?.length ? next : undefined });
+  }
+  return (
+    <>
+      <label className="field">
+        Constant speed · {rate}×
+        <input
+          type="range"
+          min=".5"
+          max="4"
+          step=".05"
+          value={rate}
+          onChange={(e) => adjust({ playbackRate: +e.target.value })}
+        />
+      </label>
+      <div className="candidate-actions">
+        {[0.5, 1, 1.5, 2, 4].map((value) => (
+          <button
+            className="tool"
+            key={value}
+            aria-pressed={rate === value && !curve.length}
+            onClick={() =>
+              adjust({ playbackRate: value, speedCurve: undefined })
+            }
+          >
+            {value}×
+          </button>
+        ))}
+      </div>
+      <h4>Speed curve</h4>
+      <p className="hint">
+        Control points use source time. Output length ≈ {rendered.toFixed(2)}s
+        from {length.toFixed(2)}s of source.
+      </p>
+      <div className="candidate-actions">
+        {speedPresets.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className="tool"
+            onClick={() => setCurve(preset.build(length))}
+          >
+            {preset.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="tool"
+          disabled={curve.length >= 32}
+          onClick={() =>
+            setCurve(
+              [
+                ...curve,
+                {
+                  time: Math.min(
+                    length,
+                    curve.length ? curve.at(-1)!.time + 0.5 : 0,
+                  ),
+                  rate,
+                },
+              ].sort((a, b) => a.time - b.time),
+            )
+          }
+        >
+          Add point
+        </button>
+        <button
+          type="button"
+          className="tool"
+          disabled={!curve.length}
+          onClick={() => setCurve(undefined)}
+        >
+          Clear curve
+        </button>
+      </div>
+      {curve.map((point, index) => (
+        <div className="field-grid" key={index}>
+          <label className="field">
+            Time
+            <input
+              type="number"
+              min="0"
+              max={length}
+              step=".05"
+              value={point.time}
+              onChange={(e) => {
+                const next = curve.map((entry, i) =>
+                  i === index ? { ...entry, time: +e.target.value } : entry,
+                );
+                setCurve([...next].sort((a, b) => a.time - b.time));
+              }}
+            />
+          </label>
+          <label className="field">
+            Rate
+            <input
+              type="number"
+              min=".5"
+              max="4"
+              step=".05"
+              value={point.rate}
+              onChange={(e) =>
+                setCurve(
+                  curve.map((entry, i) =>
+                    i === index ? { ...entry, rate: +e.target.value } : entry,
+                  ),
+                )
+              }
+            />
+          </label>
+          <button
+            type="button"
+            className="tool"
+            onClick={() => setCurve(curve.filter((_, i) => i !== index))}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      <p className="hint">
+        Curves remap video and audio in segments. Captions stay source-timed and
+        ride along with the remapped frames. Use Preview from playhead to check.
+      </p>
+    </>
+  );
+}
+
 export function EditorInspector({
   tab,
   settings,
   change,
   project,
+  length = 30,
 }: {
   tab: string;
   settings: Settings;
   change: (s: Settings) => void;
   project: Project;
+  length?: number;
 }) {
   const adjust = (patch: Partial<Settings>) =>
     change({ ...settings, ...patch });
@@ -45,35 +193,11 @@ export function EditorInspector({
     <div className="editor-fields">
       <h3>{editorTools.find((t) => t[0] === tab)?.[1]}</h3>
       {tab === "speed" && (
-        <>
-          <label className="field">
-            Playback speed · {settings.playbackRate ?? 1}×
-            <input
-              type="range"
-              min=".5"
-              max="4"
-              step=".05"
-              value={settings.playbackRate ?? 1}
-              onChange={(e) => adjust({ playbackRate: +e.target.value })}
-            />
-          </label>
-          <div className="candidate-actions">
-            {[0.5, 1, 1.5, 2, 4].map((rate) => (
-              <button
-                className="tool"
-                key={rate}
-                aria-pressed={(settings.playbackRate ?? 1) === rate}
-                onClick={() => adjust({ playbackRate: rate })}
-              >
-                {rate}×
-              </button>
-            ))}
-          </div>
-          <p className="hint">
-            Speed applies to the entire composition. The editor timeline uses
-            source time.
-          </p>
-        </>
+        <SpeedControls
+          settings={settings}
+          length={Math.max(0.04, length)}
+          adjust={adjust}
+        />
       )}
       {tab === "media" && (
         <>
