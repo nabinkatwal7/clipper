@@ -11,6 +11,7 @@ import {
 import type { Asset } from "@/lib/assets";
 import type { Track, Ease } from "@/lib/composition";
 import type { Settings } from "@/lib/types";
+import { KeyframeGraph } from "./keyframe-graph";
 export function LayersPanel({
   s,
   change,
@@ -589,6 +590,17 @@ export function LayersPanel({
             >
               Set {param} at playhead
             </button>
+            {keys.length > 0 && t.type !== "audio" && (
+              <KeyframeGraph
+                keys={keys}
+                length={t.length}
+                min={param === "rotation" ? -180 : param === "volume" ? 0 : param === "size" ? 0.05 : 0}
+                max={param === "rotation" ? 180 : param === "volume" ? 2 : 1}
+                onChange={(next) =>
+                  patch({ keys: { ...t.keys, [param]: next } })
+                }
+              />
+            )}
             {keys.map((k) => (
               <div className="section-row" key={k.time}>
                 <button onClick={() => seek(t.at + k.time)}>

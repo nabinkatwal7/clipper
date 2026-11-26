@@ -1869,3 +1869,28 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
   font-weight: 700;
   transform: translateX(-50%);
 }
+
+.keyframe-graph {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin: 8px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.keyframe-graph .graph-plot {
+  fill: color-mix(in oklab, var(--elevated, var(--surface)) 80%, transparent);
+  stroke: var(--border);
+}
+.keyframe-graph .graph-curve {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.keyframe-graph .graph-point {
+  fill: var(--accent-text, #fff);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  cursor: grab;
+}

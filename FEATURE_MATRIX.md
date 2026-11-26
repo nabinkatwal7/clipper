@@ -162,6 +162,7 @@ Test coverage — Interpolation, animated overlay, scale dimension, opacity alph
 | Keyframe deletion | Implemented |
 | Keyframe navigation | Implemented |
 | Provide an intuitive keyframe editor within the timeline | Partial |
+| Animation graph editor | Implemented |
 | Preview animations accurately and render supported animations using FFmpeg expressions or generated intermediate assets | Partial |
 
 ## 6. Professional Transitions
