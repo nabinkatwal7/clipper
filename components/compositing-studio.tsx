@@ -205,6 +205,29 @@ export function CompositingStudio() {
     }
   }
 
+  async function bake() {
+    if (!graph) return;
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/comp-graph", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "bake", graph }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error || "Bake failed");
+      setPlan(data.steps || []);
+      setMsg(
+        `Baked asset ${String(data.id).slice(0, 8)}… (${data.duration}s). Open Assets to use it.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bake failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function edgePath(e: Edge) {
     if (!graph) return "";
     const from = graph.nodes.find((n) => n.id === e.from);
@@ -225,11 +248,11 @@ export function CompositingStudio() {
           <h2>Compositing Studio</h2>
           <p>
             Typed node graph for merge, mask and chroma — validates cycles and
-            ports. Compile emits an FFmpeg-oriented plan (bake comes next).
+            ports, then bakes a bounded MP4 into Assets via FFmpeg.
           </p>
         </div>
         <Badge variant="outline">
-          <GitBranch size={12} /> Scaffold
+          <GitBranch size={12} /> Partial
         </Badge>
       </header>
 
@@ -247,8 +270,15 @@ export function CompositingStudio() {
               <Button variant="secondary" disabled={busy} onClick={() => void save()}>
                 <Save size={14} /> Save
               </Button>
-              <Button disabled={busy} onClick={() => void validateCompile()}>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void validateCompile()}
+              >
                 <Play size={14} /> Validate
+              </Button>
+              <Button disabled={busy} onClick={() => void bake()}>
+                <Play size={14} /> Bake to asset
               </Button>
             </div>
           </div>

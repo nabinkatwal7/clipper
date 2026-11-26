@@ -1214,6 +1214,7 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Motion Studio scaffold (text/shape layers) | Partial |
 | Compositing Studio node graph scaffold | Partial |
 | Compositing graph validate / compile plan | Implemented |
+| Compositing graph FFmpeg bake to asset | Implemented |
 | 3D Studio | Planned |
 | Reel Factory / Language Factory | Implemented |
 | Universal Media Toolbox | Partial |

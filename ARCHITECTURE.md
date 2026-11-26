@@ -81,7 +81,7 @@ Server components under `app/` with content in `lib/site-features.ts`, `lib/publ
 - **Recording Studio** — browser `getDisplayMedia` / `MediaRecorder` capture saves WebM into the asset library; scene presets and session metadata live in `lib/recording-meta.ts`.
 - **Instant replay** — overlapping bounded buffer while recording (`Save last N s`); bookmark scrub + FFmpeg stream-copy extract via `lib/instant-replay.ts`.
 - **Motion Studio** — scaffold UI for text/shape/keyframe layers that write into the shared composition on a clip (not a separate motion engine).
-- **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation and an FFmpeg-oriented compile plan; full bake is unfinished.
+- **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation; `bakeGraph` compiles supported nodes to FFmpeg `filter_complex` and writes a bounded MP4 asset (60s, no audio).
 - **Workspace switcher** — `components/workspace-nav.tsx` + `StudioShell` filter the sidebar by the active workspace group.
 - **Capability registry** — `GET /api/capabilities` wraps diagnostics into feature gates (FFmpeg, hardware encode, ASS, xfade, Ollama models).
 - **Sequences** — `lib/sequences.ts` adds a versioned project document (`schemaVersion: 1`) with named sequences, migration from a single `composition`, and cyclic nesting checks. Settings may carry `sequences` alongside legacy `composition`. UUIDs use `lib/id.ts` (`globalThis.crypto.randomUUID`) so validation stays browser-safe when pulled into client bundles.

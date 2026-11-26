@@ -816,6 +816,14 @@ export async function handle(
           return NextResponse.json(cg.compileGraph(b.graph));
         if (b.op === "validate")
           return NextResponse.json(cg.validateGraph(b.graph));
+        if (b.op === "bake")
+          return NextResponse.json(
+            await cg.bakeGraph(b.graph, req.signal, {
+              width: b.width,
+              height: b.height,
+              duration: b.duration,
+            }),
+          );
         throw Error("Unsupported comp-graph operation");
       }
     }

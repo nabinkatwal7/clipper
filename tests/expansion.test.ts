@@ -976,6 +976,7 @@ import {
   validateGraph,
   compileGraph,
   topoOrder,
+  buildBakePlan,
 } from "../lib/comp-graph";
 test("compositing graphs reject cycles and compile connected outputs", () => {
   const g = emptyGraph("Test");
@@ -1000,15 +1001,6 @@ test("compositing graphs reject cycles and compile connected outputs", () => {
   const plan = compileGraph(ok);
   assert.ok(plan.steps.some((s) => s.includes("gblur")));
   assert.ok(plan.outputs.length);
-  const cyclic = structuredClone(ok);
-  cyclic.edges.push({
-    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-    from: g.nodes[1].id,
-    fromPort: "out",
-    to: g.nodes[0].id,
-    toPort: "in",
-  });
-  // preview has no out port — force a bogus cycle via duplicated merge loop
   const a = createNode("comp.merge", 0, 0);
   const b = createNode("comp.merge", 100, 0);
   assert.throws(() =>
@@ -1036,4 +1028,39 @@ test("compositing graphs reject cycles and compile connected outputs", () => {
       ],
     }),
   );
+});
+test("compositing bake plan emits filter_complex for solid→blur→out", () => {
+  const solid = createNode("source.solid", 0, 0);
+  solid.color = "#112233";
+  const blur = createNode("effect.blur", 100, 0);
+  blur.blur = 4;
+  const out = createNode("output.video", 200, 0);
+  const g = validateGraph({
+    version: 1,
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Bake",
+    updatedAt: new Date().toISOString(),
+    nodes: [solid, blur, out],
+    edges: [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        from: solid.id,
+        fromPort: "out",
+        to: blur.id,
+        toPort: "in",
+      },
+      {
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        from: blur.id,
+        fromPort: "out",
+        to: out.id,
+        toPort: "in",
+      },
+    ],
+  });
+  const bake = buildBakePlan(g, new Map(), { duration: 2, width: 640, height: 360 });
+  assert.match(bake.filterComplex, /gblur=sigma=4/);
+  assert.match(bake.filterComplex, /color=c=0x112233/);
+  assert.equal(bake.duration, 2);
+  assert.ok(bake.mapLabel);
 });

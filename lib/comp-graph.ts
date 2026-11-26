@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { uuid } from "./id";
-import { workspaceRoot } from "./store";
+import { asset, type Asset } from "./assets";
+import { bin, run } from "./process";
+import { file, workspaceRoot } from "./store";
 
 export type PortType = "image" | "video" | "alpha" | "any";
 
@@ -330,6 +332,271 @@ export function compileGraph(graph: CompGraph): {
   if (!outputs.length)
     throw Error("Add a Preview or Video out node and connect the graph");
   return { ok: true, steps, outputs };
+}
+
+export type BakePlan = {
+  inputArgs: string[];
+  filterComplex: string;
+  mapLabel: string;
+  duration: number;
+  width: number;
+  height: number;
+  steps: string[];
+};
+
+type ResolvedSource = {
+  path: string;
+  duration: number;
+  kind: "video" | "image";
+};
+
+function hexColor(c: string | undefined, fallback: string) {
+  const v = (c || fallback).trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(v)) throw Error("Invalid color " + v);
+  return "0x" + v.slice(1);
+}
+
+function edgeInto(
+  graph: CompGraph,
+  nodeId: string,
+  portId: string,
+): CompEdge | undefined {
+  return graph.edges.find((e) => e.to === nodeId && e.toPort === portId);
+}
+
+/**
+ * Build an FFmpeg filter_complex for a validated graph.
+ * Caps duration at 60s. Requires a connected Preview or Video out.
+ */
+export function buildBakePlan(
+  graph: CompGraph,
+  sources: Map<string, ResolvedSource>,
+  opts?: { width?: number; height?: number; duration?: number },
+): BakePlan {
+  const g = validateGraph(graph);
+  const order = topoOrder(g);
+  const byId = new Map(g.nodes.map((n) => [n.id, n]));
+  const w = opts?.width && opts.width >= 16 ? Math.round(opts.width / 2) * 2 : 1280;
+  const h =
+    opts?.height && opts.height >= 16 ? Math.round(opts.height / 2) * 2 : 720;
+  let duration = opts?.duration && opts.duration > 0 ? opts.duration : 0;
+
+  const inputArgs: string[] = [];
+  const filters: string[] = [];
+  const steps: string[] = [];
+  const labels = new Map<string, string>();
+  let inputIndex = 0;
+  let outLabel = "";
+
+  const requireIn = (nodeId: string, port: string) => {
+    const e = edgeInto(g, nodeId, port);
+    if (!e) throw Error(`Node ${byId.get(nodeId)?.label} missing ${port} input`);
+    const lab = labels.get(e.from);
+    if (!lab) throw Error("Upstream not resolved");
+    return lab;
+  };
+
+  for (const id of order) {
+    const n = byId.get(id)!;
+    const tag = "n" + id.replace(/-/g, "").slice(0, 8);
+
+    switch (n.kind) {
+      case "source.video":
+      case "source.image": {
+        if (!n.assetId) throw Error(`${n.label} needs an asset`);
+        const src = sources.get(n.assetId);
+        if (!src) throw Error(`Missing media for ${n.label}`);
+        if (n.kind === "source.image") {
+          inputArgs.push(
+            "-loop",
+            "1",
+            "-framerate",
+            "30",
+            "-t",
+            String(Math.min(60, duration || src.duration || 5)),
+            "-i",
+            src.path,
+          );
+        } else {
+          inputArgs.push("-i", src.path);
+        }
+        if (!duration) duration = Math.min(60, src.duration || 5);
+        else duration = Math.min(60, Math.max(duration, src.duration || 0));
+        filters.push(
+          `[${inputIndex}:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=rgba[${tag}]`,
+        );
+        labels.set(id, tag);
+        inputIndex++;
+        steps.push(`input ${n.kind} ${n.assetId}`);
+        break;
+      }
+      case "source.solid": {
+        const d = Math.min(60, duration || 5);
+        if (!duration) duration = d;
+        const c = hexColor(n.color, "#1e293b");
+        filters.push(
+          `color=c=${c}:s=${w}x${h}:d=${d},format=rgba,setsar=1[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push(`solid ${n.color || "#1e293b"}`);
+        break;
+      }
+      case "transform": {
+        const inn = requireIn(id, "in");
+        filters.push(`[${inn}]scale=iw:ih,setsar=1[${tag}]`);
+        labels.set(id, tag);
+        steps.push("transform");
+        break;
+      }
+      case "effect.blur": {
+        const inn = requireIn(id, "in");
+        const sigma = Math.min(64, Math.max(0, n.blur ?? 8));
+        filters.push(`[${inn}]gblur=sigma=${sigma}[${tag}]`);
+        labels.set(id, tag);
+        steps.push(`gblur=${sigma}`);
+        break;
+      }
+      case "effect.vignette": {
+        const inn = requireIn(id, "in");
+        filters.push(`[${inn}]vignette=angle=PI/4[${tag}]`);
+        labels.set(id, tag);
+        steps.push("vignette");
+        break;
+      }
+      case "comp.merge": {
+        const base = requireIn(id, "base");
+        const over = requireIn(id, "over");
+        filters.push(
+          `[${base}][${over}]overlay=x=(W-w)/2:y=(H-h)/2:format=auto[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push("overlay merge");
+        break;
+      }
+      case "comp.chroma": {
+        const inn = requireIn(id, "in");
+        const key = hexColor(n.keyColor, "#00ff00");
+        filters.push(
+          `[${inn}]chromakey=${key}:similarity=0.2:blend=0.1[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push(`chromakey ${n.keyColor || "#00ff00"}`);
+        break;
+      }
+      case "comp.mask": {
+        const inn = requireIn(id, "in");
+        const mask = requireIn(id, "mask");
+        filters.push(
+          `[${inn}]format=rgba[${tag}i];[${mask}]format=gray,scale=${w}:${h}[${tag}m];[${tag}i][${tag}m]alphamerge[${tag}]`,
+        );
+        labels.set(id, tag);
+        steps.push("alphamerge mask");
+        break;
+      }
+      case "output.preview":
+      case "output.video": {
+        const inn = requireIn(id, "in");
+        filters.push(`[${inn}]format=yuv420p[${tag}]`);
+        labels.set(id, tag);
+        outLabel = tag;
+        steps.push(n.kind === "output.video" ? "video out" : "preview out");
+        break;
+      }
+    }
+  }
+
+  if (!outLabel) throw Error("Connect a Preview or Video out node");
+  if (!duration || duration <= 0) duration = 5;
+  duration = Math.min(60, duration);
+
+  return {
+    inputArgs,
+    filterComplex: filters.join(";"),
+    mapLabel: outLabel,
+    duration,
+    width: w,
+    height: h,
+    steps,
+  };
+}
+
+/** Bake graph to a new video asset (max 60s). */
+export async function bakeGraph(
+  graph: CompGraph,
+  signal?: AbortSignal,
+  opts?: { width?: number; height?: number; duration?: number },
+): Promise<Asset & { steps: string[] }> {
+  const g = validateGraph(graph);
+  const sources = new Map<string, ResolvedSource>();
+  for (const n of g.nodes) {
+    if (
+      (n.kind === "source.video" || n.kind === "source.image") &&
+      n.assetId &&
+      !sources.has(n.assetId)
+    ) {
+      const a = await asset(n.assetId);
+      if (n.kind === "source.video" && a.kind !== "video")
+        throw Error("Video source requires a video asset");
+      if (n.kind === "source.image" && a.kind !== "image")
+        throw Error("Image source requires an image asset");
+      sources.set(n.assetId, {
+        path: file("assets", a.id, a.ext),
+        duration: a.duration || 5,
+        kind: a.kind === "image" ? "image" : "video",
+      });
+    }
+  }
+
+  const plan = buildBakePlan(g, sources, opts);
+  if (!plan.filterComplex) throw Error("Nothing to bake");
+
+  const id = uuid();
+  const target = file("assets", id, "mp4");
+  try {
+    await run(
+      bin.ffmpeg,
+      [
+        "-y",
+        ...plan.inputArgs,
+        "-filter_complex",
+        plan.filterComplex,
+        "-map",
+        `[${plan.mapLabel}]`,
+        "-an",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-t",
+        String(plan.duration),
+        "-movflags",
+        "+faststart",
+        target,
+      ],
+      signal,
+    );
+    const stat = await fs.stat(target);
+    const a: Asset = {
+      id,
+      name: `Comp bake · ${g.name}`.slice(0, 180),
+      description: `Compositing bake (${plan.duration}s ${plan.width}x${plan.height})`,
+      folder: "",
+      tags: ["compositing", "bake"],
+      favorite: false,
+      kind: "video",
+      duration: plan.duration,
+      ext: "mp4",
+      audio: false,
+      bytes: stat.size,
+      usedBy: [],
+      collections: [],
+    };
+    await fs.writeFile(file("assets", id, "json"), JSON.stringify(a));
+    return { ...a, steps: plan.steps };
+  } catch (e) {
+    await fs.rm(target, { force: true });
+    throw e;
+  }
 }
 
 function graphsPath() {
