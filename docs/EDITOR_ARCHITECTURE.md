@@ -28,7 +28,9 @@ Workspace preferences persist in browser storage (`lib/client-storage.ts`). Proj
 
 The monitor composites enabled image/video tracks in realtime using the same keyframe sampler as export (`sampleCurve`). Blend modes, flips, rotation, scale, opacity and hard masks are approximate browser previews. Chroma key and feathered masks still need `POST /api/render-preview` for export-accurate checks.
 
-Outstanding for later phases: proxy media workflow, graph editor and loop animation presets.
+Templates live under the workspace `templates/` folder as versioned JSON settings bundles (`lib/templates.ts`, Templates inspector tab). Built-ins ship in-process; user saves are apply/save/delete via `/api/templates`.
+
+Outstanding for later phases: loop animation presets and deeper project media template bundles.
 
 ## Related docs
 

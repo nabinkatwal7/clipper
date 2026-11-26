@@ -425,6 +425,31 @@ test("beat detection finds periodic onsets and supports snapping", () => {
 });
 
 import {
+  builtinTemplates,
+  deleteTemplate,
+  listTemplates,
+  saveTemplate,
+} from "../lib/templates";
+test("editing templates validate settings and round-trip through workspace storage", async () => {
+  const builtins = builtinTemplates();
+  assert.ok(builtins.length >= 3);
+  assert.equal(builtins[0].settings.ratio, "9:16");
+  const saved = await saveTemplate({
+    name: "Unit template",
+    category: "Test",
+    description: "temporary",
+    settings: builtins[0].settings,
+  });
+  try {
+    assert.equal(saved.name, "Unit template");
+    const listed = await listTemplates();
+    assert.ok(listed.some((row) => row.id === saved.id));
+  } finally {
+    await deleteTemplate(saved.id);
+  }
+});
+
+import {
   mergeCaptions,
   replaceCaptionText,
   splitCaption,

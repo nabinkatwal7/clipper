@@ -259,6 +259,32 @@ export async function handle(
           await checkpoint(p, c, (await req.json()).name),
         );
     }
+    if (action === "templates") {
+      const templates = await import("./templates");
+      if (req.method === "GET") {
+        const saved = await templates.listTemplates();
+        return NextResponse.json([
+          ...templates.builtinTemplates(),
+          ...saved,
+        ]);
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.action === "delete") {
+          await templates.deleteTemplate(b.id);
+          return NextResponse.json({ ok: true });
+        }
+        return NextResponse.json(
+          await templates.saveTemplate({
+            id: b.id,
+            name: b.name,
+            category: b.category,
+            description: b.description,
+            settings: settings(b.settings),
+          }),
+        );
+      }
+    }
     if (action === "beat-detect" && req.method === "POST") {
       const b = await req.json();
       const p = await read(b.project);

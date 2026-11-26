@@ -14,7 +14,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | 29–33 · Compositing | Media layers, color-key transparency, eight blend modes, and elliptical or rectangular masks with position, size and feather keyframes | Additional mask shapes, automatic tracking and dedicated background replacement |
 | 34–39 · Audio | Waveform, track gain, EQ, filters, dynamics, ducking, onset beat detection and timeline snap | Richer audio monitoring |
 | 40–45 · Color and enhancement | Grading panel, cube LUTs, effect stacks, adjustment layers and RGB/luma scopes | Broader enhancement controls and waveform/parade scopes |
-| 46–50 · Templates and AI | Layout and workflow presets, validated Ollama Director proposals | Full project template bundles and deeper review automation |
+| 46–50 · Templates and AI | Built-in and user-saved JSON settings templates (apply/save/delete), layout presets, validated Ollama Director proposals | Deeper project media bundles and review automation |
 | 51–57 · Short-form export | Aspect ratios, safe-zone previews, variations, export queue and FFmpeg quality checks | Expanded export options, hardware-accelerated export, and broader preset coverage |
 | 58–67 · Interaction | Existing studio shell, keyboard actions, inspector and workspace preferences | Expanded canvas interactions, context menus and workspace presets |
 | 68–73 · Reliability | Local caches, hashed composition preview cache, optional low-res media proxies, version checkpoints, isolated workspaces and authenticated routes | Broader autosave recovery |

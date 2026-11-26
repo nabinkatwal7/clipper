@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   Film,
@@ -174,6 +175,112 @@ function SpeedControls({
   );
 }
 
+
+function TemplateBrowser({
+  settings,
+  change,
+}: {
+  settings: Settings;
+  change: (s: Settings) => void;
+}) {
+  const [rows, setRows] = useState<
+    {
+      id: string;
+      name: string;
+      category: string;
+      description: string;
+      settings: Settings;
+      createdAt: string;
+    }[]
+  >([]);
+  const [name, setName] = useState("My template");
+  const [message, setMessage] = useState("");
+  const builtins = new Set([
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222",
+    "33333333-3333-4333-8333-333333333333",
+  ]);
+  async function refresh() {
+    const r = await fetch("/api/templates");
+    const data = await r.json();
+    if (r.ok) setRows(data);
+  }
+  useEffect(() => {
+    void refresh();
+  }, []);
+  return (
+    <>
+      <p className="hint">
+        Apply a JSON editing template. Templates store settings only — media and
+        composition tracks stay on the current clip.
+      </p>
+      <div className="field-grid">
+        <label className="field">
+          Save current as
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <button
+          type="button"
+          className="tool"
+          onClick={async () => {
+            setMessage("");
+            const r = await fetch("/api/templates", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, settings }),
+            });
+            const data = await r.json();
+            if (!r.ok) setMessage(data.error || "Save failed");
+            else {
+              setMessage("Saved " + data.name);
+              void refresh();
+            }
+          }}
+        >
+          Save template
+        </button>
+      </div>
+      {message && <p role="status">{message}</p>}
+      {rows.map((row) => (
+        <div className="event-row" key={row.id}>
+          <button
+            type="button"
+            className="tool"
+            onClick={() =>
+              change({
+                ...row.settings,
+                composition: settings.composition,
+              })
+            }
+          >
+            Apply · {row.name}
+          </button>
+          <small>
+            {row.category}
+            {row.description ? " · " + row.description : ""}
+          </small>
+          {!builtins.has(row.id) && (
+            <button
+              type="button"
+              className="tool"
+              onClick={async () => {
+                await fetch("/api/templates", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "delete", id: row.id }),
+                });
+                void refresh();
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function EditorInspector({
   tab,
   settings,
@@ -286,33 +393,7 @@ export function EditorInspector({
         </>
       )}
       {tab === "templates" && (
-        <>
-          {(
-            [
-              {
-                name: "Portrait interview",
-                s: { ratio: "9:16", layout: "center", style: "minimal" },
-              },
-              {
-                name: "Gameplay and facecam",
-                s: { ratio: "9:16", layout: "facecam", style: "bold" },
-              },
-              {
-                name: "Landscape recap",
-                s: { ratio: "16:9", layout: "original", style: "highlight" },
-              },
-            ] as const
-          ).map((t) => (
-            <button
-              className="event-row"
-              key={t.name}
-              onClick={() => adjust({ ...t.s, captions: true })}
-            >
-              {t.name}
-              <small>{t.s.ratio}</small>
-            </button>
-          ))}
-        </>
+        <TemplateBrowser settings={settings} change={change} />
       )}
     </div>
   );

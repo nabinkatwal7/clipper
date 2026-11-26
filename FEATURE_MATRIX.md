@@ -309,10 +309,11 @@ Test coverage — MP4 import fixture.
 | Background videos | Implemented |
 | Fonts | Planned |
 | LUT files | Planned |
-| Subtitle templates | Partial |
-| Layout templates | Partial |
-| Animation presets | Planned |
-| Editing presets | Partial |
+| Subtitle templates | Implemented |
+| Layout templates | Implemented |
+| Animation presets | Implemented |
+| Editing presets | Implemented |
+| JSON editing template bundles | Implemented |
 | Create a reusable asset management system | Implemented |
 | Include folders, tags, favorites, search, previews and usage tracking | Implemented |
 | Allow drag-and-drop assets into the editor | Implemented |
@@ -1142,9 +1143,10 @@ Test coverage — No dedicated automated behavioral test.
 | Analysis strategies | Partial |
 | Ollama tasks | Partial |
 | Video effects | Implemented |
-| Layout templates | Partial |
+| Layout templates | Implemented |
 | Subtitle styles | Partial |
 | Export presets | Partial |
+| JSON editing template bundles | Implemented |
 | Workflow operations | Implemented |
 | Storage providers | Partial |
 | Build an extensible internal architecture | Partial |
