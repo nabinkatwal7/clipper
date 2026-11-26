@@ -192,7 +192,7 @@ Test coverage — Real cross-dissolve compilation. Other transitions lack dedica
 
 Runtime dependencies — FFmpeg filters.
 
-One selected effect plus grade per clip. Range controls apply to the selected effect. Speed curves remap the composed clip in segments. Freeze frame remains outstanding.
+Color grade plus an optional stack of up to eight timed effects. Legacy single effect remains when the stack is empty. Speed curves remap the composed clip in segments. Freeze frame remains outstanding.
 
 Test coverage — Rendered time-limited sepia. All exposed time-limited effects are encoded in the FFmpeg fixture.
 
@@ -221,6 +221,7 @@ Test coverage — Rendered time-limited sepia. All exposed time-limited effects 
 | Implement configurable non-AI video effects using FFmpeg | Implemented |
 | Allow effects to be applied to selected clips or specific time ranges | Implemented |
 | Support reusable effect presets | Partial |
+| Effect stacking | Implemented |
 
 ## 8. Color Grading Studio
 

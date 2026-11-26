@@ -102,28 +102,58 @@ export function gradeValue(input: Partial<Grade>): Grade {
     throw Error("Effect end must follow its start");
   return v;
 }
-export function gradeFilters(input: Partial<Grade>, _w: number, h: number) {
-  const g = gradeValue(input),
-    a = g.amount;
-  const filters: string[] = [];
-  if (g.brightness || g.contrast !== 1 || g.gamma !== 1 || g.saturation !== 1)
-    filters.push(
-      `eq=brightness=${g.brightness}:contrast=${g.contrast}:gamma=${g.gamma}:saturation=${g.saturation}`,
-    );
-  if (g.exposure) filters.push("exposure=exposure=" + g.exposure);
-  if (g.hue) filters.push("hue=h=" + g.hue);
-  if (g.temperature || g.shadows || g.highlights)
-    filters.push(
-      `colorbalance=rs=${g.shadows}:gs=${g.shadows}:bs=${g.shadows}:rh=${g.highlights}:gh=${g.highlights}:bh=${g.highlights}:rm=${g.temperature * 0.35}:bm=${-g.temperature * 0.35}`,
-    );
-  if (g.red !== 1 || g.green !== 1 || g.blue !== 1)
-    filters.push(`colorchannelmixer=rr=${g.red}:gg=${g.green}:bb=${g.blue}`);
+export type StackedEffect = {
+  id: string;
+  effect: Exclude<(typeof effects)[number], "none">;
+  amount: number;
+  enabled: boolean;
+  from?: number;
+  to?: number;
+};
+
+export function validateEffectStack(stack: StackedEffect[] | undefined) {
+  if (stack === undefined) return undefined;
+  if (!Array.isArray(stack) || stack.length > 8)
+    throw Error("Use at most 8 stacked effects.");
+  const ids = new Set<string>();
+  return stack.map((item) => {
+    if (
+      !item ||
+      typeof item.id !== "string" ||
+      !/^[a-f0-9-]{36}$/.test(item.id) ||
+      ids.has(item.id) ||
+      item.effect === ("none" as never) ||
+      !effects.includes(item.effect) ||
+      typeof item.enabled !== "boolean" ||
+      !Number.isFinite(item.amount) ||
+      item.amount < 0 ||
+      item.amount > 1
+    )
+      throw Error("Invalid stacked effect.");
+    ids.add(item.id);
+    for (const t of [item.from, item.to])
+      if (t !== undefined && (!Number.isFinite(t) || t < 0 || t > 600))
+        throw Error("Invalid stacked effect range.");
+    if (item.to !== undefined && item.to <= (item.from ?? 0))
+      throw Error("Stacked effect end must follow its start.");
+    return item;
+  });
+}
+
+function effectFilter(
+  effect: Grade["effect"],
+  amount: number,
+  h: number,
+  from?: number,
+  to?: number,
+) {
+  if (effect === "none") return [] as string[];
+  const a = amount;
   const when =
-    g.from !== undefined || g.to !== undefined
-      ? `:enable='between(t,${g.from ?? 0},${g.to ?? 600})'`
+    from !== undefined || to !== undefined
+      ? `:enable='between(t,${from ?? 0},${to ?? 600})'`
       : "";
-  const fx: Record<Grade["effect"], string> = {
-    none: "",
+  const fx: Record<Exclude<Grade["effect"], "none">, string> = {
     blur: "gblur=sigma=" + (1 + 12 * a),
     sharpen: "unsharp=luma_amount=" + 2 * a,
     vignette: "vignette=angle=" + (0.2 + 0.6 * a),
@@ -139,18 +169,50 @@ export function gradeFilters(input: Partial<Grade>, _w: number, h: number) {
       Math.round(h * 0.12 * a) +
       ":color=black:t=fill",
   };
-  if (fx[g.effect])
-    filters.push(
-      fx[g.effect] +
-        (when && g.effect === "mirror"
-          ? when.slice(1).replace("enable=", "=enable=")
-          : when),
-    );
-  if (g.effect === "letterbox")
+  const filters = [
+    fx[effect] +
+      (when && effect === "mirror"
+        ? when.slice(1).replace("enable=", "=enable=")
+        : when),
+  ];
+  if (effect === "letterbox")
     filters.push(
       `drawbox=x=0:y=ih-${Math.round(h * 0.12 * a)}:w=iw:h=${Math.round(h * 0.12 * a)}:color=black:t=fill` +
         when,
     );
+  return filters;
+}
+
+export function gradeFilters(
+  input: Partial<Grade>,
+  _w: number,
+  h: number,
+  stack?: StackedEffect[],
+) {
+  const g = gradeValue(input);
+  const filters: string[] = [];
+  if (g.brightness || g.contrast !== 1 || g.gamma !== 1 || g.saturation !== 1)
+    filters.push(
+      `eq=brightness=${g.brightness}:contrast=${g.contrast}:gamma=${g.gamma}:saturation=${g.saturation}`,
+    );
+  if (g.exposure) filters.push("exposure=exposure=" + g.exposure);
+  if (g.hue) filters.push("hue=h=" + g.hue);
+  if (g.temperature || g.shadows || g.highlights)
+    filters.push(
+      `colorbalance=rs=${g.shadows}:gs=${g.shadows}:bs=${g.shadows}:rh=${g.highlights}:gh=${g.highlights}:bh=${g.highlights}:rm=${g.temperature * 0.35}:bm=${-g.temperature * 0.35}`,
+    );
+  if (g.red !== 1 || g.green !== 1 || g.blue !== 1)
+    filters.push(`colorchannelmixer=rr=${g.red}:gg=${g.green}:bb=${g.blue}`);
+  const layered = validateEffectStack(stack) || [];
+  if (layered.length) {
+    for (const item of layered)
+      if (item.enabled)
+        filters.push(
+          ...effectFilter(item.effect, item.amount, h, item.from, item.to),
+        );
+  } else {
+    filters.push(...effectFilter(g.effect, g.amount, h, g.from, g.to));
+  }
   return filters;
 }
 export type Mix = {

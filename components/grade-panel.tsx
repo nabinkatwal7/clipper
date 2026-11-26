@@ -2,7 +2,7 @@
 import { RenderPreview } from "./render-preview";
 import { useState } from "react";
 import type { Settings } from "@/lib/types";
-import { dry, neutral, effects, looks, gradeRanges } from "@/lib/grading";
+import { dry, neutral, effects, looks, gradeRanges, type StackedEffect } from "@/lib/grading";
 export function GradePanel({
   settings: s,
   change,
@@ -172,8 +172,159 @@ export function GradePanel({
               ))}
             </select>
           </label>
+          <h4>Effect stack</h4>
+          <p className="hint">
+            Stacked effects replace the single effect below when present. Up to
+            eight enabled layers render in order.
+          </p>
+          <div className="candidate-actions">
+            <button
+              type="button"
+              className="tool"
+              disabled={(s.effectStack?.length || 0) >= 8}
+              onClick={() =>
+                change({
+                  ...s,
+                  effectStack: [
+                    ...(s.effectStack || []),
+                    {
+                      id: crypto.randomUUID(),
+                      effect: "blur",
+                      amount: 0.5,
+                      enabled: true,
+                    } satisfies StackedEffect,
+                  ],
+                })
+              }
+            >
+              Add effect
+            </button>
+          </div>
+          {(s.effectStack || []).map((item, index) => (
+            <div className="clip-context" key={item.id}>
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={item.enabled}
+                  onChange={(e) =>
+                    change({
+                      ...s,
+                      effectStack: (s.effectStack || []).map((entry, i) =>
+                        i === index
+                          ? { ...entry, enabled: e.target.checked }
+                          : entry,
+                      ),
+                    })
+                  }
+                />
+                Enabled
+              </label>
+              <label className="field">
+                Effect
+                <select
+                  value={item.effect}
+                  onChange={(e) =>
+                    change({
+                      ...s,
+                      effectStack: (s.effectStack || []).map((entry, i) =>
+                        i === index
+                          ? {
+                              ...entry,
+                              effect: e.target.value as StackedEffect["effect"],
+                            }
+                          : entry,
+                      ),
+                    })
+                  }
+                >
+                  {effects
+                    .filter((v) => v !== "none")
+                    .map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                </select>
+              </label>
+              <label className="field">
+                Amount · {item.amount}
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step=".01"
+                  value={item.amount}
+                  onChange={(e) =>
+                    change({
+                      ...s,
+                      effectStack: (s.effectStack || []).map((entry, i) =>
+                        i === index
+                          ? { ...entry, amount: +e.target.value }
+                          : entry,
+                      ),
+                    })
+                  }
+                />
+              </label>
+              <div className="field-grid">
+                {(["from", "to"] as const).map((k) => (
+                  <label className="field" key={k}>
+                    {k} (s)
+                    <input
+                      type="number"
+                      min="0"
+                      max="600"
+                      value={item[k] ?? ""}
+                      onChange={(e) =>
+                        change({
+                          ...s,
+                          effectStack: (s.effectStack || []).map((entry, i) =>
+                            i === index
+                              ? {
+                                  ...entry,
+                                  [k]:
+                                    e.target.value === ""
+                                      ? undefined
+                                      : +e.target.value,
+                                }
+                              : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="candidate-actions">
+                <button
+                  type="button"
+                  className="tool"
+                  disabled={index === 0}
+                  onClick={() => {
+                    const list = [...(s.effectStack || [])];
+                    [list[index - 1], list[index]] = [list[index], list[index - 1]];
+                    change({ ...s, effectStack: list });
+                  }}
+                >
+                  Raise
+                </button>
+                <button
+                  type="button"
+                  className="tool"
+                  onClick={() =>
+                    change({
+                      ...s,
+                      effectStack: (s.effectStack || []).filter(
+                        (_, i) => i !== index,
+                      ),
+                    })
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
           <label className="field">
-            Effect
+            Legacy single effect
             <select
               value={grade.effect}
               onChange={(e) =>

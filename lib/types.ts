@@ -4,6 +4,7 @@ export type Settings = {
   encodeProfile?: "fast" | "balanced" | "quality";
   cropPoints?: import("./reframe").CropPoint[];
   grade?: Partial<import("./grading").Grade>;
+  effectStack?: import("./grading").StackedEffect[];
   mix?: Partial<import("./grading").Mix>;
   composition?: import("./composition").Composition;
   category?: string;

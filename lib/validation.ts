@@ -1,6 +1,6 @@
 import { validCrop } from "./reframe";
 import { validateComposition } from "./composition";
-import { gradeValue, mixFilters } from "./grading";
+import { gradeValue, mixFilters, validateEffectStack } from "./grading";
 import { validateSpeedCurve } from "./speed-curve";
 import { defaults, type Settings, type Highlight } from "./types";
 import ipaddr from "ipaddr.js";
@@ -144,6 +144,8 @@ export function settings(input: unknown): Settings {
       throw Error("Keyword list exceeds 500 characters");
   if (s.composition) validateComposition(s.composition);
   if (s.grade) gradeValue(s.grade);
+  if (s.effectStack !== undefined)
+    s.effectStack = validateEffectStack(s.effectStack);
   if (s.mix) mixFilters(s.mix, 60);
   return s;
 }

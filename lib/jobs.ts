@@ -579,7 +579,8 @@ export async function render(
   if (s.rotation) transforms.push(`rotate=${s.rotation}*PI/180:c=black`);
   if (alpha !== 1)
     transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
-  if (s.grade) transforms.push(...gradeFilters(s.grade, w, height));
+  if (s.grade || s.effectStack?.length)
+    transforms.push(...gradeFilters(s.grade || {}, w, height, s.effectStack));
   const finalOverlay =
     s.captions || s.overlayText?.trim()
       ? `subtitles=filename='${subtitlePath}'`

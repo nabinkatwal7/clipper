@@ -373,3 +373,37 @@ test("speed curves validate, sample and estimate output duration", () => {
   assert.match(atempoChain(3), /atempo=2/);
   assert.throws(() => validateSpeedCurve([{ time: 0, rate: 8 }], 2));
 });
+
+import { gradeFilters, validateEffectStack } from "../lib/grading";
+test("effect stacks apply multiple timed filters in order", () => {
+  const stack = validateEffectStack([
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      effect: "blur",
+      amount: 0.4,
+      enabled: true,
+    },
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      effect: "vignette",
+      amount: 0.7,
+      enabled: true,
+      from: 0.2,
+      to: 1,
+    },
+  ]);
+  const filters = gradeFilters({ effect: "sepia", amount: 1 }, 720, 1280, stack);
+  assert.ok(filters.some((f) => f.includes("gblur")));
+  assert.ok(filters.some((f) => f.includes("vignette")));
+  assert.ok(!filters.some((f) => f.includes("colorchannelmixer=rr=0.393")));
+  assert.throws(() =>
+    validateEffectStack([
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        effect: "blur",
+        amount: 2,
+        enabled: true,
+      },
+    ]),
+  );
+});
