@@ -36,7 +36,10 @@ components/          React components (studio, public site, auth)
 lib/                 domain logic (auth, jobs, storage, Ollama, rendering)
 tests/               node:test unit tests
 scripts/             smoke and integration scripts
+docs/                DEVELOPMENT, EDITOR, RENDERING, LANGUAGE, EXPANSION_ROADMAP
 ```
+
+Expansion roadmap: [EXPANSION_ROADMAP.md](./EXPANSION_ROADMAP.md). Feature status: [../FEATURE_MATRIX.md](../FEATURE_MATRIX.md).
 
 See [ARCHITECTURE.md](../ARCHITECTURE.md) for how the parts fit together. Editor and FFmpeg details live in [EDITOR_ARCHITECTURE.md](./EDITOR_ARCHITECTURE.md) and [RENDERING_ENGINE.md](./RENDERING_ENGINE.md).
 

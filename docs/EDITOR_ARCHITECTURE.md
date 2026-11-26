@@ -10,6 +10,17 @@ Keyframeable properties: `x`, `y`, `volume`, `rotation`, `opacity`, `size`. Inte
 
 `validateComposition` rejects unsupported animation keys, out-of-range values and visual-only keys on audio tracks.
 
+### Sequences (Phase 1)
+
+`lib/sequences.ts` wraps compositions in a project document:
+
+- `schemaVersion: 1`
+- `sequences[]` with stable UUIDs, names, and optional `nestedOf`
+- `migrateComposition()` lifts a legacy single composition into a Main sequence
+- Cyclic nesting is rejected at validation time
+
+Clip settings may store `sequences` next to the existing `composition` field for backward compatibility. Preview and export still consume the active composition until multi-sequence UI ships.
+
 ## Workspace UI
 
 | Surface | Role |
@@ -18,6 +29,7 @@ Keyframeable properties: `x`, `y`, `volume`, `rotation`, `opacity`, `size`. Inte
 | `components/edit-timeline.tsx` | Source trim, markers, zoom, composition drag/trim gestures |
 | `components/layers-panel.tsx` | Track CRUD, transforms, masks, chroma, keyframes |
 | `components/editor-monitor.tsx` | Realtime canvas: source layout plus composition layers (transform, opacity, blend, masks) |
+| Source + Program monitors | Dual-pane layout with Mark In/Out, overwrite/insert into clip range |
 | `components/render-preview.tsx` | Short FFmpeg composition preview |
 | `components/grade-panel.tsx` | Color grading and timed effects |
 | `components/director-panel.tsx` | Validated Ollama edit proposals |

@@ -1,5 +1,6 @@
 import { validCrop } from "./reframe";
 import { validateComposition } from "./composition";
+import { validateProjectDocument } from "./sequences";
 import { gradeValue, mixFilters, validateEffectStack, validateAdjustmentLayers } from "./grading";
 import { validateSpeedCurve } from "./speed-curve";
 import { defaults, type Settings, type Highlight } from "./types";
@@ -240,6 +241,7 @@ export function settings(input: unknown): Settings {
     )
       throw Error("Keyword list exceeds 500 characters");
   if (s.composition) validateComposition(s.composition);
+  if (s.sequences) s.sequences = validateProjectDocument(s.sequences);
   if (s.grade) gradeValue(s.grade);
   if (s.effectStack !== undefined)
     s.effectStack = validateEffectStack(s.effectStack);

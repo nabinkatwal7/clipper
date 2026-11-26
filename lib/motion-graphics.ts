@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { uuid } from "./id";
 import { TEXT_TRACK_ASSET } from "./types";
 import type { Track } from "./composition";
 
@@ -8,7 +8,7 @@ export function createShapeTrack(
   kind: ShapeKind,
   at: number,
   length: number,
-  id = randomUUID(),
+  id = uuid(),
 ): Track {
   return {
     id,

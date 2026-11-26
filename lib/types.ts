@@ -38,6 +38,8 @@ export type Settings = {
   adjustmentLayers?: import("./grading").AdjustmentLayer[];
   mix?: Partial<import("./grading").Mix>;
   composition?: import("./composition").Composition;
+  /** Multi-sequence project document (Phase 1). Falls back to composition. */
+  sequences?: import("./sequences").ProjectDocument;
   category?: string;
   instructions?: string;
   analysisDepth?: "fast" | "balanced" | "deep";

@@ -1152,3 +1152,61 @@ Test coverage — No dedicated automated behavioral test.
 | Build an extensible internal architecture | Implemented |
 | Do not introduce a complex third-party plugin marketplace | Implemented |
 | Prefer simple, typed internal registries and configuration-driven extensions | Implemented |
+
+## 41. Creative Platform Foundations (Phase 1)
+
+Runtime dependencies — existing storage, diagnostics, composition.
+
+Shared foundations for the multi-studio expansion. Planned studios are registered but not exposed as finished product surfaces.
+
+Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
+
+| Requested feature | Status |
+| --- | --- |
+| Studio registry with grouped workspaces | Implemented |
+| Capability detection API | Implemented |
+| Professional workspace switcher | Implemented |
+| Project sequences + schema migration | Implemented |
+| Asset fingerprinting | Implemented |
+| Asset usage references / delete guard | Implemented |
+| Asset collections / rating / color label | Implemented |
+| Expansion roadmap documentation | Implemented |
+| Transcript Studio (Descript-style) | Partial |
+| Transcript delete → non-destructive keep/removed ranges | Implemented |
+| Caption overrides without altering audio | Implemented |
+| Transcript comparison (removed text / duration) | Implemented |
+| Smart dialogue suggestions (Ollama, approval required) | Implemented |
+| Language-specific filler dictionaries (en/ne/hi/mixed) | Implemented |
+| Natural-language rough cut generator | Planned |
+| Moment Search (exact/fuzzy/semantic) | Implemented |
+| Saved moment searches | Implemented |
+| Creator Memory (local editable profiles) | Implemented |
+| Reel Factory batch queue | Implemented |
+| Language Factory batch localization | Implemented |
+| Natural-language rough cut generator | Implemented |
+| Rough cut → editable keep/removed ranges | Implemented |
+| Multi-sequence manager (add/duplicate/activate) | Implemented |
+| Sequence nesting cycle prevention | Implemented |
+| Project bins + smart bins | Implemented |
+| Edit Recipes (structured ops, capture/apply) | Implemented |
+| Style replication via recipes | Implemented |
+| Clip Family Tree provenance graph | Implemented |
+| Media toolbox inspect (FFprobe) | Implemented |
+| Media toolbox convert (validated profiles) | Implemented |
+| Lossless remux via stream copy | Implemented |
+| Render and Replace (bake composition) | Implemented |
+| Restore original composition after bake | Implemented |
+| Stale bake fingerprint detection | Implemented |
+| Spectrogram engine (FFT + FFmpeg preview) | Implemented |
+| Audio restoration workspace | Implemented |
+| Conventional restore filters (EQ/gate/compress/…) | Implemented |
+| Instant clipping workspace | Implemented |
+| Fast lossless / frame-accurate / smart cut modes | Implemented |
+| Segment overlap detection | Implemented |
+| Honest keyframe vs accuracy documentation | Implemented |
+| Source + Program monitors | Implemented |
+| Source Mark In / Mark Out | Implemented |
+| Overwrite / Insert from source range | Partial |
+| Motion / Compositing / Recording / 3D studios | Planned |
+| Reel Factory / Language Factory | Planned |
+| Universal Media Toolbox | Planned |

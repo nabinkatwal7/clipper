@@ -41,6 +41,16 @@ import { Overview, ProjectRows, MediaLibrary } from "./studio-media";
 import { Calendar } from "./content-calendar";
 import { StorageUsage } from "./storage-usage";
 import { SourceTool } from "./studio-tools";
+import { TranscriptStudio } from "./transcript-studio";
+import { InstantClipping } from "./instant-clipping";
+import { MomentSearchPanel } from "./moment-search-panel";
+import { CreatorMemoryPanel } from "./creator-memory-panel";
+import { ReelFactory } from "./reel-factory";
+import { LanguageFactory } from "./language-factory";
+import { ProjectBinsPanel } from "./project-bins-panel";
+import { MediaToolboxPanel } from "./media-toolbox-panel";
+import { ClipFamilyPanel } from "./clip-family-panel";
+import { AudioRestoreStudio } from "./audio-restore-studio";
 import { SetupOptions } from "./setup-options";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
@@ -395,7 +405,41 @@ export default function Workspace() {
                   No jobs yet. Import a video to start processing.
                 </p>
               ))}
-            {["Thumbnail studio", "Transcript explorer"].includes(page) &&
+            {page === "Transcript explorer" &&
+              (project ? (
+                <>
+                  <select
+                    className="source-select"
+                    aria-label="Source project"
+                    value={project.id}
+                    onChange={(e) => select(e.target.value)}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
+                  <TranscriptStudio
+                    key={project.id}
+                    project={project}
+                    generate={(a, b) =>
+                      create({
+                        ...project,
+                        settings: {
+                          ...project.settings,
+                          mode: "manual",
+                          manualStart: a,
+                          manualEnd: b,
+                        },
+                      })
+                    }
+                  />
+                </>
+              ) : (
+                <p className="empty">Open a project to edit its transcript.</p>
+              ))}
+            {page === "Thumbnail studio" &&
               (project ? (
                 <>
                   <select
@@ -413,7 +457,7 @@ export default function Workspace() {
                   <SourceTool
                     key={page + project.id}
                     project={project}
-                    thumbnail={page === "Thumbnail studio"}
+                    thumbnail
                     generate={(a, b) =>
                       create({
                         ...project,
@@ -436,6 +480,52 @@ export default function Workspace() {
               <Calendar projects={projects} open={openClip} />
             )}
             {page === "Live clipping" && <LiveClipping open={openProject} projects={projects} />}
+            {page === "Instant clipping" && (
+              <InstantClipping projects={projects} />
+            )}
+            {page === "Reel Factory" && <ReelFactory projects={projects} />}
+            {page === "Language Factory" && (
+              <LanguageFactory projects={projects} />
+            )}
+            {page === "Project bins" && <ProjectBinsPanel />}
+            {page === "Media toolbox" && (
+              <MediaToolboxPanel projects={projects} />
+            )}
+            {page === "Audio restoration" && (
+              <AudioRestoreStudio projects={projects} />
+            )}
+            {page === "Clip Family Tree" &&
+              (project ? (
+                <>
+                  <select
+                    className="source-select"
+                    aria-label="Source project"
+                    value={project.id}
+                    onChange={(e) => select(e.target.value)}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ClipFamilyPanel
+                    project={project}
+                    onOpenClip={(cid) => openClip(project.id, cid)}
+                  />
+                </>
+              ) : (
+                <p className="empty">Open a project to view clip lineage.</p>
+              ))}
+            {page === "Moment Search" && (
+              <MomentSearchPanel
+                onOpen={(pid, cid) => {
+                  if (cid) openClip(pid, cid);
+                  else openProject(pid);
+                }}
+              />
+            )}
+            {page === "Creator Memory" && <CreatorMemoryPanel />}
             {["Streamers", "Automatic clipping"].includes(page) && (
               <Channels
                 automation={page === "Automatic clipping"}

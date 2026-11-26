@@ -106,25 +106,27 @@ export function LayersPanel({
   }
   function insert(a: Asset) {
     if (tracks.length >= 16) return;
+    if (a.kind !== "video" && a.kind !== "image" && a.kind !== "audio") return;
     const id = crypto.randomUUID(),
-      start = Math.min(Math.max(0, at), Math.max(0, length - 0.1));
+      start = Math.min(Math.max(0, at), Math.max(0, length - 0.1)),
+      type = a.kind;
     save([
       ...tracks,
       {
         id,
         name: a.name,
-        type: a.kind,
+        type,
         asset: a.id,
         at: start,
         length: Math.max(0.05, Math.min(length - start, a.duration || 5)),
         slip: 0,
         x: 0.5,
         y: 0.5,
-        size: a.kind === "image" ? 0.3 : 1,
+        size: type === "image" ? 0.3 : 1,
         opacity: 1,
         volume: 1,
         visible: true,
-        muted: a.kind !== "audio",
+        muted: type !== "audio",
         locked: false,
         solo: false,
         loop: true,

@@ -10,12 +10,22 @@ import { suggestBroll } from "./broll";
 import { backupList, snapshot, inspectBackup } from "./backup";
 import { compileWorkflow } from "./workflow";
 import { diagnostics } from "./diagnostics";
+import { capabilities } from "./capabilities";
 import { localize } from "./localization";
 import { searchContent } from "./content-search";
 import { preferences, preference } from "./preferences";
 import { compilation } from "./compilation";
 import { checkpoint, checkpoints } from "./checkpoints";
-import { assetList, importAsset, editAsset, asset } from "./assets";
+import {
+  assetList,
+  importAsset,
+  editAsset,
+  asset,
+  findDuplicates,
+  assertAssetDeletable,
+  linkAsset,
+  unlinkAsset,
+} from "./assets";
 import {
   buildPackage,
   packageLocation,
@@ -171,6 +181,32 @@ export async function handle(
             }
           : {},
       });
+    if (action === "capabilities" && req.method === "GET")
+      return NextResponse.json(await capabilities(req.signal));
+    if (action === "studios" && req.method === "GET") {
+      const { studioGroups } = await import("./studios");
+      return NextResponse.json({ groups: studioGroups });
+    }
+    if (action === "fast-cut" && req.method === "POST") {
+      const body = await req.json();
+      const p = await read(body.project || body.sourceProject || "");
+      if (busy(p.id)) throw Error("Project busy");
+      const { exportSegments, validateCutSession, cutModeHelp, detectOverlaps } =
+        await import("./fast-cut");
+      if (body.op === "validate") {
+        const session = validateCutSession(body.session);
+        return NextResponse.json({
+          ok: true,
+          overlaps: detectOverlaps(session.segments),
+          help: cutModeHelp(session.mode),
+        });
+      }
+      const session = validateCutSession({
+        ...body.session,
+        sourceProject: p.id,
+      });
+      return NextResponse.json(await exportSegments(p.id, session, req.signal));
+    }
     if (action === "workflow" && req.method === "POST") {
       const body = await req.json();
       const s = compileWorkflow(body.workflow);
@@ -397,8 +433,18 @@ export async function handle(
         return NextResponse.json(await importAsset(req));
       if (req.method === "POST") {
         const b = await req.json();
+        if (b.op === "link")
+          return NextResponse.json(await linkAsset(b.id, b.ref));
+        if (b.op === "unlink")
+          return NextResponse.json(await unlinkAsset(b.id, b.ref));
+        if (b.op === "assert-deletable")
+          return NextResponse.json(await assertAssetDeletable(b.id));
         return NextResponse.json(await editAsset(b.id, b));
       }
+      if (req.method === "GET" && query.get("duplicates"))
+        return NextResponse.json(
+          await findDuplicates(query.get("duplicates") || ""),
+        );
       if (req.method === "GET" && query.has("id")) {
         const a = await asset(query.get("id") || "");
         const { resolvePreviewMedia } = await import("./media-proxy");
@@ -667,6 +713,337 @@ export async function handle(
           b.instruction,
           req.signal,
         ),
+      );
+    }
+    if (req.method === "POST" && action === "dialogue-suggestions") {
+      const b = await req.json();
+      const project = await read(b.project);
+      const rows = await transcript(project.id).catch(() => []);
+      const { suggestDialogueEdits } = await import("./dialogue-suggestions");
+      return NextResponse.json({
+        suggestions: await suggestDialogueEdits(
+          project.id,
+          rows,
+          {
+            language: b.language,
+            model: b.model || project.settings.model,
+            request: b.request,
+            includeOllama: b.includeOllama !== false,
+          },
+          req.signal,
+        ),
+      });
+    }
+    if (action === "render-replace") {
+      const rr = await import("./render-replace");
+      if (req.method === "GET") {
+        const project = await read(query.get("project") || "");
+        const clip = query.get("clip") || "";
+        const record = await rr.readRenderReplace(project.id, clip);
+        return NextResponse.json({
+          record,
+          stale: rr.isRenderReplaceStale(
+            record,
+            project.clips.find((c) => c.id === clip)?.settings.composition,
+          ),
+        });
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        const project = await read(b.project);
+        const clip = project.clips.find((c) => c.id === b.clip);
+        if (!clip) throw Error("Clip not found");
+        if (busy(project.id)) throw Error("Project busy");
+        if (b.op === "restore") {
+          const result = await rr.restoreRenderReplace(
+            project.id,
+            clip.id,
+            clip.settings,
+          );
+          clip.settings = result.settings;
+          await save(project);
+          return NextResponse.json(result);
+        }
+        const result = await rr.renderAndReplace(
+          project.id,
+          clip.id,
+          b.settings || clip.settings,
+          Number(b.length) || Math.max(0.5, clip.end - clip.start),
+          req.signal,
+        );
+        clip.settings = result.settings;
+        await save(project);
+        return NextResponse.json(result);
+      }
+    }
+    if (action === "audio-restore") {
+      const restore = await import("./audio-restore");
+      if (req.method === "GET") {
+        const project = await read(query.get("project") || "");
+        const png = await restore.spectrogramPng(project.id, req.signal);
+        return new Response(new Uint8Array(await fs.readFile(png)), {
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "private, max-age=300",
+          },
+        });
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        const project = await read(b.project);
+        if (busy(project.id)) throw Error("Project busy");
+        if (b.op === "validate")
+          return NextResponse.json({
+            ok: true,
+            plan: restore.validateRestorePlan(b.plan),
+          });
+        return NextResponse.json(
+          await restore.applyRestore(project.id, b.plan, req.signal),
+        );
+      }
+    }
+    if (action === "clip-family" && req.method === "GET") {
+      const project = await read(query.get("project") || "");
+      const { buildClipFamily } = await import("./clip-family");
+      return NextResponse.json(buildClipFamily(project));
+    }
+    if (action === "media-toolbox") {
+      const box = await import("./media-toolbox");
+      if (req.method === "GET") {
+        const project = await read(query.get("project") || "");
+        return NextResponse.json(
+          await box.inspectMediaReport(project.id, req.signal),
+        );
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        const project = await read(b.project);
+        if (busy(project.id)) throw Error("Project busy");
+        if (b.op === "validate")
+          return NextResponse.json({
+            ok: true,
+            profile: box.validateProfile(b.profile),
+          });
+        return NextResponse.json(
+          await box.convertProjectMedia(
+            project.id,
+            b.profile,
+            req.signal,
+          ),
+        );
+      }
+    }
+    if (action === "recipes") {
+      const recipes = await import("./edit-recipes");
+      if (req.method === "GET") {
+        const rows = await recipes.listRecipes();
+        if (!rows.length) {
+          const seed = recipes.defaultVerticalRecipe();
+          await recipes.saveRecipe(seed);
+          return NextResponse.json([seed]);
+        }
+        return NextResponse.json(rows);
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "delete") {
+          await recipes.deleteRecipe(b.id);
+          return NextResponse.json({ ok: true });
+        }
+        if (b.op === "apply") {
+          const project = await read(b.project);
+          const clip = project.clips.find((c) => c.id === b.clip);
+          if (!clip) throw Error("Clip not found");
+          const list = await recipes.listRecipes();
+          const recipe =
+            list.find((r) => r.id === b.id) ||
+            (b.recipe ? recipes.validateRecipe(b.recipe) : null);
+          if (!recipe) throw Error("Recipe not found");
+          const next = recipes.applyRecipe(clip.settings, recipe);
+          return NextResponse.json({ settings: next, recipe });
+        }
+        if (b.op === "capture") {
+          const project = await read(b.project);
+          const clip = project.clips.find((c) => c.id === b.clip);
+          if (!clip) throw Error("Clip not found");
+          const recipe = recipes.recipeFromSettings(
+            b.name || clip.title + " style",
+            clip.settings,
+            b.description || "",
+          );
+          return NextResponse.json(await recipes.saveRecipe(recipe));
+        }
+        return NextResponse.json(
+          await recipes.saveRecipe(recipes.validateRecipe(b.recipe)),
+        );
+      }
+    }
+    if (req.method === "POST" && action === "rough-cut") {
+      const b = await req.json();
+      const project = await read(b.project);
+      const rows = await transcript(project.id).catch(() => []);
+      const { generateRoughCut, planToCutState } = await import("./rough-cut");
+      const plan = await generateRoughCut(
+        project.id,
+        rows,
+        project.duration,
+        b.request,
+        b.model || project.settings.model,
+        req.signal,
+      );
+      return NextResponse.json({
+        plan,
+        cut: planToCutState(plan, project.duration),
+      });
+    }
+    if (action === "project-bins") {
+      const bins = await import("./project-bins");
+      if (req.method === "GET")
+        return NextResponse.json(await bins.readBins());
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "create") {
+          const tree = await bins.readBins();
+          return NextResponse.json(
+            await bins.writeBins(
+              bins.createBin(tree, b.name || "Bin", b.parentId, b.smart),
+            ),
+          );
+        }
+        return NextResponse.json(await bins.writeBins(b.tree));
+      }
+    }
+    if (req.method === "POST" && action === "sequences") {
+      const b = await req.json();
+      const project = await read(b.project);
+      const clip = project.clips.find((c) => c.id === b.clip);
+      if (!clip) throw Error("Clip not found");
+      const seq = await import("./sequences");
+      let doc = seq.ensureSequences(clip.settings);
+      if (b.op === "ensure") {
+        /* doc already ensured */
+      } else if (b.op === "activate") doc = seq.setActiveSequence(doc, b.id);
+      else if (b.op === "duplicate")
+        doc = seq.duplicateSequence(doc, b.id, b.name);
+      else if (b.op === "add") {
+        const s = seq.emptySequence(b.name || "Sequence");
+        doc = seq.validateProjectDocument({
+          ...doc,
+          sequences: [...doc.sequences, s],
+          activeSequence: s.id,
+        });
+      } else if (b.op === "nest")
+        doc = seq.nestSequence(doc, b.id, b.parentId || undefined);
+      else if (b.op === "rename") {
+        doc = seq.validateProjectDocument({
+          ...doc,
+          sequences: doc.sequences.map((s) =>
+            s.id === b.id
+              ? {
+                  ...s,
+                  name: String(b.name || s.name).slice(0, 120),
+                  updatedAt: new Date().toISOString(),
+                }
+              : s,
+          ),
+        });
+      } else throw Error("Unsupported sequence operation");
+      const active = doc.sequences.find((s) => s.id === doc.activeSequence);
+      clip.settings = {
+        ...clip.settings,
+        sequences: doc,
+        composition: active?.composition || clip.settings.composition,
+      };
+      await save(project);
+      return NextResponse.json({ sequences: doc, clip: clip.id });
+    }
+    if (action === "creator-memory") {
+      const mem = await import("./creator-memory");
+      if (req.method === "GET") {
+        if (query.has("id"))
+          return NextResponse.json(await mem.readMemory(query.get("id") || ""));
+        return NextResponse.json(await mem.listMemories());
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "delete") {
+          await mem.deleteMemory(b.id);
+          return NextResponse.json({ ok: true });
+        }
+        if (b.op === "create")
+          return NextResponse.json(
+            await mem.saveMemory(mem.emptyMemory(b.name || "Creator")),
+          );
+        return NextResponse.json(await mem.saveMemory(b.memory));
+      }
+    }
+    if (action === "moment-search") {
+      const ms = await import("./moment-search");
+      if (req.method === "GET")
+        return NextResponse.json(await ms.listSavedSearches());
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "save")
+          return NextResponse.json(await ms.saveSearch(b));
+        if (b.op === "delete") {
+          await ms.deleteSavedSearch(b.id);
+          return NextResponse.json({ ok: true });
+        }
+        return NextResponse.json(await ms.momentSearch(b, req.signal));
+      }
+    }
+    if (action === "reel-factory" && req.method === "POST") {
+      const b = await req.json();
+      const { validateReelJob, settingsFromReel } = await import(
+        "./reel-factory"
+      );
+      const job = validateReelJob(b.job);
+      if (b.op === "validate")
+        return NextResponse.json({ ok: true, job });
+      const settings = settingsFromReel(job);
+      const results: {
+        project: string;
+        ok: boolean;
+        error?: string;
+      }[] = [];
+      for (const id of job.sources) {
+        try {
+          const p = await read(id);
+          if (busy(p.id) || !p.duration) {
+            results.push({
+              project: id,
+              ok: false,
+              error: "Busy or source not imported",
+            });
+            continue;
+          }
+          enqueue(p.id, async (signal) => {
+            p.settings = { ...settings };
+            p.progress = {};
+            await generate(p, signal);
+          });
+          results.push({ project: id, ok: true });
+        } catch (e) {
+          results.push({
+            project: id,
+            ok: false,
+            error: e instanceof Error ? e.message : "Failed",
+          });
+        }
+      }
+      return NextResponse.json(
+        {
+          job: {
+            ...job,
+            status: results.every((r) => r.ok)
+              ? "queued"
+              : results.some((r) => r.ok)
+                ? "partial"
+                : "failed",
+            results,
+          },
+        },
+        { status: 202 },
       );
     }
     if (action === "source-index") {

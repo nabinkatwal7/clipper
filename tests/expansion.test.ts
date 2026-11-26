@@ -586,3 +586,310 @@ test("adjustment layers emit timed effect filters over composition ranges", () =
   const filters = adjustmentFilters(layers, 1080);
   assert.ok(filters.some((f) => f.includes("unsharp") && f.includes("between(t,0.5")));
 });
+
+import {
+  emptySequence,
+  migrateComposition,
+  validateProjectDocument,
+} from "../lib/sequences";
+import { studioGroups, livePages } from "../lib/studios";
+test("project sequences migrate legacy compositions and reject cycles", () => {
+  const migrated = migrateComposition({ version: 1, tracks: [] });
+  assert.equal(migrated.schemaVersion, 1);
+  assert.equal(migrated.sequences.length, 1);
+  assert.equal(migrated.activeSequence, migrated.sequences[0].id);
+  const a = emptySequence("A");
+  const b = emptySequence("B");
+  a.nestedOf = b.id;
+  b.nestedOf = a.id;
+  assert.throws(() =>
+    validateProjectDocument({
+      schemaVersion: 1,
+      sequences: [a, b],
+    }),
+  );
+  const ok = validateProjectDocument({
+    schemaVersion: 1,
+    sequences: [emptySequence("Main"), emptySequence("Alt")],
+  });
+  assert.equal(ok.sequences.length, 2);
+});
+test("studio registry exposes live pages without planned routes", () => {
+  assert.ok(studioGroups.some((g) => g.id === "editing"));
+  const pages = livePages();
+  assert.ok(pages.includes("Video editor"));
+  assert.ok(!pages.includes("Motion Studio"));
+});
+
+import {
+  clipFromSelection,
+  deleteDialogue,
+  emptyCutState,
+  overrideCaption,
+  transcriptComparison,
+} from "../lib/transcript-edit";
+test("transcript cuts are non-destructive and caption overrides leave media ranges", () => {
+  const rows = [
+    { start: 0, end: 2, text: "hello", words: [] },
+    { start: 2, end: 4, text: "world", words: [] },
+    { start: 4, end: 6, text: "again", words: [] },
+  ];
+  let state = emptyCutState(6);
+  state = deleteDialogue(state, rows, [1]);
+  assert.deepEqual(state.keep, [
+    { start: 0, end: 2 },
+    { start: 4, end: 6 },
+  ]);
+  assert.deepEqual(state.removed, [{ start: 2, end: 4 }]);
+  const withCaption = overrideCaption(state, 0, "Hi");
+  assert.deepEqual(withCaption.keep, state.keep);
+  assert.equal(withCaption.captionOverrides[0].text, "Hi");
+  const clip = clipFromSelection(rows, [0, 1]);
+  assert.equal(clip.start, 0);
+  assert.equal(clip.end, 4);
+  const cmp = transcriptComparison(rows, state);
+  assert.equal(cmp.removedText.join(" "), "world");
+  assert.ok(cmp.editedDuration < cmp.originalDuration || cmp.editedDuration === 4);
+});
+
+import {
+  detectOverlaps,
+  validateCutSession,
+  cutModeHelp,
+} from "../lib/fast-cut";
+test("fast-cut sessions validate modes and detect overlaps", () => {
+  const a = {
+    id: "11111111-1111-4111-8111-111111111111",
+    start: 0,
+    end: 5,
+    label: "A",
+  };
+  const b = {
+    id: "22222222-2222-4222-8222-222222222222",
+    start: 4,
+    end: 8,
+    label: "B",
+  };
+  assert.equal(detectOverlaps([a, b]).length, 1);
+  assert.match(cutModeHelp("lossless"), /keyframe/i);
+  const session = validateCutSession({
+    version: 1,
+    sourceProject: "33333333-3333-4333-8333-333333333333",
+    mode: "accurate",
+    segments: [a],
+  });
+  assert.equal(session.mode, "accurate");
+  assert.throws(() =>
+    validateCutSession({ version: 1, sourceProject: "x", mode: "lossless", segments: [] }),
+  );
+});
+
+import {
+  dictionarySuggestions,
+  applyApprovedRemovals,
+} from "../lib/dialogue-suggestions-core";
+import { validateReelJob } from "../lib/reel-factory";
+import { emptyMemory, validateMemory, mergeEvidence } from "../lib/creator-memory";
+test("dialogue dictionaries propose removable filler and pause ranges", () => {
+  const rows = [
+    { start: 0, end: 1, text: "um", words: [] },
+    { start: 1, end: 3, text: "hello there everyone", words: [] },
+    { start: 6, end: 8, text: "hello there everyone", words: [] },
+  ];
+  const sug = dictionarySuggestions(rows, "en");
+  assert.ok(sug.some((s) => s.kind === "filler"));
+  assert.ok(sug.some((s) => s.kind === "pause" || s.kind === "repeat"));
+  const keep = applyApprovedRemovals(
+    [{ start: 0, end: 8 }],
+    sug.map((s) => ({ ...s, approved: s.kind === "filler" })),
+  );
+  assert.ok(keep.every((r) => r.end > r.start));
+});
+test("reel factory and creator memory validate structured local data", () => {
+  const job = validateReelJob({
+    version: 1,
+    name: "Batch",
+    sources: ["11111111-1111-4111-8111-111111111111"],
+    clipCount: 5,
+    minScore: 50,
+    duration: "30-60",
+    layout: "center",
+    style: "bold",
+    ratio: "9:16",
+    resolution: "1080",
+    captions: true,
+    reviewRequired: true,
+    categories: [],
+    language: "en",
+    status: "draft",
+    results: [],
+  });
+  assert.equal(job.clipCount, 5);
+  const mem = validateMemory(emptyMemory("Streamer"));
+  const merged = mergeEvidence(mem, { topics: ["football"] });
+  assert.ok(merged.topics.includes("football"));
+});
+
+import {
+  validateRoughCutPlan,
+  planToCutState,
+} from "../lib/rough-cut";
+import {
+  validateBinTree,
+  createBin,
+  emptyBinTree,
+} from "../lib/project-bins";
+import {
+  ensureSequences,
+  duplicateSequence,
+  nestSequence,
+} from "../lib/sequences";
+test("rough cut plans validate ranges and convert to cut state", () => {
+  const plan = validateRoughCutPlan(
+    {
+      title: "Summary",
+      why: "Keeps the explanation",
+      ranges: [
+        { start: 1, end: 10 },
+        { start: 20, end: 35 },
+      ],
+    },
+    60,
+  );
+  assert.equal(plan.estimatedDuration, 24);
+  const cut = planToCutState(plan, 60);
+  assert.equal(cut.keep.length, 2);
+  assert.ok(cut.removed.length >= 1);
+  assert.throws(() =>
+    validateRoughCutPlan(
+      { title: "x", why: "y", ranges: [{ start: 1, end: 2 }, { start: 1.5, end: 3 }] },
+      60,
+    ),
+  );
+});
+test("project bins and sequences reject cycles and support duplicates", () => {
+  let tree = createBin(emptyBinTree(), "Root");
+  const root = tree.bins[0].id;
+  tree = createBin(tree, "Child", root);
+  assert.equal(tree.bins.length, 2);
+  assert.throws(() =>
+    validateBinTree({
+      version: 1,
+      bins: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          name: "A",
+          parentId: "22222222-2222-4222-8222-222222222222",
+          items: [],
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "22222222-2222-4222-8222-222222222222",
+          name: "B",
+          parentId: "11111111-1111-4111-8111-111111111111",
+          items: [],
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+    }),
+  );
+  let doc = ensureSequences({ composition: { version: 1, tracks: [] } });
+  doc = duplicateSequence(doc, doc.sequences[0].id, "Alt");
+  assert.equal(doc.sequences.length, 2);
+  assert.throws(() =>
+    nestSequence(doc, doc.sequences[0].id, doc.sequences[0].id),
+  );
+});
+
+import {
+  applyRecipe,
+  recipeFromSettings,
+  validateRecipe,
+  defaultVerticalRecipe,
+} from "../lib/edit-recipes";
+test("edit recipes apply structured ops without inventing media", () => {
+  const recipe = defaultVerticalRecipe();
+  assert.ok(recipe.operations.length >= 3);
+  const next = applyRecipe(defaults, recipe);
+  assert.equal(next.ratio, "9:16");
+  assert.equal(next.captions, true);
+  const captured = recipeFromSettings("Copy", next, "from clip");
+  assert.equal(validateRecipe(captured).name, "Copy");
+  assert.throws(() =>
+    validateRecipe({ version: 1, id: "bad", name: "x", description: "", operations: [] }),
+  );
+});
+
+import { buildClipFamily } from "../lib/clip-family";
+import { validateProfile, buildConvertArgs } from "../lib/media-toolbox";
+import { uuid } from "../lib/id";
+test("clip family preserves source provenance without inventing clips", () => {
+  const tree = buildClipFamily({
+    id: "11111111-1111-4111-8111-111111111111",
+    title: "Stream",
+    duration: 120,
+    clips: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        start: 10,
+        end: 40,
+        title: "Highlight",
+        reason: "test",
+        score: 80,
+        segments: [],
+        settings: { ...defaults, ratio: "9:16", layout: "center" },
+      } as never,
+    ],
+  } as never);
+  assert.ok(tree.nodes.some((n) => n.kind === "source"));
+  assert.ok(tree.edges.length >= 1);
+});
+test("media toolbox validates codec/container pairs", () => {
+  const profile = validateProfile({
+    container: "mp4",
+    videoCodec: "copy",
+    audioCodec: "copy",
+  });
+  const args = buildConvertArgs("in.mp4", "out.mp4", profile);
+  assert.ok(args.includes("copy"));
+  assert.throws(() =>
+    validateProfile({ container: "webm", videoCodec: "copy", audioCodec: "aac" }),
+  );
+  assert.match(uuid(), /^[0-9a-f-]{36}$/i);
+});
+
+import { computeSpectrogram, fft } from "../lib/spectrogram";
+import { validateRestorePlan, restoreFilters } from "../lib/audio-restore";
+import { compositionFingerprint } from "../lib/render-replace";
+test("spectrogram FFT produces bounded magnitude frames", () => {
+  const n = 1024;
+  const samples = new Float32Array(n * 4);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.sin((2 * Math.PI * 440 * i) / 48000);
+  const matrix = computeSpectrogram(samples, { fftSize: 512, hopSize: 128 });
+  assert.equal(matrix.rows, 256);
+  assert.ok(matrix.cols > 1);
+  assert.ok([...matrix.data].every((v) => v >= 0 && v <= 1));
+  const re = new Float64Array([1, 0, 0, 0]);
+  const im = new Float64Array(4);
+  fft(re, im);
+  assert.ok(Number.isFinite(re[0]));
+});
+test("audio restore plans compile to ffmpeg filters", () => {
+  const plan = validateRestorePlan({
+    version: 1,
+    ops: [
+      { op: "highpass", hz: 80 },
+      { op: "notch", hz: 50, q: 30 },
+      { op: "normalize", targetDb: -16 },
+    ],
+  });
+  const filters = restoreFilters(plan);
+  assert.ok(filters.some((f) => f.includes("highpass")));
+  assert.ok(filters.some((f) => f.includes("loudnorm")));
+  assert.equal(
+    compositionFingerprint({ version: 1, tracks: [] }).length,
+    24,
+  );
+});

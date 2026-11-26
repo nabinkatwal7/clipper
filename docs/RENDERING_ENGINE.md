@@ -30,6 +30,20 @@ Animated scale pre-scales to the maximum keyframe size, then scales by `interpol
 - Composition and grade payloads are schema-validated before render.
 - Temporary files are scoped to the job and cleaned up on cancel or failure.
 
+## Instant clipping (`lib/fast-cut.ts`)
+
+Separate from the full composition export path. Segments can export as:
+
+- **lossless** — `-c copy` after keyframe snap (not frame-accurate)
+- **accurate** — re-encode with explicit `-ss`/`-t`
+- **smart** — stream copy when near a keyframe, otherwise accurate re-encode
+
+Outputs land under `exports/fast-cuts/<projectId>/`. Overlaps are rejected before FFmpeg runs.
+
+## Render and replace (`lib/render-replace.ts`)
+
+Complex compositions can be baked to an intermediate asset under `assets/`. The original composition JSON is stored in `render-replace/<project>/<clip>.json` for restore. A content fingerprint marks the bake stale if the live composition changes.
+
 ## Verified limitations
 
 - Preview is not a full realtime compositor; short FFmpeg windows are the accurate check.

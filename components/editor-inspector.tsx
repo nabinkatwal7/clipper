@@ -10,6 +10,7 @@ import {
   Palette,
   SlidersHorizontal,
   LayoutTemplate,
+  Replace,
 } from "lucide-react";
 import type { Project, Settings } from "@/lib/types";
 import {
@@ -21,6 +22,7 @@ import { ProfilePicker } from "./brand-profiles";
 export const editorTools = [
   ["director", "Director", Sparkles],
   ["layers", "Layers", PanelsTopLeft],
+  ["sequences", "Sequences", LayoutTemplate],
   ["media", "Media", Film],
   ["video", "Layout", PanelsTopLeft],
   ["text", "Text", Type],
@@ -33,6 +35,8 @@ export const editorTools = [
   ["speed", "Speed", SlidersHorizontal],
   ["history", "History", LayoutTemplate],
   ["templates", "Templates", LayoutTemplate],
+  ["recipes", "Recipes", LayoutTemplate],
+  ["replace", "Render replace", Replace],
 ] as const;
 
 function SpeedControls({

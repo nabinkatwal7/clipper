@@ -23,6 +23,7 @@ Clipper Studio is designed to run on a machine you control, bound to `127.0.0.1`
 - **SSRF:** URL imports pass through a local proxy that resolves and checks every connection, rejects non-public addresses and restricts ports and redirects.
 - **Subprocesses:** FFmpeg, FFprobe and yt-dlp run with argument arrays and no shell; file paths are built only from validated UUIDs.
 - **Untrusted data:** subtitles, media metadata and model output are treated as data, never as instructions.
+- **Asset references:** assets record `usedBy` refs; deletion is blocked while references remain (`assertAssetDeletable`).
 
 ### What it does not protect against
 

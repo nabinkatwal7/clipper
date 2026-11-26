@@ -1,16 +1,7 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
+import { studioStorage } from "@/lib/client-storage";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  PanelsTopLeft,
-  FolderClosed,
-  Library,
-  Scissors,
-  Captions,
-  ScanText,
-  Image as ImageIcon,
-  ListVideo,
-  CalendarDays,
   Settings2,
   PanelLeftClose,
   PanelLeftOpen,
@@ -22,10 +13,9 @@ import {
   Moon,
   Plus,
   Workflow,
-  SlidersHorizontal,
   Menu,
-  HardDrive,
   Cpu,
+  ListVideo,
 } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { useStudioEvents } from "./use-studio-events";
@@ -41,50 +31,14 @@ import {
 } from "./ui/tooltip";
 import { Separator } from "./ui/separator";
 import { ScrollArea } from "./ui/scroll-area";
-export const sections = [
-  [
-    "Workspace",
-    [
-      ["Overview", PanelsTopLeft],
-      ["New project", Plus],
-      ["Projects", FolderClosed],
-      ["Clip library", Library],
-      ["Assets", FolderClosed],
-      ["Discover", Search],
-    ],
-  ],
-  [
-    "Creation",
-    [
-      ["Video editor", Scissors],
-      ["Compilations", ListVideo],
-      ["Transcript explorer", ScanText],
-      ["Subtitle studio", Captions],
-      ["Thumbnail studio", ImageIcon],
-    ],
-  ],
-  [
-    "Automation",
-    [
-      ["Streamers", Cpu],
-      ["Processing queue", ListVideo],
-      ["Automatic clipping", Workflow],
-      ["Live clipping", ListVideo],
-      ["Workflow builder", Workflow],
-    ],
-  ],
-  [
-    "Management",
-    [
-      ["Production desk", SlidersHorizontal],
-      ["Content calendar", CalendarDays],
-      ["Branding", SlidersHorizontal],
-      ["Storage", HardDrive],
-      ["Backup & recovery", HardDrive],
-    ],
-  ],
-] as const;
-import {loadWorkspaceStyle} from "./workspace-preferences";
+import {
+  sections,
+  studioGroups,
+  studioLabelForPage,
+  groupIcons,
+} from "./workspace-nav";
+export { sections };
+import { loadWorkspaceStyle } from "./workspace-preferences";
 export function StudioShell({
   page,
   go,
@@ -114,13 +68,23 @@ export function StudioShell({
     [activityMsg, activityNote] = useState(""),
     [query, setQuery] = useState(""),
     [index, setIndex] = useState(0),
-    [hidden, setHidden] = useState<string[]>([]);
-  const [shortcut,setShortcut]=useState("k");
+    [hidden, setHidden] = useState<string[]>([]),
+    [workspace, setWorkspace] = useState(studioLabelForPage(page));
+  const [shortcut, setShortcut] = useState("k");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    const restore=()=>{loadWorkspaceStyle();setShortcut(studioStorage.getItem("studio-command-key")||"k");setCollapsed(studioStorage.getItem("studio-sidebar")==="compact")};
-    restore();window.addEventListener("studio-arrangement",restore);
-    setLight(studioStorage.getItem("studio-theme") === "light");return()=>window.removeEventListener("studio-arrangement",restore);
+    setWorkspace(studioLabelForPage(page));
+  }, [page]);
+  useEffect(() => {
+    const restore = () => {
+      loadWorkspaceStyle();
+      setShortcut(studioStorage.getItem("studio-command-key") || "k");
+      setCollapsed(studioStorage.getItem("studio-sidebar") === "compact");
+    };
+    restore();
+    window.addEventListener("studio-arrangement", restore);
+    setLight(studioStorage.getItem("studio-theme") === "light");
+    return () => window.removeEventListener("studio-arrangement", restore);
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
@@ -257,48 +221,90 @@ export function StudioShell({
             </TooltipContent>
           </Tooltip>
         </div>
+        <div className="workspace-switcher" role="tablist" aria-label="Workspaces">
+          {studioGroups
+            .filter((g) =>
+              g.routes.some((r) => r.page && r.status !== "planned"),
+            )
+            .map((g) => {
+              const Icon = groupIcons[g.id];
+              const live = g.routes.find(
+                (r) => r.page && r.status !== "planned",
+              );
+              const current = workspace === g.label;
+              return (
+                <Tooltip key={g.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={current}
+                      className={`workspace-tab ${current ? "current" : ""}`}
+                      title={g.label}
+                      onClick={() => {
+                        setWorkspace(g.label);
+                        studioStorage.setItem("studio-workspace", g.id);
+                        if (live?.page) {
+                          if (live.page === "New project") create();
+                          else navigate(live.page);
+                        }
+                      }}
+                    >
+                      <Icon size={15} strokeWidth={1.75} />
+                      {!collapsed && <span>{g.label}</span>}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {g.label} — {g.description}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+        </div>
         <ScrollArea className="min-h-0 flex-1">
-        <nav aria-label="Studio navigation">
-          {sections.map(([group, items]) => (
-            <section key={group}>
-              <button
-                className="nav-group"
-                aria-expanded={!hidden.includes(group)}
-                onClick={() =>
-                  setHidden(
-                    hidden.includes(group)
-                      ? hidden.filter((g) => g !== group)
-                      : [...hidden, group],
-                  )
-                }
-              >
-                {group}
-                <ChevronDown size={12} />
-              </button>
-              {(!hidden.includes(group) || collapsed) &&
-                items.map(([label, Icon]) => (
+          <nav aria-label="Studio navigation">
+            {sections
+              .filter(([group]) => !workspace || group === workspace)
+              .map(([group, items]) => (
+                <section key={group}>
                   <button
-                    title={label}
-                    key={label}
-                    aria-current={page === label ? "page" : undefined}
-                    className={`nav-item ${page === label ? "current" : ""}`}
-                    onClick={() => {
-                      if (label === "New project") {
-                        setDrawer(false);
-                        create();
-                      } else navigate(label);
-                    }}
+                    className="nav-group"
+                    aria-expanded={!hidden.includes(group)}
+                    onClick={() =>
+                      setHidden(
+                        hidden.includes(group)
+                          ? hidden.filter((g) => g !== group)
+                          : [...hidden, group],
+                      )
+                    }
                   >
-                    <Icon size={16} strokeWidth={1.75} />
-                    <span>{label}</span>
-                    {label === "Processing queue" && active > 0 && (
-                      <small>{active}</small>
-                    )}
+                    {group}
+                    <ChevronDown size={12} />
                   </button>
-                ))}
-            </section>
-          ))}
-        </nav>
+                  {(!hidden.includes(group) || collapsed) &&
+                    items.map(([label, Icon]) => (
+                      <button
+                        title={label}
+                        key={label}
+                        aria-current={page === label ? "page" : undefined}
+                        className={`nav-item ${page === label ? "current" : ""}`}
+                        onClick={() => {
+                          if (label === "New project") {
+                            setDrawer(false);
+                            create();
+                          } else navigate(label);
+                        }}
+                      >
+                        <Icon size={16} strokeWidth={1.75} />
+                        <span>{label}</span>
+                        {label === "Processing queue" && active > 0 && (
+                          <small>{active}</small>
+                        )}
+                      </button>
+                    ))}
+                </section>
+              ))}
+          </nav>
         </ScrollArea>
         <div className="side-foot">
           <button className="nav-item" title="Local settings" onClick={setup}>
@@ -338,7 +344,7 @@ export function StudioShell({
             <Menu size={18} />
           </Button>
           <span className="crumb">
-            <Workflow size={15} /> Studio <ChevronRight size={13} />
+            <Workflow size={15} /> {workspace} <ChevronRight size={13} />
             <strong>{page}</strong>
           </span>
           <div className="bar-tools">

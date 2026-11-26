@@ -74,6 +74,17 @@ Everything AI goes through the Ollama HTTP API. Prompts treat transcripts as dat
 
 Server components under `app/` with content in `lib/site-features.ts`, `lib/public-copy.ts` and page files. Styles are plain CSS in `app/*.css` using the same design tokens as the studio (`app/tokens.css`). Stock photos are hot-linked from Unsplash (`lib/photos.ts`).
 
+## Creative OS foundations (Phase 1)
+
+- **Studio registry** — `lib/studios.ts` defines primary workspaces (Home, Clipping, Editing, …). Live routes map to existing pages; planned studios are registered but omitted from navigation until implemented.
+- **Workspace switcher** — `components/workspace-nav.tsx` + `StudioShell` filter the sidebar by the active workspace group.
+- **Capability registry** — `GET /api/capabilities` wraps diagnostics into feature gates (FFmpeg, hardware encode, ASS, xfade, Ollama models).
+- **Sequences** — `lib/sequences.ts` adds a versioned project document (`schemaVersion: 1`) with named sequences, migration from a single `composition`, and cyclic nesting checks. Settings may carry `sequences` alongside legacy `composition`. UUIDs use `lib/id.ts` (`globalThis.crypto.randomUUID`) so validation stays browser-safe when pulled into client bundles.
+- **Assets** — fingerprints, `usedBy` references, collections, ratings; delete blocked while referenced.
+- **Clip Family Tree / Media toolbox** — provenance graph and FFmpeg/FFprobe conversion stay behind authenticated APIs; client panels do not import Node filesystem modules.
+
+Roadmap: [docs/EXPANSION_ROADMAP.md](docs/EXPANSION_ROADMAP.md).
+
 ## Design decisions
 
 - **Files over a database** keeps installation trivial and data portable; the cost is single-instance operation.

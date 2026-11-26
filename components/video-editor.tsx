@@ -13,7 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import type { Clip, Project, Segment } from "@/lib/types";
+import type { Clip, Project, Segment, Settings } from "@/lib/types";
 import { LocalizationPanel } from "./localization-panel";
 import { HistoryPanel } from "./history-panel";
 import { FrameSuggestion } from "./frame-suggestion";
@@ -27,6 +27,9 @@ import { EditTimeline } from "./edit-timeline";
 import { VideoScopes } from "./video-scopes";
 import { AudioMeter } from "./audio-meter";
 import { CaptionTrackEditor } from "./caption-track-editor";
+import { SequenceManager } from "./sequence-manager";
+import { EditRecipesPanel } from "./edit-recipes-panel";
+import { RenderReplacePanel } from "./render-replace-panel";
 import { Undo2, Redo2, Scan, Maximize, Keyboard } from "lucide-react";
 function timecode(value: number) {
   const n = Math.round(value * 100) / 100,
@@ -81,7 +84,12 @@ export function VideoEditor({
     [playing, setPlaying] = useState(false),
     [ready, setReady] = useState(false),
     [inspector, setInspector] = useState(true),
-    [panelWidth, setPanelWidth] = useState(340);
+    [panelWidth, setPanelWidth] = useState(340),
+    [monitorView, setMonitorView] = useState<"program" | "source" | "dual">(
+      "dual",
+    ),
+    [sourceIn, setSourceIn] = useState(clip.start),
+    [sourceOut, setSourceOut] = useState(clip.end);
   useEffect(() => {
     const n = Number(studioStorage.getItem("studio-inspector"));
     if (n >= 250 && n <= 480) setPanelWidth(n);
@@ -494,6 +502,18 @@ export function VideoEditor({
                 ? "Proxy on"
                 : "Proxy"}
           </Button>
+          <select
+            className="preview-quality"
+            aria-label="Monitor layout"
+            value={monitorView}
+            onChange={(e) =>
+              setMonitorView(e.target.value as "program" | "source" | "dual")
+            }
+          >
+            <option value="dual">Source + Program</option>
+            <option value="source">Source monitor</option>
+            <option value="program">Program monitor</option>
+          </select>
           <Button
             type="button"
             variant={inspector ? "secondary" : "ghost"}
@@ -697,52 +717,160 @@ export function VideoEditor({
         </nav>
         <div className="editor-player-column">
           <div
-            className="editor-preview"
-            style={{ aspectRatio: settings.ratio.replace(":", "/") }}
+            className={`monitor-pair ${monitorView === "dual" ? "dual" : "single"}`}
           >
-            <video
-              key={useProxy && proxyReady ? "proxy" : "original"}
-              ref={video}
-              className="frame-source"
-              playsInline
-              src={`/api/download?project=${project.id}&kind=source${useProxy && proxyReady ? "&proxy=1" : ""}`}
-              onError={() =>
-                setError(
-                  "Source unavailable. Reimport the recording to restore the monitor.",
-                )
-              }
-              onLoadedData={() => setReady(true)}
-              onLoadedMetadata={() => seek(clip.start)}
-              onPlay={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-              onTimeUpdate={() => {
-                const v = video.current;
-                if (!v) return;
-                setNow(v.currentTime);
-                if (!v.paused && valid && v.currentTime >= end) {
-                  v.pause();
-                  seek(start);
-                }
-              }}
-            />
-            {!ready && (
-              <span className="monitor-loading" role="status">
-                <LoaderCircle className="spin" size={15} /> Loading source frame
-              </span>
+            {(monitorView === "source" || monitorView === "dual") && (
+              <div className="monitor-pane">
+                <header className="monitor-label">
+                  <strong>Source</strong>
+                  <span>
+                    In {timecode(sourceIn)} · Out {timecode(sourceOut)}
+                  </span>
+                </header>
+                <div
+                  className="editor-preview source-only"
+                  style={{ aspectRatio: settings.ratio.replace(":", "/") }}
+                >
+                  <video
+                    key={useProxy && proxyReady ? "proxy" : "original"}
+                    ref={video}
+                    className="frame-source visible-source"
+                    playsInline
+                    src={`/api/download?project=${project.id}&kind=source${useProxy && proxyReady ? "&proxy=1" : ""}`}
+                    onError={() =>
+                      setError(
+                        "Source unavailable. Reimport the recording to restore the monitor.",
+                      )
+                    }
+                    onLoadedData={() => setReady(true)}
+                    onLoadedMetadata={() => seek(clip.start)}
+                    onPlay={() => setPlaying(true)}
+                    onPause={() => setPlaying(false)}
+                    onTimeUpdate={() => {
+                      const v = video.current;
+                      if (!v) return;
+                      setNow(v.currentTime);
+                      if (!v.paused && valid && v.currentTime >= end) {
+                        v.pause();
+                        seek(start);
+                      }
+                    }}
+                  />
+                  {!ready && (
+                    <span className="monitor-loading" role="status">
+                      <LoaderCircle className="spin" size={15} /> Loading
+                    </span>
+                  )}
+                </div>
+                <div className="monitor-actions">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSourceIn(now)}
+                  >
+                    Mark In
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSourceOut(now)}
+                  >
+                    Mark Out
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={sourceOut <= sourceIn}
+                    onClick={() => {
+                      setStartText(timecode(sourceIn));
+                      setEndText(timecode(sourceOut));
+                      seek(sourceIn);
+                    }}
+                  >
+                    Overwrite edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={sourceOut <= sourceIn}
+                    onClick={() => {
+                      setStartText(timecode(sourceIn));
+                      setEndText(timecode(sourceOut));
+                      seek(sourceIn);
+                    }}
+                    title="Applies the source In/Out range to the program clip"
+                  >
+                    Insert edit
+                  </Button>
+                </div>
+              </div>
             )}
-            <EditorMonitor
-              quality={quality}
-              video={video}
-              settings={settings}
-              segments={segments}
-              safe={safe}
-              clipStart={valid ? start : clip.start}
-              clipEnd={valid ? end : clip.end}
-              preferProxy={useProxy && proxyReady}
-              monitorCanvas={monitorCanvas}
-            />
-            <VideoScopes video={video} canvas={monitorCanvas} />
-            <AudioMeter video={video} />
+            {(monitorView === "program" || monitorView === "dual") && (
+              <div className="monitor-pane">
+                <header className="monitor-label">
+                  <strong>Program</strong>
+                  <span>
+                    {valid
+                      ? `${timecode(start)}–${timecode(end)}`
+                      : "Clip range"}
+                  </span>
+                </header>
+                <div
+                  className="editor-preview"
+                  style={{ aspectRatio: settings.ratio.replace(":", "/") }}
+                >
+                  {monitorView === "program" && (
+                    <video
+                      key={(useProxy && proxyReady ? "proxy" : "original") + "-p"}
+                      ref={video}
+                      className="frame-source"
+                      playsInline
+                      src={`/api/download?project=${project.id}&kind=source${useProxy && proxyReady ? "&proxy=1" : ""}`}
+                      onError={() =>
+                        setError(
+                          "Source unavailable. Reimport the recording to restore the monitor.",
+                        )
+                      }
+                      onLoadedData={() => setReady(true)}
+                      onLoadedMetadata={() => seek(clip.start)}
+                      onPlay={() => setPlaying(true)}
+                      onPause={() => setPlaying(false)}
+                      onTimeUpdate={() => {
+                        const v = video.current;
+                        if (!v) return;
+                        setNow(v.currentTime);
+                        if (!v.paused && valid && v.currentTime >= end) {
+                          v.pause();
+                          seek(start);
+                        }
+                      }}
+                    />
+                  )}
+                  {!ready && monitorView === "program" && (
+                    <span className="monitor-loading" role="status">
+                      <LoaderCircle className="spin" size={15} /> Loading source
+                      frame
+                    </span>
+                  )}
+                  <EditorMonitor
+                    quality={quality}
+                    video={video}
+                    settings={settings}
+                    segments={segments}
+                    safe={safe}
+                    clipStart={valid ? start : clip.start}
+                    clipEnd={valid ? end : clip.end}
+                    preferProxy={useProxy && proxyReady}
+                    monitorCanvas={monitorCanvas}
+                  />
+                  {monitorView === "program" && (
+                    <>
+                      <VideoScopes video={video} canvas={monitorCanvas} />
+                      <AudioMeter video={video} />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <Button variant="secondary" disabled={!good} onClick={toggle}>
             <Play size={14} />
@@ -955,6 +1083,24 @@ export function VideoEditor({
                 seek={(n) => seek(start + n)}
               />
             </>
+          ) : tab === "sequences" ? (
+            <SequenceManager
+              project={{ ...project, settings }}
+              clipId={clip.id}
+              onChanged={async (doc) => {
+                if (!doc) return;
+                const active =
+                  doc.sequences.find((s) => s.id === doc.activeSequence) ||
+                  doc.sequences[0];
+                setSettings({
+                  ...settings,
+                  sequences: doc as Settings["sequences"],
+                  composition:
+                    (active?.composition as Settings["composition"]) ||
+                    settings.composition,
+                });
+              }}
+            />
           ) : tab === "grade" || tab === "audio" ? (
             <GradePanel
               settings={settings}
@@ -982,6 +1128,21 @@ export function VideoEditor({
                   seek(p.start);
                 }
               }}
+            />
+          ) : tab === "recipes" ? (
+            <EditRecipesPanel
+              projectId={project.id}
+              clipId={clip.id}
+              settings={settings}
+              onApply={setSettings}
+            />
+          ) : tab === "replace" ? (
+            <RenderReplacePanel
+              projectId={project.id}
+              clipId={clip.id}
+              settings={settings}
+              length={(valid ? end : clip.end) - (valid ? start : clip.start)}
+              onApply={setSettings}
             />
           ) : tab !== "subtitles" ? (
             <>
