@@ -192,7 +192,7 @@ Test coverage — Real cross-dissolve compilation. Other transitions lack dedica
 
 Runtime dependencies — FFmpeg filters.
 
-One selected effect plus grade per clip. Range controls apply to the selected effect. Speed changes and freeze frame are outstanding.
+One selected effect plus grade per clip. Range controls apply to the selected effect. Speed curves remap the composed clip in segments. Freeze frame remains outstanding.
 
 Test coverage — Rendered time-limited sepia. All exposed time-limited effects are encoded in the FFmpeg fixture.
 
@@ -214,8 +214,8 @@ Test coverage — Rendered time-limited sepia. All exposed time-limited effects 
 | Temperature adjustment | Implemented |
 | Glow approximation | Implemented |
 | Freeze frame | Planned |
-| Slow motion | Planned |
-| Speed ramping where supported | Planned |
+| Slow motion | Partial |
+| Speed ramping where supported | Implemented |
 | Motion emphasis | Planned |
 | Letterbox overlays | Implemented |
 | Implement configurable non-AI video effects using FFmpeg | Implemented |
