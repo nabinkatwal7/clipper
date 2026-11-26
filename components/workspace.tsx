@@ -56,6 +56,7 @@ const AutopilotPanel = dynamic(() => import("./autopilot-panel").then((m) => m.A
 const MomentFinderPage = dynamic(() => import("./moment-finder-page").then((m) => m.MomentFinderPage), { ssr: false });
 const SystemHealth = dynamic(() => import("./system-health").then((m) => m.SystemHealth), { ssr: false });
 const QuickClip = dynamic(() => import("./quick-clip").then((m) => m.QuickClip), { ssr: false });
+const DownloadManager = dynamic(() => import("./download-manager").then((m) => m.DownloadManager), { ssr: false });
 const ProfileBuilder = dynamic(() => import("./campaign-manager").then((m) => m.ProfileBuilder), { ssr: false });
 import { LanguageFactory } from "./language-factory";
 import { ProjectBinsPanel } from "./project-bins-panel";
@@ -554,6 +555,7 @@ export default function Workspace({ account }: { account: ReactNode }) {
             {page === "Moment finder" && <MomentFinderPage projects={projects} />}
             {page === "System health" && <SystemHealth />}
             {page === "Quick Clip" && <QuickClip projects={projects} open={openProject} />}
+            {page === "Downloads" && <DownloadManager openProject={openProject} />}
             {page === "Trend radar" && <DiscoveryWorkspace />}
             {page === "Campaigns" && (
               <>

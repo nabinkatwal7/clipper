@@ -1267,3 +1267,4 @@ Statuses are limited to what was checked; see `CLIPPING_ENGINE_AUDIT.md` for the
 | Windows management scripts | Implemented; doctor/backup run for real |
 | Docker | Files provided, untested |
 | Embeddings-based similarity, music/SFX extensions, resumable downloads, hardware benchmarks, offline acceptance run | Not done |
+| Download manager (inspect, queue, resume, audio/subtitle/range modes, cache, duplicates, disk check) | Implemented; tested with a stub downloader, metadata read verified live; no real media download yet |

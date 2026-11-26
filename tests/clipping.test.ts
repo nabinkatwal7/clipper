@@ -343,7 +343,7 @@ test("manual video import (CSV/JSON) and niche analysis keep claims tied to cite
 });
 
 // ---- Phase 9: storage policy and dependency-aware cleanup
-import { classify, scan, planCache, planPolicy, execute, report } from "../lib/clipping/storage";
+import { classify, scan, planCache, planPolicy, execute, report, REGENERABLE as REGEN } from "../lib/clipping/storage";
 import type { Project } from "../lib/types";
 const U1 = "11111111-1111-4111-8111-111111111111", U2 = "22222222-2222-4222-8222-222222222222";
 const proj = (id: string, extra: Partial<Project> = {}, ok = true): Project => ({
@@ -466,4 +466,11 @@ test("collection store survives constant concurrent readers while writing (Windo
     assert.equal((await readCollection("runs")).length, 150);
   });
   await fs.rm(path.join(storageBase, "workspaces", user), { recursive: true, force: true });
+});
+
+test("storage keeps download-manager files out of generic cleanup (resumable partials are intentional)", () => {
+  assert.equal(classify("downloads", "media.mp4").category, "downloads");
+  assert.equal(classify("downloads", "media.mp4.part").category, "download-partial");
+  assert.equal(REGEN.has("download-partial"), false);
+  assert.equal(REGEN.has("downloads"), false);
 });

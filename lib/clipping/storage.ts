@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Project } from "../types";
+import { isPartial } from "./downloads-core";
 
 /**
  * Storage classification, cache sweeps and dependency-aware cleanup.
@@ -9,7 +10,7 @@ import type { Project } from "../types";
  */
 export type Category =
   | "source" | "proxy" | "clips" | "audio-temp" | "analysis-cache" | "ollama-cache" | "embedding-cache"
-  | "preview-cache" | "speech-temp" | "partial" | "user-imports" | "results" | "assets" | "transcripts" | "projects" | "other";
+  | "preview-cache" | "downloads" | "download-partial" | "speech-temp" | "partial" | "user-imports" | "results" | "assets" | "transcripts" | "projects" | "other";
 
 export type Entry = { path: string; dir: string; name: string; projectId?: string; bytes: number; mtimeMs: number; category: Category };
 
@@ -20,6 +21,8 @@ const CACHE_CATEGORIES: Category[] = ["analysis-cache", "ollama-cache", "embeddi
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 export function classify(dir: string, name: string): { category: Category; projectId?: string } {
+  // Download-manager files are managed by the download manager (resumable partials are kept on purpose).
+  if (dir === "downloads") return { category: isPartial(name) ? "download-partial" : "downloads" };
   const m = name.match(new RegExp(`^(${UUID})\\.(.+)$`, "i"));
   const projectId = m?.[1];
   const rest = m?.[2] ?? name;
@@ -44,7 +47,7 @@ export function classify(dir: string, name: string): { category: Category; proje
   return { category: "other", projectId };
 }
 
-const DIRS = ["uploads", "clips", "audio", "temp", "assets", "transcripts", "projects"] as const;
+const DIRS = ["uploads", "clips", "audio", "temp", "assets", "transcripts", "projects", "downloads"] as const;
 const MAX_ENTRIES = 300_000;
 
 export async function scan(root: string): Promise<Entry[]> {
@@ -56,6 +59,15 @@ export async function scan(root: string): Promise<Entry[]> {
       if (out.length >= MAX_ENTRIES) throw Error("Too many files to scan safely.");
       const p = path.join(base, name);
       const st = await fs.stat(p).catch(() => null);
+      if (dir === "downloads" && st?.isDirectory()) {
+        // one folder per download: <id>/<files>
+        for (const inner of await fs.readdir(p).catch(() => [] as string[])) {
+          const ip = path.join(p, inner);
+          const ist = await fs.stat(ip).catch(() => null);
+          if (ist?.isFile()) out.push({ path: ip, dir, name: `${name}/${inner}`, bytes: ist.size, mtimeMs: ist.mtimeMs, category: classify(dir, inner).category });
+        }
+        continue;
+      }
       if (!st?.isFile()) continue;
       const c = classify(dir, name);
       out.push({ path: p, dir, name, projectId: c.projectId, bytes: st.size, mtimeMs: st.mtimeMs, category: c.category });

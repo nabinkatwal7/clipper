@@ -25,7 +25,7 @@ try {
     Get-ChildItem -LiteralPath $storage -Recurse -File | ForEach-Object {
         $rel = $_.FullName.Substring($storage.Length).TrimStart('\')
         if ($excluded.IsMatch('\' + $rel)) { return }
-        if (-not $IncludeSources -and $rel -match '(^|\\)uploads\\') { return }
+        if (-not $IncludeSources -and $rel -match '(^|\\)(uploads|downloads)\\') { return }
         [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $rel.Replace('\', '/'), 'Optimal')
         $count++
         $bytes += $_.Length

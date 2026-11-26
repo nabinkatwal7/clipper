@@ -56,3 +56,16 @@ Output: `<project>.moments.json` with all tracks, candidates, per-candidate scor
 - **Quick Clip** posts to `/api/quick-clip`, which creates an internal Autopilot definition and runs the same pipeline.
 
 Persisted data (per user, JSON): `data/campaigns.json`, `profiles.json`, `creators.json`, `videos.json`, `research.json`, `autopilots.json`, `runs.json`, `settings.json`. Reads are cached by file size and mtime; writes are atomic with retry for Windows file-locking.
+
+## Download manager
+
+`downloads-core.ts` (pure) and `downloads.ts` (queue) back the Clipping → Downloads page. It is separate from project import so media can be fetched, inspected and cached before any project exists.
+
+- **Inspection** reads yt-dlp metadata only (no media): title, creator, platform, duration, upload date, source language, availability, chapters, per-resolution size estimates, audio tracks, manual vs automatic subtitle tracks, and capability flags (video, audio-only, subtitles, partial download, resume, chat replay, replay heatmap) derived from what the source reports.
+- **Modes**: video (720p unless you choose higher, so a high-quality original stays available), audio-only (m4a), subtitles-only (VTT, chosen languages), and an optional time range ("partial download") when the source supports sections.
+- **Cache and duplicates**: requests are keyed by canonical URL (youtu.be, `m.`, `shorts` and tracking parameters collapse to one form), mode, height, languages and range. An identical request with an intact file returns the existing item with no network use; if the file is missing or its size changed it is downloaded again. A SHA-256 is stored; identical bytes from a different request are flagged, never auto-deleted.
+- **Queue**: one download at a time. Progress comes from yt-dlp's own counters. Cancel keeps the partial file so Retry resumes (`--continue`); "Cancel and discard" deletes it. Records that were active when the server restarted show as interrupted.
+- **Safety**: URL and every redirect go through the SSRF-guarded proxy; the URL always follows `--`; format ids, languages and ranges are validated; live/upcoming streams, `MAX_VIDEO_HOURS` and `MAX_UPLOAD_MB` are enforced; the free-disk check runs before the download (about 2.2x the estimate plus 0.5 GB, or 2 GB when the size is unknown).
+- **Verification**: a finished video must exist, be non-empty, and be readable by ffprobe before the item is marked done.
+- **Temp files**: removed on success; for failed or cancelled items they are kept for 7 days so they can resume, then removed by Clean incomplete files. The generic storage cleanup never touches them.
+- **Use as project** links the cached file into a new project (hard link, falling back to copy) and attaches subtitle tracks previously downloaded for the same source.

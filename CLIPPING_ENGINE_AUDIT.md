@@ -7,7 +7,7 @@ Scope: the "Complete Self-Hosted Intelligent Clipping Engine" brief (100 numbere
 - **Untested** — code exists; no verification was run.
 - **Missing** — no implementation.
 
-Nothing is marked Verified without a check. The automated suite is `npm test` (120 tests; `npm run gate` adds typecheck, lint and the production build).
+Nothing is marked Verified without a check. The automated suite is `npm test` (132 tests; `npm run gate` adds typecheck, lint and the production build).
 
 ## Decisions and open conflicts
 
@@ -26,8 +26,8 @@ Nothing is marked Verified without a check. The automated suite is `npm test` (1
 | 1–3 | Self-hosted, internet policy, target hardware | Incomplete | No databases, no cloud AI, no API-key fields. Local-only Ollama endpoint. Whisper kept (decision 1). No i5/8 GB measurement was made (see 99). |
 | 4 | Repository audit | Verified | This file. |
 | 5 | Universal source import | Incomplete | yt-dlp URL import, upload, local-file path (Quick Clip, Autopilot folder watch) exist. Local audio-only and per-platform capability detection not built. |
-| 6 | Source inspection | Incomplete | Existing `source-inspection`; not re-audited field by field. |
-| 7 | Smart download manager | Incomplete | Existing queue/cancel/duplicate-source reuse. Resumable, partial, audio-only, subtitle-only and storage pre-checks not added. |
+| 6 | Source inspection | Incomplete | Downloads page reads title, creator, platform, duration, upload date, language, availability, chapters, per-resolution sizes, audio tracks, subtitle tracks and capability flags: **Verified** (unit tests, plus a live metadata read of a public video through the real yt-dlp and proxy, also in the browser). Thumbnails are shown only from an allowlist of hosts. |
+| 7 | Smart download manager | Incomplete | Queue, cancel (keep or discard partial), retry with resume, progress/speed/ETA, 720p default with higher on request, audio-only, subtitles-only, time-range downloads, canonical-URL cache, SHA-256 duplicate flags, free-disk pre-check, temp-file cleanup, use-as-project: **Verified** with a stub downloader through the real queue and files. **No real media file has been downloaded with it yet**, so real yt-dlp resume and section behaviour is unverified. |
 | 8 | Long-form support | Incomplete | Analysis streams in 30-minute chunks and resumes after interruption (**Verified**: chunk parsers, resume path, autopilot retry). No multi-hour run was timed. |
 | 9–11 | No-LLM scoring, signals, audio | **Verified** | RMS/peak/sudden-rise/silence, baseline-relative. "Loudness" is an RMS proxy, not LUFS; onset ≈ sudden rise. |
 | 12 | Scene change | Incomplete | Scene score at 2 fps downscaled, cut rate, motion: Verified on a synthetic video. Static/rapid-edit are implicit in tracks, not separate outputs. Full source is decoded (no proxy path). |

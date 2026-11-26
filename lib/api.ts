@@ -95,6 +95,8 @@ import { PLATFORM_PRESETS } from "./clipping/postkit";
 import { parseAutopilot, startRun, retryRun, approveRun, rejectRun, evaluateDue, touchScheduler } from "./clipping/autopilot";
 import { AutopilotSchema, VIDEO_EXT, type Autopilot, type Run } from "./clipping/autopilot-core";
 import { systemSnapshot, encoderChecks, HARDWARE_PROFILES, recommendProfile, canSelect, type ProfileId } from "./clipping/system";
+import { inspectUrl, requestDownload, listDownloads, cancelDownload, retryDownload, removeDownload, cleanPartials } from "./clipping/downloads";
+import { downloadToProject } from "./clipping/downloads-project";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
@@ -1567,6 +1569,27 @@ export async function handle(
       if (!canSelect(id, total, b.acknowledge === true)) throw Error(`Performance is not recommended with ${Math.round(total / 1024)} GB RAM. Confirm to use it anyway.`);
       return NextResponse.json(await upsert("settings", { id: "hardware", profile: id }, 20));
     }
+    if (action === "download-inspect" && req.method === "POST") {
+      const b = await req.json();
+      if (typeof b.url !== "string") throw Error("Enter a URL.");
+      return NextResponse.json((await inspectUrl(b.url, req.signal)).inspection);
+    }
+    if (action === "downloads") {
+      if (req.method === "GET") {
+        const disk = await fs.statfs(workspaceRoot()).catch(() => null);
+        return NextResponse.json({ items: await listDownloads(), freeBytes: disk ? disk.bavail * disk.bsize : null, limitMb: Number(process.env.MAX_UPLOAD_MB || 5120) });
+      }
+      if (req.method === "POST") return NextResponse.json(await requestDownload(await req.json()), { status: 202 });
+      if (req.method === "DELETE") return NextResponse.json({ removed: await removeDownload(query.get("id") || "") });
+    }
+    if (action === "download-cancel" && req.method === "POST") {
+      const b = await req.json();
+      await cancelDownload(String(b.id || ""), b.discard === true);
+      return NextResponse.json({ ok: true });
+    }
+    if (action === "download-retry" && req.method === "POST") return NextResponse.json(await retryDownload(String((await req.json()).id || "")), { status: 202 });
+    if (action === "download-clean" && req.method === "POST") return NextResponse.json(await cleanPartials());
+    if (action === "download-to-project" && req.method === "POST") return NextResponse.json(await downloadToProject(String((await req.json()).id || "")), { status: 202 });
     if (action === "moments-ai" && req.method === "POST") {
       const b = await req.json();
       const project = await read(String(b.project || ""));

@@ -51,3 +51,7 @@ Studio binds to `127.0.0.1` and the API rejects any other host, so it is **not**
 ## Storage policy
 
 Settings → Storage → Policy. Every cleanup is a two-step preview: nothing is deleted until you review the list and confirm. Downloaded sources are only ever proposed under "Temporary Processing", only when the source URL can be fetched again, the project is idle with verified clips, and no other project references it; you must tick an explicit authorisation. Chat/replay imports and moment results are never offered for deletion.
+
+## Downloads
+
+Files live in `storage/.../downloads/<id>/` and are excluded from `backup.ps1` unless you pass `-IncludeSources` (they can be downloaded again). Only download media you own or have permission to use; the manager does not bypass logins, paywalls or DRM, and reports sources that need them as unavailable.
