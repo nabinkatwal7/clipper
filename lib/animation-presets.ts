@@ -10,12 +10,14 @@ export type AnimationPresetId =
   | "zoom-in"
   | "zoom-out"
   | "pop-in"
-  | "rotate-in";
+  | "rotate-in"
+  | "loop-pulse"
+  | "loop-sway";
 
 export const animationPresets: {
   id: AnimationPresetId;
   label: string;
-  kind: "entrance" | "exit";
+  kind: "entrance" | "exit" | "loop";
 }[] = [
   { id: "fade-in", label: "Fade in", kind: "entrance" },
   { id: "fade-out", label: "Fade out", kind: "exit" },
@@ -27,6 +29,8 @@ export const animationPresets: {
   { id: "zoom-out", label: "Zoom out", kind: "exit" },
   { id: "pop-in", label: "Pop in", kind: "entrance" },
   { id: "rotate-in", label: "Rotate in", kind: "entrance" },
+  { id: "loop-pulse", label: "Loop pulse", kind: "loop" },
+  { id: "loop-sway", label: "Loop sway", kind: "loop" },
 ];
 
 const pair = (
@@ -130,6 +134,48 @@ export function animationPreset(
         rotation: pair(-28, track.rotation ?? 0, span, "out"),
         opacity: pair(0, track.opacity, span, "out"),
       };
+    case "loop-pulse": {
+      const mid = Math.min(track.length, Math.max(span, track.length / 2));
+      const peak = Math.min(1, track.size * 1.12);
+      return {
+        size: [
+          { time: 0, value: track.size, ease: "bezier" },
+          { time: mid / 2, value: peak, ease: "bezier" },
+          { time: mid, value: track.size, ease: "bezier" },
+          {
+            time: Math.min(track.length, mid + mid / 2),
+            value: peak,
+            ease: "bezier",
+          },
+          { time: track.length, value: track.size, ease: "hold" },
+        ],
+      };
+    }
+    case "loop-sway": {
+      const step = Math.max(0.2, track.length / 4);
+      const base = track.x;
+      return {
+        x: [
+          { time: 0, value: Math.max(0, base - 0.08), ease: "bezier" },
+          {
+            time: step,
+            value: Math.min(1, base + 0.08),
+            ease: "bezier",
+          },
+          {
+            time: step * 2,
+            value: Math.max(0, base - 0.08),
+            ease: "bezier",
+          },
+          {
+            time: step * 3,
+            value: Math.min(1, base + 0.08),
+            ease: "bezier",
+          },
+          { time: track.length, value: base, ease: "hold" },
+        ],
+      };
+    }
     default:
       throw Error("Unsupported animation preset");
   }

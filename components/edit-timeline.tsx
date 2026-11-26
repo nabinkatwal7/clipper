@@ -58,10 +58,12 @@ export function EditTimeline({
     gesture: TrackGesture;
     originX: number;
     snapshot: Track[];
+    selected: string[];
   } | null>(null);
   const [draftTracks, setDraftTracks] = useState<Track[] | null>(null);
   const latestDraft = useRef<Track[] | null>(null);
   const visibleTracks = draftTracks ?? tracks;
+  const [selected, setSelected] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const [markers, setMarkers] = useState<number[]>([]),
     [snap, setSnap] = useState(true);
@@ -118,6 +120,16 @@ export function EditTimeline({
     if (!onTracks || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    let nextSelected = selected;
+    if (gesture === "move") {
+      if (event.shiftKey)
+        nextSelected = selected.includes(id)
+          ? selected.filter((x) => x !== id)
+          : [...selected, id];
+      else if (!selected.includes(id)) nextSelected = [id];
+      if (!nextSelected.length) nextSelected = [id];
+      setSelected(nextSelected);
+    }
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     const snapshot = tracks.map((track) => ({
       ...track,
@@ -128,6 +140,7 @@ export function EditTimeline({
       gesture,
       originX: event.clientX,
       snapshot,
+      selected: nextSelected,
     };
     latestDraft.current = snapshot;
     setDraftTracks(snapshot);
@@ -143,6 +156,7 @@ export function EditTimeline({
       drag.current.gesture,
       deltaSeconds,
       clipLength,
+      drag.current.selected,
     );
     latestDraft.current = next;
     setDraftTracks(next);
@@ -314,6 +328,7 @@ export function EditTimeline({
               className={
                 "track-clip" +
                 (t.locked ? " is-locked" : "") +
+                (selected.includes(t.id) ? " is-selected" : "") +
                 (onTracks && !t.locked ? " is-editable" : "")
               }
               style={{

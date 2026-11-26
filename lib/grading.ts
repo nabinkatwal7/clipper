@@ -10,6 +10,10 @@ export const effects = [
   "mirror",
   "glow",
   "letterbox",
+  "edge",
+  "rgbshift",
+  "posterize",
+  "invert",
 ] as const;
 export type Grade = {
   lut?: string;
@@ -168,6 +172,14 @@ function effectFilter(
       "drawbox=x=0:y=0:w=iw:h=" +
       Math.round(h * 0.12 * a) +
       ":color=black:t=fill",
+    edge: "edgedetect=low=" + (0.05 + 0.2 * a) + ":high=" + (0.15 + 0.4 * a),
+    rgbshift:
+      "rgbashift=rh=" +
+      Math.round(2 + 10 * a) +
+      ":bv=" +
+      Math.round(2 + 10 * a),
+    posterize: "eq=gamma=" + (1 + a) + ":contrast=" + (1 + 0.4 * a),
+    invert: "negate",
   };
   const filters = [
     fx[effect] +

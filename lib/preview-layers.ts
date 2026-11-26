@@ -52,3 +52,28 @@ export function layerPose(track: Track, local: number) {
 export function compositionTime(sourceTime: number, clipStart: number) {
   return Math.max(0, sourceTime - clipStart);
 }
+
+/** Approximate FFmpeg colorkey on a canvas layer (similarity 0–1, blend 0–1). */
+export function applyChromaKey(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  key: { color: string; similarity: number; blend: number },
+) {
+  const hex = key.color.replace("#", "");
+  if (hex.length !== 6) return;
+  const kr = parseInt(hex.slice(0, 2), 16),
+    kg = parseInt(hex.slice(2, 4), 16),
+    kb = parseInt(hex.slice(4, 6), 16);
+  const threshold = key.similarity * 441.67;
+  const soft = Math.max(1, key.blend * 441.67);
+  const image = ctx.getImageData(0, 0, width, height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const d = Math.hypot(data[i] - kr, data[i + 1] - kg, data[i + 2] - kb);
+    if (d <= threshold) data[i + 3] = 0;
+    else if (d < threshold + soft)
+      data[i + 3] = Math.round(data[i + 3] * ((d - threshold) / soft));
+  }
+  ctx.putImageData(image, 0, 0);
+}

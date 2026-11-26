@@ -116,7 +116,16 @@ export function validateComposition(v: Composition) {
           !within(key.time, 0, t.length) ||
           key.time <= previous ||
           !within(key.value, min, max) ||
-          !["linear", "in", "out", "in-out", "hold"].includes(key.ease)
+          ![
+            "linear",
+            "in",
+            "out",
+            "in-out",
+            "hold",
+            "bezier",
+            "bezier-in",
+            "bezier-out",
+          ].includes(key.ease)
         )
           throw Error("Invalid animation point");
         previous = key.time;

@@ -1684,6 +1684,10 @@ time,
 .overlay-track .track-clip.is-editable:active {
   cursor: grabbing;
 }
+.overlay-track .track-clip.is-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .overlay-track .track-clip.is-locked {
   cursor: not-allowed;
 }

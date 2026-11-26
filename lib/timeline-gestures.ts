@@ -11,27 +11,42 @@ export function dragTrack(
   gesture: TrackGesture,
   delta: number,
   clipLength: number,
+  selected: string[] = [],
 ): Track[] {
   const target = tracks.find((track) => track.id === id);
   if (!target || target.locked || !Number.isFinite(delta) || !delta)
     return tracks;
-  const peers = target.group
-    ? tracks.filter((track) => track.group === target.group)
-    : [target];
-  if (peers.some((track) => track.locked)) return tracks;
+  const selectedSet = new Set(
+    selected.includes(id) ? selected : [id, ...selected],
+  );
+  const peers =
+    gesture === "move"
+      ? tracks.filter(
+          (track) =>
+            selectedSet.has(track.id) ||
+            (target.group && track.group === target.group),
+        )
+      : target.group
+        ? tracks.filter((track) => track.group === target.group)
+        : [target];
+  const movePeers =
+    gesture === "move"
+      ? [...new Map(peers.map((track) => [track.id, track])).values()]
+      : peers;
+  if (movePeers.some((track) => track.locked)) return tracks;
 
   if (gesture === "move") {
     const shift = Math.max(
-      -Math.min(...peers.map((track) => track.at)),
+      -Math.min(...movePeers.map((track) => track.at)),
       Math.min(
         delta,
-        ...peers.map((track) =>
+        ...movePeers.map((track) =>
           Math.max(0, clipLength - (track.at + track.length)),
         ),
       ),
     );
     if (!shift) return tracks;
-    const ids = new Set(peers.map((track) => track.id));
+    const ids = new Set(movePeers.map((track) => track.id));
     return tracks.map((track) =>
       ids.has(track.id) ? { ...track, at: round(track.at + shift) } : track,
     );

@@ -6,6 +6,7 @@ import { enabledTracks } from "@/lib/composition";
 import {
   canvasBlend,
   compositionTime,
+  applyChromaKey,
   layerPose,
   sampleMask,
 } from "@/lib/preview-layers";
@@ -233,6 +234,14 @@ export function EditorMonitor({
         }
         lx.drawImage(element, 0, 0, layerCanvas.width, layerCanvas.height);
         lx.restore();
+        if (track.keyColor) {
+          applyChromaKey(
+            lx,
+            layerCanvas.width,
+            layerCanvas.height,
+            track.keyColor,
+          );
+        }
         if (track.mask) {
           const geometry = sampleMask(track.mask, local);
           lx.globalCompositeOperation = track.mask.invert
