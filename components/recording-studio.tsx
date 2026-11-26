@@ -21,6 +21,8 @@ type Scene = {
   includeSystemAudio: boolean;
 };
 
+type TrackRole = "composite" | "screen" | "webcam" | "microphone" | "system";
+
 type Session = {
   version: 1;
   id: string;
@@ -31,6 +33,14 @@ type Session = {
   duration?: number;
   bookmarks: { id: string; at: number; label: string }[];
   separateTracks: boolean;
+  tracks?: { role: TrackRole; assetId: string }[];
+};
+
+type SideRec = {
+  role: Exclude<TrackRole, "composite">;
+  recorder: MediaRecorder;
+  chunks: Blob[];
+  done: Promise<Blob>;
 };
 
 type BufferSlot = {
@@ -74,17 +84,59 @@ export function RecordingStudio() {
     useState<(typeof BUFFER_OPTIONS)[number]>(30);
   const [bufferReady, setBufferReady] = useState(0);
   const [savingReplay, setSavingReplay] = useState(false);
+  const [separateTracks, setSeparateTracks] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const streams = useRef<MediaStream[]>([]);
   const mixedRef = useRef<MediaStream | null>(null);
+  const sideRecs = useRef<SideRec[]>([]);
   const slots = useRef<BufferSlot[]>([]);
   const started = useRef(0);
   const tick = useRef<number | null>(null);
   const bookmarks = useRef<{ id: string; at: number; label: string }[]>([]);
   const sessionId = useRef(crypto.randomUUID());
   const replayBusy = useRef(false);
+
+  function makeRecorder(stream: MediaStream, audioOnly = false): {
+    recorder: MediaRecorder;
+    chunks: Blob[];
+    done: Promise<Blob>;
+  } {
+    const mimeType = audioOnly
+      ? MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+        ? "video/webm;codecs=vp9,opus"
+        : "video/webm";
+    const rec = new MediaRecorder(stream, { mimeType });
+    const parts: Blob[] = [];
+    const done = new Promise<Blob>((resolve, reject) => {
+      rec.ondataavailable = (e) => {
+        if (e.data.size) parts.push(e.data);
+      };
+      rec.onstop = () =>
+        resolve(new Blob(parts, { type: rec.mimeType || mimeType }));
+      rec.onerror = () => reject(Error("Track recorder failed"));
+    });
+    void done.catch(() => {});
+    return { recorder: rec, chunks: parts, done };
+  }
+
+  async function uploadBlob(blob: Blob, name: string) {
+    const r = await fetch("/api/assets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "x-file-name": encodeURIComponent(name),
+      },
+      body: blob,
+    });
+    const asset = await r.json();
+    if (!r.ok) throw Error(asset.error || "Upload failed");
+    return asset as { id: string };
+  }
 
   useEffect(() => {
     fetch("/api/recording-meta")
@@ -172,18 +224,65 @@ export function RecordingStudio() {
 
       chunks.current = [];
       bookmarks.current = [];
+      sideRecs.current = [];
       sessionId.current = crypto.randomUUID();
-      const rec = new MediaRecorder(mixed, {
-        mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-          ? "video/webm;codecs=vp9,opus"
-          : "video/webm",
-      });
+      const rec = makeRecorder(mixed).recorder;
       rec.ondataavailable = (e) => {
         if (e.data.size) chunks.current.push(e.data);
       };
       rec.onstop = () => void finish();
       recorder.current = rec;
       rec.start(1000);
+
+      if (separateTracks) {
+        const screenOnly = new MediaStream(display.getVideoTracks());
+        const screenRec = makeRecorder(screenOnly);
+        screenRec.recorder.start(1000);
+        sideRecs.current.push({
+          role: "screen",
+          recorder: screenRec.recorder,
+          chunks: screenRec.chunks,
+          done: screenRec.done,
+        });
+        if (scene.includeSystemAudio && display.getAudioTracks().length) {
+          const sys = new MediaStream(display.getAudioTracks());
+          const sysRec = makeRecorder(sys, true);
+          sysRec.recorder.start(1000);
+          sideRecs.current.push({
+            role: "system",
+            recorder: sysRec.recorder,
+            chunks: sysRec.chunks,
+            done: sysRec.done,
+          });
+        }
+        if (mic) {
+          const micRec = makeRecorder(mic, true);
+          micRec.recorder.start(1000);
+          sideRecs.current.push({
+            role: "microphone",
+            recorder: micRec.recorder,
+            chunks: micRec.chunks,
+            done: micRec.done,
+          });
+        }
+        const camStream = streams.current.find(
+          (s) =>
+            s.getVideoTracks().length &&
+            s !== display &&
+            !s.getAudioTracks().length,
+        );
+        if (camStream) {
+          const camRec = makeRecorder(camStream);
+          camRec.recorder.start(1000);
+          sideRecs.current.push({
+            role: "webcam",
+            recorder: camRec.recorder,
+            chunks: camRec.chunks,
+            done: camRec.done,
+          });
+        }
+      }
+
       if (bufferOn) {
         stopSlots();
         slots.current = [startSlot(mixed)];
@@ -214,15 +313,21 @@ export function RecordingStudio() {
       setPaused(true);
       for (const s of slots.current)
         if (s.recorder.state === "recording") s.recorder.pause();
+      for (const s of sideRecs.current)
+        if (s.recorder.state === "recording") s.recorder.pause();
     } else if (rec.state === "paused") {
       rec.resume();
       setPaused(false);
       for (const s of slots.current)
         if (s.recorder.state === "paused") s.recorder.resume();
+      for (const s of sideRecs.current)
+        if (s.recorder.state === "paused") s.recorder.resume();
     }
   }
 
   function stop() {
+    for (const s of sideRecs.current)
+      if (s.recorder.state !== "inactive") s.recorder.stop();
     recorder.current?.stop();
     setRecording(false);
     setPaused(false);
@@ -231,6 +336,8 @@ export function RecordingStudio() {
 
   async function finish() {
     stopSlots();
+    const side = [...sideRecs.current];
+    sideRecs.current = [];
     stopTracks();
     if (videoRef.current) videoRef.current.srcObject = null;
     const blob = new Blob(chunks.current, { type: "video/webm" });
@@ -239,18 +346,21 @@ export function RecordingStudio() {
       return;
     }
     try {
-      const r = await fetch("/api/assets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "x-file-name": encodeURIComponent(
-            `recording-${new Date().toISOString().slice(0, 19)}.webm`,
-          ),
-        },
-        body: blob,
-      });
-      const asset = await r.json();
-      if (!r.ok) throw Error(asset.error || "Upload failed");
+      const stamp = new Date().toISOString().slice(0, 19);
+      const asset = await uploadBlob(blob, `recording-${stamp}.webm`);
+      const tracks: { role: TrackRole; assetId: string }[] = [
+        { role: "composite", assetId: asset.id },
+      ];
+      for (const s of side) {
+        const part = await s.done;
+        if (!part.size) continue;
+        const ext = s.role === "microphone" || s.role === "system" ? "webm" : "webm";
+        const uploaded = await uploadBlob(
+          part,
+          `recording-${s.role}-${stamp}.${ext}`,
+        );
+        tracks.push({ role: s.role, assetId: uploaded.id });
+      }
       const durationSec = Math.max(
         0,
         Math.floor((Date.now() - started.current) / 1000),
@@ -264,7 +374,8 @@ export function RecordingStudio() {
         assetId: asset.id,
         duration: durationSec,
         bookmarks: bookmarks.current,
-        separateTracks: false,
+        separateTracks: tracks.length > 1,
+        tracks,
       };
       await fetch("/api/recording-meta", {
         method: "POST",
@@ -272,7 +383,9 @@ export function RecordingStudio() {
         body: JSON.stringify({ op: "session", session }),
       });
       setMsg(
-        `Saved recording as asset ${String(asset.id).slice(0, 8)}… Open Assets or Instant replay to scrub bookmarks.`,
+        tracks.length > 1
+          ? `Saved composite + ${tracks.length - 1} separate track asset(s).`
+          : `Saved recording as asset ${String(asset.id).slice(0, 8)}…`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save recording");
@@ -400,6 +513,17 @@ export function RecordingStudio() {
                 Last {n}s
               </option>
             ))}
+          </select>
+        </label>
+        <label>
+          Separate tracks
+          <select
+            value={separateTracks ? "on" : "off"}
+            disabled={recording}
+            onChange={(e) => setSeparateTracks(e.target.value === "on")}
+          >
+            <option value="off">Composite only</option>
+            <option value="on">Screen / mic / cam split</option>
           </select>
         </label>
       </div>

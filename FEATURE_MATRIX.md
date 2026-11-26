@@ -1211,6 +1211,7 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Recording Studio (getDisplayMedia / MediaRecorder) | Implemented |
 | Instant replay rolling buffer (bounded segments) | Implemented |
 | Instant replay bookmark scrub + extract | Implemented |
+| Separate-track recording (screen/mic/cam) | Implemented |
 | Motion Studio scaffold (text/shape layers) | Partial |
 | Motion title presets + animation recipes | Implemented |
 | Motion canvas preview / scrub | Implemented |

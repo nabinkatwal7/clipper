@@ -64,6 +64,6 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 19. ~~Compositing Studio foundations~~
 20. ~~Compositing graph → FFmpeg bake~~
 21. ~~Deeper motion presets + preview~~
-22. Separate-track recording (mic/system split where supported)
+22. ~~Separate-track recording (mic/system split where supported)~~
 23. Tutorial callouts / cursor markers scaffold
 24. Media toolbox batch encode + track extract

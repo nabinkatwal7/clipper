@@ -18,6 +18,18 @@ export type RecordingBookmark = {
   label: string;
 };
 
+export type RecordingTrackRole =
+  | "composite"
+  | "screen"
+  | "webcam"
+  | "microphone"
+  | "system";
+
+export type RecordingTrackAsset = {
+  role: RecordingTrackRole;
+  assetId: string;
+};
+
 export type RecordingSessionMeta = {
   version: 1;
   id: string;
@@ -28,7 +40,23 @@ export type RecordingSessionMeta = {
   duration?: number;
   bookmarks: RecordingBookmark[];
   separateTracks: boolean;
+  /** Per-source assets when separate-track capture was enabled */
+  tracks?: RecordingTrackAsset[];
 };
+
+export function validateTrackAsset(input: unknown): RecordingTrackAsset {
+  const t = input as RecordingTrackAsset;
+  if (
+    !t ||
+    !["composite", "screen", "webcam", "microphone", "system"].includes(
+      t.role,
+    ) ||
+    typeof t.assetId !== "string" ||
+    !/^[0-9a-f-]{36}$/i.test(t.assetId)
+  )
+    throw Error("Invalid recording track asset");
+  return { role: t.role, assetId: t.assetId };
+}
 
 function scenesPath() {
   return path.join(workspaceRoot(), "recording-scenes.json");
@@ -131,8 +159,22 @@ export async function listSessions(): Promise<RecordingSessionMeta[]> {
 }
 
 export async function appendSession(meta: RecordingSessionMeta) {
+  if (
+    !meta ||
+    meta.version !== 1 ||
+    typeof meta.id !== "string" ||
+    typeof meta.sceneId !== "string" ||
+    typeof meta.separateTracks !== "boolean" ||
+    !Array.isArray(meta.bookmarks)
+  )
+    throw Error("Invalid recording session");
+  const tracks = meta.tracks?.map(validateTrackAsset).slice(0, 8);
+  const row: RecordingSessionMeta = {
+    ...meta,
+    tracks,
+  };
   const rows = await listSessions();
-  rows.unshift(meta);
+  rows.unshift(row);
   const tmp = sessionsPath() + "." + uuid() + ".tmp";
   try {
     await fs.writeFile(tmp, JSON.stringify(rows.slice(0, 100), null, 2));
@@ -140,7 +182,7 @@ export async function appendSession(meta: RecordingSessionMeta) {
   } finally {
     await fs.rm(tmp, { force: true });
   }
-  return meta;
+  return row;
 }
 
 export function newSession(sceneId: string): RecordingSessionMeta {

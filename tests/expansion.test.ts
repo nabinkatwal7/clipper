@@ -910,7 +910,12 @@ import {
   validateProfile as validateSoundboard,
   validateSequencer,
 } from "../lib/soundboard";
-import { defaultScenes, validateScene, newSession } from "../lib/recording-meta";
+import {
+  defaultScenes,
+  validateScene,
+  newSession,
+  validateTrackAsset,
+} from "../lib/recording-meta";
 test("soundboard validates pads, profiles and sequencer lanes", () => {
   const padId = "11111111-1111-4111-8111-111111111111";
   const assetId = "22222222-2222-4222-8222-222222222222";
@@ -949,6 +954,14 @@ test("recording scenes and sessions stay bounded", () => {
   assert.equal(session.bookmarks.length, 0);
   assert.throws(() =>
     validateScene({ ...defaultScenes[0], layout: "orbital" }),
+  );
+  const track = validateTrackAsset({
+    role: "microphone",
+    assetId: "33333333-3333-4333-8333-333333333333",
+  });
+  assert.equal(track.role, "microphone");
+  assert.throws(() =>
+    validateTrackAsset({ role: "laser", assetId: track.assetId }),
   );
 });
 
