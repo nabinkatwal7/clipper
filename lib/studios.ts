@@ -81,6 +81,7 @@ export const studioGroups: StudioGroup[] = [
         page: "Reel Factory",
         status: "live",
       },
+      { id: "moment-finder", label: "Moment finder", page: "Moment finder", status: "live" },
       {
         id: "trend-radar",
         label: "Trend radar",

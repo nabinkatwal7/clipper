@@ -3172,3 +3172,22 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
 .moment-actions { display: flex; gap: 0.25rem; }
 .moment-actions button { font-size: 11px; padding: 2px 6px; border: 1px solid var(--line, #8884); background: none; color: inherit; border-radius: 4px; cursor: pointer; }
 .moment-actions button[aria-pressed="true"] { background: rgba(255, 180, 0, 0.25); }
+
+.moment-explorer input[type="checkbox"] { width: 15px; height: 15px; min-width: 15px; padding: 0; margin: 0; accent-color: var(--accent, #14b8a6); }
+.moment-explorer input[type="range"] { width: 160px; }
+.moment-explorer .field { min-width: 0; }
+.moment-heat-row { display: flex; align-items: flex-start; gap: 0.5rem; }
+.moment-heat-row .moment-heat-scroll { flex: 1; min-width: 0; }
+.moment-labels { flex: 0 0 110px; padding-top: 0; }
+.moment-tracks label { display: inline-flex; align-items: center; gap: 0.35rem; }
+.moment-list li { align-items: flex-start; }
+.moment-list li > input[type="checkbox"] { margin-top: 0.4rem; }
+.moment-row { min-width: 0; line-height: 1.4; }
+.moment-row small, .moment-row em { display: block; opacity: 0.8; font-style: normal; }
+.moment-actions { flex: 0 0 auto; }
+.campaigns { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; }
+.campaigns aside ul { list-style: none; padding: 0; margin: 0.5rem 0; display: grid; gap: 0.25rem; }
+.campaigns aside li button { width: 100%; text-align: left; background: none; border: 1px solid transparent; color: inherit; padding: 0.35rem 0.5rem; border-radius: 6px; cursor: pointer; }
+.campaigns aside li button.selected, .campaigns aside > button.selected { border-color: var(--accent, #14b8a6); }
+.campaigns input[type="checkbox"] { width: 15px; height: 15px; min-width: 15px; padding: 0; accent-color: var(--accent, #14b8a6); }
+@media (max-width: 800px) { .campaigns { grid-template-columns: 1fr; } .moment-labels { display: none; } }

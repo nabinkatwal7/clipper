@@ -81,7 +81,9 @@ function Heatmap({
     }
     g.fillStyle = ink;
     g.font = "10px system-ui";
-    const step = Math.max(30, Math.ceil(60 / zoom / 10) * 10 * 10);
+    const pxPerSec = width / result.duration;
+    const nice = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600];
+    const step = nice.find((n) => n * pxPerSec >= 70) ?? 3600;
     for (let t = 0; t < result.duration; t += step) g.fillText(fmt(t), (t / result.duration) * width + 2, height - 3);
   }, [result, rows, width, height, selected]);
 
@@ -324,14 +326,16 @@ export default function MomentExplorer({ project, seek }: { project: Project; se
               ))}
             </fieldset>
           </div>
-          <div className="moment-labels" aria-hidden>
-            {visibleTracks.filter(([k]) => !hidden.has(k)).map(([k, label]) => (
-              <span key={k} style={{ height: TRACK_H }}>
-                {label}
-              </span>
-            ))}
+          <div className="moment-heat-row">
+            <div className="moment-labels" aria-hidden>
+              {visibleTracks.filter(([k]) => !hidden.has(k)).map(([k, label]) => (
+                <span key={k} style={{ height: TRACK_H }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+            <Heatmap result={result} zoom={zoom} hidden={hidden} selected={focus} onSeek={seek} onPick={setFocus} />
           </div>
-          <Heatmap result={result} zoom={zoom} hidden={hidden} selected={focus} onSeek={seek} onPick={setFocus} />
           <p className="muted">
             Used: {result.used.join(", ") || "none"}
             {result.missing.length ? ` · not available: ${result.missing.join(", ")}` : ""}

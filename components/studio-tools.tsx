@@ -3,12 +3,7 @@ import { studioStorage } from "@/lib/client-storage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Download } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
-import dynamic from "next/dynamic";
 import { StreamIndex } from "./stream-index";
-const MomentExplorer = dynamic(() => import("./moment-explorer"), {
-  ssr: false,
-  loading: () => <p className="muted">Loading moment finder…</p>,
-});
 import { QuickClips } from "./quick-clips";
 import { TranscriptReplace } from "./transcript-replace";
 import { duration } from "./studio-media";
@@ -313,9 +308,6 @@ export function SourceTool({
               />
             ))}
           </div>
-        )}
-        {!thumbnail && kind === "Highlights" && (
-          <MomentExplorer project={project} seek={seek} />
         )}
         {!thumbnail && kind === "Highlights" && (
           <StreamIndex project={project} seek={seek} />
