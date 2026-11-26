@@ -199,7 +199,8 @@ function Desk({ project: p }: { project: Project }) {
           {r.moments.map((m, i) => (
             <details className="clip-context" key={i}>
               <summary>
-                {m.start.toFixed(1)}s · {m.title} {m.category&&"· "+m.category}
+                {m.start.toFixed(1)}s · {m.title}{" "}
+                {m.category && "· " + m.category}
               </summary>
               <p>{m.reason}</p>
               {m.quote && <blockquote>“{m.quote}”</blockquote>}
@@ -618,13 +619,14 @@ function Comparison({ p, c }: { p: Project; c: Clip }) {
     );
   const firstRate = c.settings.playbackRate ?? 1;
   const secondRate = other.settings.playbackRate ?? 1;
-  const comparisonTime = (time: number) => Math.max(
-        0,
-        Math.min(
-          (other.end - other.start) / secondRate,
-          (time * firstRate + c.start - other.start) / secondRate,
-        ),
-      );
+  const comparisonTime = (time: number) =>
+    Math.max(
+      0,
+      Math.min(
+        (other.end - other.start) / secondRate,
+        (time * firstRate + c.start - other.start) / secondRate,
+      ),
+    );
   const sync = () => {
     if (a.current && b.current) {
       b.current.currentTime = comparisonTime(a.current.currentTime);
@@ -655,8 +657,7 @@ function Comparison({ p, c }: { p: Project; c: Clip }) {
               a.current &&
               b.current &&
               Math.abs(
-                b.current.currentTime -
-                  comparisonTime(a.current.currentTime),
+                b.current.currentTime - comparisonTime(a.current.currentTime),
               ) > 0.25
             )
               sync();

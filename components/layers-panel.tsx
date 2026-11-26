@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { AssetLibrary } from "./asset-library";
+import { LayerMaskControls } from "./layer-mask-controls";
 import type { Asset } from "@/lib/assets";
 import type { Track, Ease } from "@/lib/composition";
 import type { Settings } from "@/lib/types";
@@ -45,7 +46,7 @@ export function LayersPanel({
       setFinding(false);
     }
   }
-  const [selection,selectMany]=useState<string[]>([]);
+  const [selection, selectMany] = useState<string[]>([]);
   const tracks = s.composition?.tracks || [],
     [id, setId] = useState(""),
     [param, setParam] = useState<"x" | "y" | "volume">("x"),
@@ -92,7 +93,61 @@ export function LayersPanel({
       : 0;
   return (
     <div className="editor-fields">
-      <h3>Composition tracks</h3>{tracks.length>1&&<details><summary>Group tracks</summary>{tracks.map(v=><label className="check-row" key={v.id}><input type="checkbox" disabled={v.locked} checked={selection.includes(v.id)} onChange={e=>selectMany(e.target.checked?[...selection,v.id]:selection.filter(id=>id!==v.id))}/>{v.name}{v.group?" · grouped":""}</label>)}<button className="tool" disabled={selection.length<2} onClick={()=>{const group=crypto.randomUUID();save(tracks.map(v=>selection.includes(v.id)&&!v.locked?{...v,group}:v));selectMany([])}}>Group selected</button><button className="tool" disabled={!selection.length} onClick={()=>{save(tracks.map(v=>selection.includes(v.id)&&!v.locked?{...v,group:undefined}:v));selectMany([])}}>Ungroup selected</button></details>}
+      <h3>Composition tracks</h3>
+      {tracks.length > 1 && (
+        <details>
+          <summary>Group tracks</summary>
+          {tracks.map((v) => (
+            <label className="check-row" key={v.id}>
+              <input
+                type="checkbox"
+                disabled={v.locked}
+                checked={selection.includes(v.id)}
+                onChange={(e) =>
+                  selectMany(
+                    e.target.checked
+                      ? [...selection, v.id]
+                      : selection.filter((id) => id !== v.id),
+                  )
+                }
+              />
+              {v.name}
+              {v.group ? " · grouped" : ""}
+            </label>
+          ))}
+          <button
+            className="tool"
+            disabled={selection.length < 2}
+            onClick={() => {
+              const group = crypto.randomUUID();
+              save(
+                tracks.map((v) =>
+                  selection.includes(v.id) && !v.locked ? { ...v, group } : v,
+                ),
+              );
+              selectMany([]);
+            }}
+          >
+            Group selected
+          </button>
+          <button
+            className="tool"
+            disabled={!selection.length}
+            onClick={() => {
+              save(
+                tracks.map((v) =>
+                  selection.includes(v.id) && !v.locked
+                    ? { ...v, group: undefined }
+                    : v,
+                ),
+              );
+              selectMany([]);
+            }}
+          >
+            Ungroup selected
+          </button>
+        </details>
+      )}
       <details>
         <summary className="inline-link">Add media track</summary>
         <AssetLibrary insert={insert} />
@@ -157,19 +212,71 @@ export function LayersPanel({
             Lock track
           </label>
           <fieldset disabled={t.locked}>
-            {t.type !== "audio" && <details className="clip-context">
-              <summary>Chroma key</summary>
-              <label className="check-row"><input type="checkbox" checked={!!t.keyColor}
-                onChange={e => patch({ keyColor: e.target.checked ? { color: "#00ff00", similarity: 0.2, blend: 0.08 } : undefined })} /> Remove a background color</label>
-              {t.keyColor && <div className="field-grid">
-                <label className="field">Key color<input type="color" value={t.keyColor.color}
-                  onChange={e => patch({ keyColor: { ...t.keyColor!, color: e.target.value } })} /></label>
-                {(["similarity", "blend"] as const).map(k => <label className="field" key={k}>{k === "similarity" ? "Similarity" : "Edge blend"} · {t.keyColor![k]}
-                  <input type="range" min={k === "similarity" ? ".01" : "0"} max="1" step=".01" value={t.keyColor![k]}
-                    onChange={e => patch({ keyColor: { ...t.keyColor!, [k]: +e.target.value } })} /></label>)}
-              </div>}
-              <p className="hint">Render the layer preview to inspect the effect.</p>
-            </details>}
+            {t.type !== "audio" && (
+              <LayerMaskControls
+                mask={t.mask}
+                change={(mask) => patch({ mask })}
+              />
+            )}
+            {t.type !== "audio" && (
+              <details className="clip-context">
+                <summary>Chroma key</summary>
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={!!t.keyColor}
+                    onChange={(e) =>
+                      patch({
+                        keyColor: e.target.checked
+                          ? { color: "#00ff00", similarity: 0.2, blend: 0.08 }
+                          : undefined,
+                      })
+                    }
+                  />{" "}
+                  Remove a background color
+                </label>
+                {t.keyColor && (
+                  <div className="field-grid">
+                    <label className="field">
+                      Key color
+                      <input
+                        type="color"
+                        value={t.keyColor.color}
+                        onChange={(e) =>
+                          patch({
+                            keyColor: { ...t.keyColor!, color: e.target.value },
+                          })
+                        }
+                      />
+                    </label>
+                    {(["similarity", "blend"] as const).map((k) => (
+                      <label className="field" key={k}>
+                        {k === "similarity" ? "Similarity" : "Edge blend"} ·{" "}
+                        {t.keyColor![k]}
+                        <input
+                          type="range"
+                          min={k === "similarity" ? ".01" : "0"}
+                          max="1"
+                          step=".01"
+                          value={t.keyColor![k]}
+                          onChange={(e) =>
+                            patch({
+                              keyColor: {
+                                ...t.keyColor!,
+                                [k]: +e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <p className="hint">
+                  Render the layer preview to inspect the effect.
+                </p>
+              </details>
+            )}
             <label className="field">
               Track name
               <input
@@ -212,8 +319,29 @@ export function LayersPanel({
                     value={t[k]}
                     onChange={(e) => {
                       const n = +e.target.value;
-                      if(k==="at"&&t.group){const peers=tracks.filter(v=>v.group===t.group);if(peers.some(v=>v.locked)){setMessage("Unlock grouped tracks to move them together.");return}const delta=Math.max(-Math.min(...peers.map(v=>v.at)),Math.min(n-t.at,600-Math.max(...peers.map(v=>v.at))));save(tracks.map(v=>v.group===t.group?{...v,at:v.at+delta}:v))}
-                      else if (k === "length" && ripple)
+                      if (k === "at" && t.group) {
+                        const peers = tracks.filter((v) => v.group === t.group);
+                        if (peers.some((v) => v.locked)) {
+                          setMessage(
+                            "Unlock grouped tracks to move them together.",
+                          );
+                          return;
+                        }
+                        const delta = Math.max(
+                          -Math.min(...peers.map((v) => v.at)),
+                          Math.min(
+                            n - t.at,
+                            600 - Math.max(...peers.map((v) => v.at)),
+                          ),
+                        );
+                        save(
+                          tracks.map((v) =>
+                            v.group === t.group
+                              ? { ...v, at: v.at + delta }
+                              : v,
+                          ),
+                        );
+                      } else if (k === "length" && ripple)
                         save(
                           tracks.map((v) =>
                             v.id === t.id

@@ -434,7 +434,7 @@ export function MediaLibrary({
                   src={`/api/download?project=${p.id}&clip=${c.id}`}
                 />
               )}
-              <small>{duration(c.end - c.start)}</small>
+              <small>{duration(c.qa?.duration ?? (c.end - c.start) / (c.settings.playbackRate ?? 1))}</small>
             </button>
             <div>
               <button className="media-title" onClick={() => open(p.id, c.id)}>

@@ -31,6 +31,42 @@ async function main() {
   }
   console.log("PASS time-limited FFmpeg effects");
   const fixture = path.join(tmp, "sample.mp4");
+  const { defaultMask, maskFilter } = await import("../lib/layer-mask");
+  for (const shape of ["ellipse", "rectangle"] as const) {
+    for (const invert of [false, true]) {
+      for (const sample of [
+        { x: 0, y: 0, inside: false },
+        { x: 32, y: 32, inside: true },
+      ]) {
+        let mean: number | undefined;
+        await run(
+          bin.ffmpeg,
+          [
+            "-hide_banner",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=red:s=64x64:d=0.1",
+            "-vf",
+            maskFilter({ ...defaultMask, shape, invert }) +
+              `,alphaextract,crop=2:2:${sample.x}:${sample.y},showinfo`,
+            "-frames:v",
+            "1",
+            "-f",
+            "null",
+            "-",
+          ],
+          undefined,
+          (line) => {
+            const observed = line.match(/mean:\[(\d+)\]/);
+            if (observed) mean = Number(observed[1]);
+          },
+        );
+        assert.equal(mean, sample.inside !== invert ? 255 : 0);
+      }
+    }
+  }
+  console.log("PASS ellipse and rectangle alpha, including inverted masks");
   await run(bin.ffmpeg, [
     "-hide_banner",
     "-f",
@@ -215,6 +251,8 @@ async function main() {
     solo: false,
     loop: false,
     fade: 0.1,
+    keyColor: { color: "#00ff00", similarity: 0.2, blend: 0.08 },
+    mask: defaultMask,
     keys: {
       x: [
         { time: 0, value: 0, ease: "linear" },
@@ -239,6 +277,7 @@ async function main() {
     end: 1,
     settings: {
       ...original.settings,
+      playbackRate: 0.5,
       cropPoints: [
         { time: 0, x: 0, y: 0.5 },
         { time: 0.8, x: 1, y: 0 },
@@ -261,6 +300,19 @@ async function main() {
   assert.ok(project.clips.some((c) => c.id === original.id));
   const v = project.clips.find((c) => c.title === "Inset variation")!;
   assert.ok(v.qa);
+  assert.ok(Math.abs(v.qa.duration - 2) < 0.15);
+  assert.ok(v.qa.audio);
+  const { subtitleTrack } = await import("../lib/publishing-package");
+  assert.match(
+    subtitleTrack(
+      [{ start: 0.5, end: 1, text: "Paced caption", words: [] }],
+      0,
+      1,
+      false,
+      0.5,
+    ),
+    /00:00:01,000 --> 00:00:02,000/,
+  );
   assert.equal(
     v.familyId,
     original.familyId || original.editorialId || original.id,

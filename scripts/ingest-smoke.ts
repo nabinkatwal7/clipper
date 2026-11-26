@@ -1,8 +1,8 @@
+import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
-import assert from "node:assert/strict";
-import { init, file, save, transcript } from "../lib/store";
-import { ingest, transcribe, generate } from "../lib/jobs";
+import { generate, ingest, transcribe } from "../lib/jobs";
+import { file, init, save, transcript } from "../lib/store";
 import { defaults, type Project } from "../lib/types";
 async function main() {
   await init();

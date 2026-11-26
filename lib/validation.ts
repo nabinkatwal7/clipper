@@ -22,7 +22,12 @@ export function settings(input: unknown): Settings {
     ...defaults,
     ...(typeof input === "object" && input ? input : {}),
   } as Settings;
-  if (s.playbackRate !== undefined && (!Number.isFinite(s.playbackRate) || s.playbackRate < 0.5 || s.playbackRate > 4))
+  if (
+    s.playbackRate !== undefined &&
+    (!Number.isFinite(s.playbackRate) ||
+      s.playbackRate < 0.5 ||
+      s.playbackRate > 4)
+  )
     throw Error("Playback speed must be between 0.5× and 4×.");
   if (
     s.encodeProfile !== undefined &&
@@ -171,7 +176,9 @@ export function validateHighlights(
       start,
       end,
       title: title.slice(0, 160),
-      ...(typeof h.category==="string"&&h.category.trim()?{category:h.category.trim().slice(0,60)}:{}),
+      ...(typeof h.category === "string" && h.category.trim()
+        ? { category: h.category.trim().slice(0, 60) }
+        : {}),
       reason: reason.slice(0, 1000),
       score,
       ...(typeof h.postCaption === "string" && h.postCaption.trim()

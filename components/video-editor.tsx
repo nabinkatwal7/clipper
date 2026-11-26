@@ -1,5 +1,5 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
+import { studioStorage } from "@/lib/client-storage";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Play, Check, LoaderCircle, Scissors } from "lucide-react";
 import { Modal } from "./modal";
@@ -684,13 +684,22 @@ export function VideoEditor({
               }}
             />
           ) : tab !== "subtitles" ? (
-            <><EditorInspector
-              tab={tab}
-              settings={settings}
-              change={setSettings}
-              project={project}
-            />
-            {tab === "speed" && <RenderPreview settings={settings} project={project.id} clip={clip.id} start={start} end={end} />}
+            <>
+              <EditorInspector
+                tab={tab}
+                settings={settings}
+                change={setSettings}
+                project={project}
+              />
+              {tab === "speed" && (
+                <RenderPreview
+                  settings={settings}
+                  project={project.id}
+                  clip={clip.id}
+                  start={start}
+                  end={end}
+                />
+              )}
             </>
           ) : (
             <div className="editor-fields">
@@ -735,7 +744,8 @@ export function VideoEditor({
         </div>
       </div>
       <EditTimeline
-        tracks={settings.composition?.tracks} overlay={settings.overlayText}
+        tracks={settings.composition?.tracks}
+        overlay={settings.overlayText}
         clip={clip.id}
         originalStart={clip.start}
         originalEnd={clip.end}

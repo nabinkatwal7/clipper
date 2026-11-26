@@ -1,8 +1,11 @@
+import { validateMask, type LayerMask } from "./layer-mask";
+
 export type Ease = "linear" | "in" | "out" | "in-out" | "hold";
 export type Keyframe = { time: number; value: number; ease: Ease };
 export type Track = {
   id: string;
-  name: string;group?:string;
+  name: string;
+  group?: string;
   asset: string;
   type: "video" | "image" | "audio";
   at: number;
@@ -20,6 +23,7 @@ export type Track = {
   loop: boolean;
   fade: number;
   keyColor?: { color: string; similarity: number; blend: number };
+  mask?: LayerMask;
   keys: Partial<Record<"x" | "y" | "volume", Keyframe[]>>;
 };
 export type Composition = { version: 1; tracks: Track[] };
@@ -37,16 +41,27 @@ export function validateComposition(v: Composition) {
       ![t.id, t.asset].every(
         (v) => typeof v === "string" && /^[a-f0-9-]{36}$/.test(v),
       ) ||
-      (t.group!==undefined && !/^[a-f0-9-]{36}$/.test(t.group)) || ids.has(t.id) ||
+      (t.group !== undefined && !/^[a-f0-9-]{36}$/.test(t.group)) ||
+      ids.has(t.id) ||
       !["audio", "image", "video"].includes(t.type)
     )
       throw Error("Invalid timeline track");
     ids.add(t.id);
-    if (t.keyColor !== undefined && (
-      !t.keyColor || t.type === "audio" || typeof t.keyColor.color !== "string" ||
-      !/^#[0-9a-f]{6}$/i.test(t.keyColor.color) ||
-      !within(t.keyColor.similarity, 0.01, 1) || !within(t.keyColor.blend, 0, 1)
-    )) throw Error("Invalid layer chroma key.");
+    if (t.mask !== undefined) {
+      if (t.type === "audio")
+        throw Error("Masks require an image or video layer.");
+      validateMask(t.mask);
+    }
+    if (
+      t.keyColor !== undefined &&
+      (!t.keyColor ||
+        t.type === "audio" ||
+        typeof t.keyColor.color !== "string" ||
+        !/^#[0-9a-f]{6}$/i.test(t.keyColor.color) ||
+        !within(t.keyColor.similarity, 0.01, 1) ||
+        !within(t.keyColor.blend, 0, 1))
+    )
+      throw Error("Invalid layer chroma key.");
     for (const n of ["visible", "muted", "locked", "solo", "loop"] as const)
       if (typeof t[n] !== "boolean") throw Error("Invalid track switch");
     for (const [k, min, max] of [

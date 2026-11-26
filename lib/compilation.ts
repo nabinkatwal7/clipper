@@ -198,8 +198,12 @@ export async function compilation(body: {
         )) {
           segments.push({
             text: s.text,
-            start: offset + Math.max(0, s.start - c.start) / (c.settings.playbackRate ?? 1),
-            end: offset + Math.min(len, (s.end - c.start) / (c.settings.playbackRate ?? 1)),
+            start:
+              offset +
+              Math.max(0, s.start - c.start) / (c.settings.playbackRate ?? 1),
+            end:
+              offset +
+              Math.min(len, (s.end - c.start) / (c.settings.playbackRate ?? 1)),
             words: [],
           });
         }

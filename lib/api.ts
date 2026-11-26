@@ -616,9 +616,12 @@ export async function handle(
           (s) => s.text.trim() && s.end > c.start && s.start < c.end,
         );
         if (rows.length)
-          zip.append(subtitleTrack(rows, c.start, c.end, false, c.settings.playbackRate), {
-            name: clipBasename(c) + ".srt",
-          });
+          zip.append(
+            subtitleTrack(rows, c.start, c.end, false, c.settings.playbackRate),
+            {
+              name: clipBasename(c) + ".srt",
+            },
+          );
       }
       zip.append(
         JSON.stringify(

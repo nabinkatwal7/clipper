@@ -64,7 +64,7 @@ export type Segment = {
   words: Word[];
 };
 export type Highlight = {
- category?:string;
+  category?: string;
   editorialId?: string;
   familyId?: string;
   start: number;

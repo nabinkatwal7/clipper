@@ -101,9 +101,18 @@ export async function buildPackage(
         name: folder + "thumbnail.jpg",
       });
       for (const ext of ["srt", "vtt"])
-        zip.append(subtitleTrack(c.segments, c.start, c.end, ext === "vtt", c.settings.playbackRate), {
-          name: folder + "subtitles." + ext,
-        });
+        zip.append(
+          subtitleTrack(
+            c.segments,
+            c.start,
+            c.end,
+            ext === "vtt",
+            c.settings.playbackRate,
+          ),
+          {
+            name: folder + "subtitles." + ext,
+          },
+        );
       const description = captionFile(c);
       zip.append(description, { name: folder + "caption.txt" });
       zip.append(
