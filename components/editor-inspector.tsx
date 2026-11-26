@@ -176,6 +176,16 @@ function SpeedControls({
         />
         Reverse playback (export only — HTML5 preview plays forward)
       </label>
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={!!settings.motionInterpolation}
+          onChange={(e) =>
+            adjust({ motionInterpolation: e.target.checked || undefined })
+          }
+        />
+        Motion interpolation (blend frames on export)
+      </label>
       <h4>Clip intro transition</h4>
       <label className="field">
         Style
@@ -201,6 +211,10 @@ function SpeedControls({
           <option value="fade">Dissolve in</option>
           <option value="fadeblack">Fade from black</option>
           <option value="fadewhite">Fade from white</option>
+          <option value="slideleft">Slide left</option>
+          <option value="slideright">Slide right</option>
+          <option value="wipeleft">Wipe left</option>
+          <option value="wiperight">Wipe right</option>
         </select>
       </label>
       {settings.cutTransition && (

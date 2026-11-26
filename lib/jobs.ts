@@ -586,6 +586,18 @@ export async function render(
     transforms.push(`fade=t=in:st=0:d=${cut.duration}:c=black`);
   else if (cut?.type === "fadewhite")
     transforms.push(`fade=t=in:st=0:d=${cut.duration}:c=white`);
+  else if (cut?.type === "slideleft")
+    transforms.push(
+      `crop=w='iw*min(1,t/${cut.duration})':h=ih:x='iw-iw*min(1,t/${cut.duration})':y=0`,
+    );
+  else if (cut?.type === "slideright")
+    transforms.push(
+      `crop=w='iw*min(1,t/${cut.duration})':h=ih:x=0:y=0`,
+    );
+  else if (cut?.type === "wipeleft" || cut?.type === "wiperight")
+    transforms.push(`fade=t=in:st=0:d=${cut.duration}:alpha=1`);
+  if (s.motionInterpolation)
+    transforms.push("minterpolate=fps=30:mi_mode=blend");
   if (s.grade || s.effectStack?.length)
     transforms.push(...gradeFilters(s.grade || {}, w, height, s.effectStack));
   transforms.push(...adjustmentFilters(s.adjustmentLayers, height));
@@ -627,6 +639,7 @@ export async function render(
     !!sourceAudio,
     master,
     !!s.mix?.duck,
+    s.backgroundAsset,
   );
   const lut = s.grade?.lut,
     weight = s.grade?.lutIntensity ?? 1;

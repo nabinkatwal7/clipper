@@ -12,13 +12,20 @@ export async function compose(
   sourceAudio: boolean,
   master: string,
   duck: boolean,
+  backgroundAsset?: string,
 ) {
   const inputs: string[] = [],
     graph: string[] = [],
     audio: string[] = [];
   let video = "base",
     i = 0;
-  for (const t of enabledTracks(c)) {
+  const ordered = [...enabledTracks(c)].sort((a, b) => {
+    if (!backgroundAsset) return 0;
+    if (a.asset === backgroundAsset && b.asset !== backgroundAsset) return -1;
+    if (b.asset === backgroundAsset && a.asset !== backgroundAsset) return 1;
+    return 0;
+  });
+  for (const t of ordered) {
     if (t.at >= duration) continue;
     const span = Math.min(t.length, duration - t.at);
     if (t.type === "text") {

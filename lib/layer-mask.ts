@@ -82,7 +82,10 @@ export function maskFilter(mask: LayerMask) {
       ? "sqrt(ld(0)*ld(0)+ld(1)*ld(1))"
       : mask.shape === "diamond"
         ? "abs(ld(0))+abs(ld(1))"
-        : "max(abs(ld(0)),abs(ld(1)))";
+        : mask.shape === "rounded"
+          ? // Superellipse approximates rounded rect for export.
+            "pow(abs(ld(0)),3)+pow(abs(ld(1)),3)"
+          : "max(abs(ld(0)),abs(ld(1)))";
   const opacity = `if(gt(ld(2),0),clip((1-ld(3))/ld(2),0,1),lte(ld(3),1))`;
   const coverage = mask.invert ? `1-${opacity}` : opacity;
   return layerAlphaFilter(`${setup}st(3,${distance});alpha(X,Y)*(${coverage})`);

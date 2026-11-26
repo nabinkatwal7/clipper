@@ -41,12 +41,25 @@ export function settings(input: unknown): Settings {
     throw Error("Invalid encoding profile");
   if (s.reverse !== undefined && typeof s.reverse !== "boolean")
     throw Error("Invalid reverse playback");
+  if (
+    s.motionInterpolation !== undefined &&
+    typeof s.motionInterpolation !== "boolean"
+  )
+    throw Error("Invalid motion interpolation setting");
   if (s.hardwareEncode !== undefined && typeof s.hardwareEncode !== "boolean")
     throw Error("Invalid hardware encode setting");
   if (
     s.cutTransition !== undefined &&
     (!s.cutTransition ||
-      !["fade", "fadeblack", "fadewhite"].includes(s.cutTransition.type) ||
+      ![
+        "fade",
+        "fadeblack",
+        "fadewhite",
+        "slideleft",
+        "slideright",
+        "wipeleft",
+        "wiperight",
+      ].includes(s.cutTransition.type) ||
       !Number.isFinite(s.cutTransition.duration) ||
       s.cutTransition.duration < 0.05 ||
       s.cutTransition.duration > 2)

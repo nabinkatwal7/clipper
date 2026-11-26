@@ -1,5 +1,6 @@
 "use client";
 import { studioStorage } from "@/lib/client-storage";
+import { loadWorkspace, saveWorkspace } from "@/lib/workspace-presets";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Play, Check, LoaderCircle, Scissors } from "lucide-react";
 import { Modal } from "./modal";
@@ -55,7 +56,9 @@ export function VideoEditor({
     [startText, setStartText] = useState(timecode(clip.start)),
     [endText, setEndText] = useState(timecode(clip.end)),
     [segments, setSegments] = useState<Segment[]>(clip.segments),
-    [tab, setTab] = useState(subtitleTab ? "subtitles" : "video"),
+    [tab, setTab] = useState(
+      () => (subtitleTab ? "subtitles" : loadWorkspace()?.tool || "video"),
+    ),
     [saving, setSaving] = useState(false),
     [error, setError] = useState("");
   const video = useRef<HTMLVideoElement>(null);
@@ -174,23 +177,39 @@ export function VideoEditor({
     if (video.current) video.current.playbackRate = settings.playbackRate ?? 1;
   }, [settings.playbackRate]);
   useEffect(() => {
+    const payload = {
+      savedAt: new Date().toISOString(),
+      title,
+      postCaption,
+      settings,
+      startText,
+      endText,
+      segments,
+    };
     const handle = setTimeout(() => {
-      studioStorage.setItem(
-        draftKey,
-        JSON.stringify({
-          savedAt: new Date().toISOString(),
+      studioStorage.setItem(draftKey, JSON.stringify(payload));
+      void fetch("/api/edit-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project: project.id,
+          clip: clip.id,
           title,
           postCaption,
+          start: Number.isFinite(seconds(startText))
+            ? seconds(startText)
+            : undefined,
+          end: Number.isFinite(seconds(endText)) ? seconds(endText) : undefined,
           settings,
-          startText,
-          endText,
           segments,
         }),
-      );
-    }, 600);
+      }).catch(() => {});
+    }, 900);
     return () => clearTimeout(handle);
   }, [
     draftKey,
+    project.id,
+    clip.id,
     title,
     postCaption,
     settings,
@@ -564,6 +583,12 @@ export function VideoEditor({
               onClick={() => {
                 setTab(id);
                 setInspector(true);
+                const preset = loadWorkspace();
+                saveWorkspace({
+                  zoom: preset?.zoom ?? 1,
+                  snap: preset?.snap ?? true,
+                  tool: id,
+                });
               }}
               title={name}
               aria-pressed={tab === id}

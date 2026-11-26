@@ -1,13 +1,21 @@
 export const TEXT_TRACK_ASSET = "00000000-0000-0000-0000-000000000000";
 
 export type CutTransition = {
-  type: "fade" | "fadeblack" | "fadewhite";
+  type:
+    | "fade"
+    | "fadeblack"
+    | "fadewhite"
+    | "slideleft"
+    | "slideright"
+    | "wipeleft"
+    | "wiperight";
   duration: number;
 };
 
 export type Settings = {
   playbackRate?: number;
   reverse?: boolean;
+  motionInterpolation?: boolean;
   speedCurve?: import("./speed-curve").SpeedPoint[];
   cutTransition?: CutTransition;
   encodeProfile?: "fast" | "balanced" | "quality" | "draft" | "archive";

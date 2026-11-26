@@ -259,6 +259,38 @@ export async function handle(
           await checkpoint(p, c, (await req.json()).name),
         );
     }
+    if (action === "edit-draft") {
+      const drafts = await import("./edit-draft");
+      if (req.method === "GET") {
+        const project = query.get("project") || "";
+        const clip = query.get("clip") || "";
+        validId(project);
+        validId(clip);
+        await read(project);
+        return NextResponse.json(
+          (await drafts.readEditDraft(project, clip)) || { empty: true },
+        );
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        validId(b.project);
+        validId(b.clip);
+        await read(b.project);
+        return NextResponse.json(
+          await drafts.saveEditDraft({
+            project: b.project,
+            clip: b.clip,
+            savedAt: new Date().toISOString(),
+            title: b.title,
+            postCaption: b.postCaption,
+            start: b.start,
+            end: b.end,
+            settings: settings(b.settings),
+            segments: Array.isArray(b.segments) ? b.segments : [],
+          }),
+        );
+      }
+    }
     if (action === "templates") {
       const templates = await import("./templates");
       if (req.method === "GET") {

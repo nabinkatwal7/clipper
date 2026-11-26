@@ -79,7 +79,11 @@ export function EditTimeline({
     }
   }, []);
   useEffect(() => {
-    saveWorkspace({ zoom, snap });
+    saveWorkspace({
+      zoom,
+      snap,
+      tool: loadWorkspace()?.tool,
+    });
   }, [zoom, snap]);
   function mutate(next: Track[]) {
     onTracks?.(next);

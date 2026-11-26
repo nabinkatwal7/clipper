@@ -202,6 +202,10 @@ export function LayersPanel({
         <button className="tool" type="button" onClick={insertText}>
           Add text layer
         </button>
+        <p className="hint">
+          Stickers: insert an image asset — it defaults to a small overlay you
+          can keyframe like any other layer.
+        </p>
         <button className="tool" disabled={finding} onClick={suggest}>
           {finding ? "Checking local assets…" : "Suggest B-roll with Ollama"}
         </button>
