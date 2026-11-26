@@ -17,7 +17,7 @@ Keyframeable properties: `x`, `y`, `volume`, `rotation`, `opacity`, `size`. Inte
 | `components/video-editor.tsx` | Full editor shell, undo/redo, save, tabs |
 | `components/edit-timeline.tsx` | Source trim, markers, zoom, composition drag/trim gestures |
 | `components/layers-panel.tsx` | Track CRUD, transforms, masks, chroma, keyframes |
-| `components/editor-monitor.tsx` | Fast source canvas (layout, crop, captions) |
+| `components/editor-monitor.tsx` | Realtime canvas: source layout plus composition layers (transform, opacity, blend, masks) |
 | `components/render-preview.tsx` | Short FFmpeg composition preview |
 | `components/grade-panel.tsx` | Color grading and timed effects |
 | `components/director-panel.tsx` | Validated Ollama edit proposals |
@@ -26,9 +26,9 @@ Workspace preferences persist in browser storage (`lib/client-storage.ts`). Proj
 
 ## Preview vs export
 
-The HTML video and canvas monitor show source framing quickly. Accurate composites (layers, masks, blends, animated scale/rotation/opacity) require `POST /api/render-preview`, which runs the same filter graph as final export for a short window.
+The monitor composites enabled image/video tracks in realtime using the same keyframe sampler as export (`sampleCurve`). Blend modes, flips, rotation, scale, opacity and hard masks are approximate browser previews. Chroma key and feathered masks still need `POST /api/render-preview` for export-accurate checks.
 
-Outstanding for later phases: realtime multi-layer canvas preview, proxy media workflow, deeper timeline gestures on composition lanes, graph editor and entrance/exit animation presets.
+Outstanding for later phases: proxy media workflow, graph editor and loop animation presets.
 
 ## Related docs
 

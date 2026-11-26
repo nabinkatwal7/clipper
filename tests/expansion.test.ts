@@ -4,7 +4,8 @@ import { validateProposals } from "../lib/director";
 import { compileWorkflow, type Workflow } from "../lib/workflow";
 import { analysisWindows, passesRules } from "../lib/discovery";
 import { defaults, type Highlight, type Segment } from "../lib/types";
-import { curve, validateComposition } from "../lib/composition";
+import { curve, sampleCurve, validateComposition } from "../lib/composition";
+import { layerPose } from "../lib/preview-layers";
 import { dragTrack } from "../lib/timeline-gestures";
 import { previewKey } from "../lib/preview-cache";
 import {
@@ -68,6 +69,49 @@ test("composition versioning and interpolation enforce explicit timeline offsets
       3,
     ),
     /lt\(t,5\)/,
+  );
+  assert.equal(
+    sampleCurve(
+      [
+        { time: 0, value: 0, ease: "linear" },
+        { time: 2, value: 1, ease: "hold" },
+      ],
+      0,
+      1,
+    ),
+    0.5,
+  );
+  assert.equal(
+    layerPose(
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "L",
+        asset: "22222222-2222-4222-8222-222222222222",
+        type: "image",
+        at: 0,
+        length: 2,
+        slip: 0,
+        x: 0.5,
+        y: 0.5,
+        size: 0.4,
+        opacity: 1,
+        volume: 1,
+        visible: true,
+        muted: true,
+        locked: false,
+        solo: false,
+        loop: true,
+        fade: 0,
+        keys: {
+          opacity: [
+            { time: 0, value: 0, ease: "linear" },
+            { time: 1, value: 1, ease: "hold" },
+          ],
+        },
+      },
+      0.5,
+    ).opacity,
+    0.5,
   );
 });
 test("animation presets write renderable entrance and exit keyframes", () => {

@@ -3,7 +3,12 @@ import { blendModes, type BlendMode } from "./layer-blend";
 import { layerTransformFilters, type LayerTransform } from "./layer-transform";
 
 import type { Keyframe } from "./keyframe-curve";
-export { curve, type Ease, type Keyframe } from "./keyframe-curve";
+export {
+  curve,
+  sampleCurve,
+  type Ease,
+  type Keyframe,
+} from "./keyframe-curve";
 export type Track = LayerTransform & {
   id: string;
   name: string;

@@ -444,6 +444,7 @@ export function VideoEditor({
               settings={settings}
               segments={segments}
               safe={safe}
+              clipStart={valid ? start : clip.start}
             />
           </div>
           <Button variant="secondary" disabled={!good} onClick={toggle}>

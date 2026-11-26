@@ -2,21 +2,38 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { cropAt } from "@/lib/reframe";
 import { dimensions } from "@/lib/captions";
+import { enabledTracks } from "@/lib/composition";
+import {
+  canvasBlend,
+  compositionTime,
+  layerPose,
+  sampleMask,
+} from "@/lib/preview-layers";
 import type { Settings, Segment } from "@/lib/types";
+
+type LayerMedia = {
+  id: string;
+  kind: "image" | "video";
+  element: HTMLImageElement | HTMLVideoElement;
+};
+
 export function EditorMonitor({
   video,
   settings,
   segments,
   quality,
   safe,
+  clipStart = 0,
 }: {
   video: RefObject<HTMLVideoElement | null>;
   settings: Settings;
   segments: Segment[];
   quality: number;
   safe: boolean;
+  clipStart?: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const layers = useRef<Map<string, LayerMedia>>(new Map());
   useEffect(() => {
     const v = video.current,
       c = ref.current;
@@ -28,7 +45,47 @@ export function EditorMonitor({
     const ctx = c.getContext("2d");
     if (!ctx) return;
     const transformCanvas = document.createElement("canvas");
+    const layerCanvas = document.createElement("canvas");
     let frame = 0;
+    const tracks = enabledTracks(settings.composition).filter(
+      (track) => track.type !== "audio",
+    );
+    for (const track of tracks) {
+      if (layers.current.has(track.asset)) continue;
+      if (track.type === "image") {
+        const image = new Image();
+        image.decoding = "async";
+        image.src = "/api/assets?id=" + track.asset;
+        layers.current.set(track.asset, {
+          id: track.asset,
+          kind: "image",
+          element: image,
+        });
+      } else {
+        const media = document.createElement("video");
+        media.muted = true;
+        media.playsInline = true;
+        media.preload = "auto";
+        media.src = "/api/assets?id=" + track.asset;
+        layers.current.set(track.asset, {
+          id: track.asset,
+          kind: "video",
+          element: media,
+        });
+      }
+    }
+    const active = new Set(tracks.map((track) => track.asset));
+    for (const [id, media] of layers.current) {
+      if (active.has(id)) continue;
+      if (media.kind === "video") {
+        const clip = media.element as HTMLVideoElement;
+        clip.pause();
+        clip.removeAttribute("src");
+        clip.load();
+      }
+      layers.current.delete(id);
+    }
+
     function paint() {
       if (!v || !c || !ctx || v.readyState < 2) return;
       const w = c.width,
@@ -110,6 +167,97 @@ export function EditorMonitor({
         );
         ctx.restore();
       }
+
+      const rel = compositionTime(v.currentTime, clipStart);
+      for (const track of tracks) {
+        if (rel < track.at || rel >= track.at + track.length) continue;
+        const media = layers.current.get(track.asset);
+        if (!media) continue;
+        const element = media.element;
+        const ready =
+          media.kind === "image"
+            ? (element as HTMLImageElement).complete &&
+              (element as HTMLImageElement).naturalWidth > 0
+            : (element as HTMLVideoElement).readyState >= 2;
+        if (!ready) continue;
+        const local = rel - track.at;
+        if (media.kind === "video") {
+          const clip = element as HTMLVideoElement;
+          const source =
+            track.slip +
+            (track.loop && clip.duration
+              ? local % Math.max(0.04, clip.duration)
+              : local);
+          if (Math.abs(clip.currentTime - source) > 0.12) {
+            try {
+              clip.currentTime = Math.max(0, source);
+            } catch {}
+          }
+          if (v.paused) clip.pause();
+          else if (clip.paused) void clip.play().catch(() => {});
+        }
+        const pose = layerPose(track, local);
+        const mw = Math.max(2, w * pose.size);
+        const mh = Math.max(2, h * pose.size);
+        const iw =
+          media.kind === "image"
+            ? (element as HTMLImageElement).naturalWidth
+            : (element as HTMLVideoElement).videoWidth;
+        const ih =
+          media.kind === "image"
+            ? (element as HTMLImageElement).naturalHeight
+            : (element as HTMLVideoElement).videoHeight;
+        if (!iw || !ih) continue;
+        const fit = Math.min(mw / iw, mh / ih);
+        const dw = iw * fit,
+          dh = ih * fit;
+        if (layerCanvas.width !== Math.ceil(dw) || layerCanvas.height !== Math.ceil(dh)) {
+          layerCanvas.width = Math.max(1, Math.ceil(dw));
+          layerCanvas.height = Math.max(1, Math.ceil(dh));
+        }
+        const lx = layerCanvas.getContext("2d");
+        if (!lx) continue;
+        lx.clearRect(0, 0, layerCanvas.width, layerCanvas.height);
+        lx.save();
+        if (track.flipX || track.flipY) {
+          lx.translate(
+            track.flipX ? layerCanvas.width : 0,
+            track.flipY ? layerCanvas.height : 0,
+          );
+          lx.scale(track.flipX ? -1 : 1, track.flipY ? -1 : 1);
+        }
+        lx.drawImage(element, 0, 0, layerCanvas.width, layerCanvas.height);
+        lx.restore();
+        if (track.mask) {
+          const geometry = sampleMask(track.mask, local);
+          lx.globalCompositeOperation = track.mask.invert
+            ? "destination-out"
+            : "destination-in";
+          lx.beginPath();
+          const cx = geometry.x * layerCanvas.width;
+          const cy = geometry.y * layerCanvas.height;
+          const rw = (geometry.width * layerCanvas.width) / 2;
+          const rh = (geometry.height * layerCanvas.height) / 2;
+          if (track.mask.shape === "ellipse") lx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
+          else
+            lx.rect(cx - rw, cy - rh, rw * 2, rh * 2);
+          lx.fill();
+          lx.globalCompositeOperation = "source-over";
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, pose.opacity));
+        ctx.globalCompositeOperation =
+          canvasBlend[track.blendMode ?? "normal"] || "source-over";
+        const x = (w - dw) * pose.x;
+        const y = (h - dh) * pose.y;
+        ctx.translate(x + dw / 2, y + dh / 2);
+        ctx.rotate((pose.rotation * Math.PI) / 180);
+        ctx.drawImage(layerCanvas, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+
       if (settings.captions) {
         const at = v.currentTime;
         const seg = segments.find((s) => s.start <= at && s.end > at);
@@ -233,8 +381,11 @@ export function EditorMonitor({
       v.removeEventListener("play", play);
       v.removeEventListener("seeked", paint);
       v.removeEventListener("loadeddata", paint);
+      for (const media of layers.current.values()) {
+        if (media.kind === "video") (media.element as HTMLVideoElement).pause();
+      }
     };
-  }, [settings, segments, safe, video, quality]);
+  }, [settings, segments, safe, video, quality, clipStart]);
   return (
     <canvas
       className="monitor-canvas"
