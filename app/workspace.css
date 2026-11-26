@@ -102,74 +102,81 @@ summary::-webkit-details-marker {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 42px;
-  padding: 10px 17px;
-  border-radius: 9px;
+  min-height: 40px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
+  box-shadow: var(--shadow-sm);
 }
 .button svg {
   flex-shrink: 0;
 }
 .primary {
   background: var(--accent);
-  color: var(--text);
+  color: var(--primary-foreground);
   border-color: var(--accent);
 }
 .primary:hover {
-  background: var(--accent-text);
-  border-color: var(--accent-text);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 .secondary {
   background: var(--surface);
   color: var(--text);
   border-color: var(--border);
+  box-shadow: none;
 }
 .secondary:hover {
-  background: var(--border);
+  background: var(--hover);
   border-color: var(--border);
 }
 .ghost {
   background: transparent;
   color: var(--muted);
+  box-shadow: none;
 }
 .ghost:hover {
   background: var(--surface);
   color: var(--text);
 }
 .danger {
-  background: var(--active);
-  color: var(--accent-text);
+  background: color-mix(in oklab, var(--error) 18%, var(--surface));
+  color: var(--error);
+  border-color: color-mix(in oklab, var(--error) 35%, var(--border));
+  box-shadow: none;
 }
 .small {
-  min-height: 34px;
+  min-height: 32px;
   padding: 6px 11px;
-  font-size: 13px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
 }
 .icon {
-  width: 40px;
-  height: 40px;
-  min-height: 40px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
   padding: 8px;
 }
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   color: var(--muted);
   background: transparent;
 }
 .icon-button:hover {
   color: var(--text);
   background: var(--surface);
+  border-color: var(--border);
 }
 .text-button {
   display: inline-flex;
@@ -1151,14 +1158,18 @@ summary::-webkit-details-marker {
   gap: 9px;
   border: 1px solid var(--border);
   background: var(--panel);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   padding-left: 12px;
   color: var(--muted);
+  box-shadow: var(--shadow-sm);
 }
 .search-field > input {
-  border: 0;
-  background: transparent;
-  outline: none;
+  border: 0 !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  min-height: 42px;
+  padding-left: 0;
 }
 .project-list {
   margin-top: 16px;

@@ -30,6 +30,17 @@ import {
 import type { Project } from "@/lib/types";
 import { useStudioEvents } from "./use-studio-events";
 import { Modal } from "./modal";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+import { Separator } from "./ui/separator";
+import { ScrollArea } from "./ui/scroll-area";
 export const sections = [
   [
     "Workspace",
@@ -202,6 +213,7 @@ export function StudioShell({
   ).length;
   const events = useStudioEvents(projects);
   return (
+    <TooltipProvider delayDuration={250}>
     <div
       className={`studio ${collapsed ? "compact" : ""} ${drawer ? "drawer-open" : ""}`}
     >
@@ -214,29 +226,38 @@ export function StudioShell({
       )}
       <aside className="studio-side">
         <div className="studio-logo">
-          <span className="logo-glyph">
+          <span className="logo-glyph" aria-hidden>
             <i />
             <i />
             <i />
           </span>
           <strong>
-            Clipper <b>AI</b>
+            Clipper <b>Studio</b>
           </strong>
-          <button
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="desktop-collapse"
-            onClick={() => {
-              setCollapsed(!collapsed);
-              studioStorage.setItem(
-                "studio-sidebar",
-                collapsed ? "full" : "compact",
-              );
-            }}
-          >
-            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="desktop-collapse"
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                onClick={() => {
+                  setCollapsed(!collapsed);
+                  studioStorage.setItem(
+                    "studio-sidebar",
+                    collapsed ? "full" : "compact",
+                  );
+                }}
+              >
+                {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </TooltipContent>
+          </Tooltip>
         </div>
+        <ScrollArea className="min-h-0 flex-1">
         <nav aria-label="Studio navigation">
           {sections.map(([group, items]) => (
             <section key={group}>
@@ -268,7 +289,7 @@ export function StudioShell({
                       } else navigate(label);
                     }}
                   >
-                    <Icon size={16} />
+                    <Icon size={16} strokeWidth={1.75} />
                     <span>{label}</span>
                     {label === "Processing queue" && active > 0 && (
                       <small>{active}</small>
@@ -278,9 +299,10 @@ export function StudioShell({
             </section>
           ))}
         </nav>
+        </ScrollArea>
         <div className="side-foot">
           <button className="nav-item" title="Local settings" onClick={setup}>
-            <Settings2 size={16} />
+            <Settings2 size={16} strokeWidth={1.75} />
             <span>Settings</span>
           </button>
           <button
@@ -288,7 +310,7 @@ export function StudioShell({
             title="Check local dependencies"
             onClick={setup}
           >
-            <Cpu size={18} />
+            <Cpu size={18} strokeWidth={1.75} />
             <span>
               <strong>Local engine</strong>
               <small>
@@ -306,14 +328,15 @@ export function StudioShell({
       </aside>
       <div className="studio-body">
         <header className="studio-bar">
-          <button
-            className="mobile-menu icon-button"
-            title="Navigation"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mobile-menu"
             aria-label="Navigation"
             onClick={() => setDrawer(!drawer)}
           >
             <Menu size={18} />
-          </button>
+          </Button>
           <span className="crumb">
             <Workflow size={15} /> Studio <ChevronRight size={13} />
             <strong>{page}</strong>
@@ -329,7 +352,9 @@ export function StudioShell({
                 {active} active
               </button>
             )}
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               className="command-key"
               onClick={palette}
               title={"Search studio (Ctrl+"+shortcut.toUpperCase()+")"}
@@ -337,24 +362,37 @@ export function StudioShell({
               <Search size={15} />
               <span>Search studio</span>
               <kbd>Ctrl {shortcut.toUpperCase()}</kbd>
-            </button>
-            <button
-              title="Activity history"
-              aria-label="Activity history"
-              onClick={() => setDialog("history")}
-            >
-              <Bell size={16} />
-            </button>
-            <button
-              title="Change theme"
-              aria-label="Change theme"
-              onClick={theme}
-            >
-              {light ? <Moon size={16} /> : <Sun size={16} />}
-            </button>
-            <button className="button primary" onClick={create}>
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Activity history"
+                  onClick={() => setDialog("history")}
+                >
+                  <Bell size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Activity history</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Change theme"
+                  onClick={theme}
+                >
+                  {light ? <Moon size={16} /> : <Sun size={16} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle theme</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="mx-1 h-6" />
+            <Button size="sm" onClick={create}>
               <Plus size={15} /> New project
-            </button>
+            </Button>
           </div>
         </header>
         {children}
@@ -369,7 +407,7 @@ export function StudioShell({
               <>
                 <label className="search-field">
                   <Search size={16} />
-                  <input
+                  <Input
                     ref={input}
                     placeholder="Search pages, commands, projects and clips"
                     aria-label="Find command"
@@ -527,5 +565,6 @@ export function StudioShell({
         </Modal>
       )}
     </div>
+    </TooltipProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { Button } from "./ui/button";
 export function Modal({
   title,
   description,
@@ -80,14 +81,15 @@ export function Modal({
             <h2 id={id}>{title}</h2>
             {description && <p>{description}</p>}
           </div>
-          <button
-            className="icon-button"
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label={`Close ${title}`}
             disabled={busy}
             onClick={onClose}
           >
-            <X size={20} />
-          </button>
+            <X size={18} />
+          </Button>
         </header>
         {children}
       </section>

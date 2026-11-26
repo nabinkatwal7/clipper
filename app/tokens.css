@@ -10,42 +10,75 @@
   font-weight: 100 900;
   font-display: swap;
 }
+
 :root {
   color-scheme: dark;
-  --bg: #09090b;
-  --side: #0d0d10;
-  --panel: #111114;
-  --surface: #18181c;
-  --hover: #202025;
-  --active: #272333;
-  --border: #303036;
-  --subtle: #232327;
-  --text: #fafafa;
-  --muted: #a1a1aa;
-  --accent: #7951d9;
-  --accent-hover: #6940cc;
-  --accent-text: #bba3ff;
-  --success: #71c995;
-  --error: #ff9d9d;
-  --mono: "Geist Mono", monospace;
-  font-family: Geist, Arial, sans-serif;
+  --bg: #0b0d10;
+  --side: #0f1217;
+  --panel: #141820;
+  --surface: #1a2029;
+  --hover: #222933;
+  --active: #1e3a36;
+  --border: #2a3340;
+  --subtle: #1c232e;
+  --text: #f4f6f8;
+  --muted: #8b95a5;
+  --accent: #14b8a6;
+  --accent-hover: #0d9488;
+  --accent-text: #5eead4;
+  --success: #34d399;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --ring: color-mix(in oklab, var(--accent) 55%, transparent);
+  --radius: 0.625rem;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.35);
+  --mono: "Geist Mono", ui-monospace, monospace;
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
   font-synthesis: none;
+
+  /* shadcn aliases */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: #042f2e;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --muted-foreground: var(--muted);
+  --destructive: #dc2626;
+  --destructive-foreground: #fef2f2;
+  --input: var(--border);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
+
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #fafafa;
-  --side: #f3f3f5;
-  --panel: #fff;
-  --surface: #f1f1f4;
-  --hover: #e9e9ee;
-  --active: #ece5fc;
-  --border: #cdced5;
-  --subtle: #dedee4;
-  --text: #19191d;
-  --muted: #5f606b;
-  --accent: #7144cd;
-  --accent-hover: #5932b1;
-  --accent-text: #6539b9;
-  --success: #287546;
-  --error: #af3030;
+  --bg: #f5f7fa;
+  --side: #eef1f5;
+  --panel: #ffffff;
+  --surface: #e8ecf1;
+  --hover: #dde3ea;
+  --active: #d5f5f0;
+  --border: #c5ced8;
+  --subtle: #d8dee6;
+  --text: #111827;
+  --muted: #5b6573;
+  --accent: #0f766e;
+  --accent-hover: #0d9488;
+  --accent-text: #0f766e;
+  --success: #047857;
+  --error: #b91c1c;
+  --warning: #b45309;
+  --ring: color-mix(in oklab, var(--accent) 40%, transparent);
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 10px 30px rgb(15 23 42 / 0.08);
+  --primary-foreground: #ecfdf5;
+  --destructive: #dc2626;
+  --destructive-foreground: #fff;
 }

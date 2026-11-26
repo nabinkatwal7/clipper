@@ -6,6 +6,13 @@ import { Play, Check, LoaderCircle, Scissors } from "lucide-react";
 import { Modal } from "./modal";
 import { FormatSettings, SubtitleSettings } from "./clip-settings";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 import type { Clip, Project, Segment } from "@/lib/types";
 import { LocalizationPanel } from "./localization-panel";
 import { HistoryPanel } from "./history-panel";
@@ -445,12 +452,17 @@ export function VideoEditor({
       onClose={close}
       busy={saving}
     >
+      <TooltipProvider delayDuration={200}>
       <div className="edit-toolbar">
-        <span>
-          {dirty ? "Unsaved changes" : "Saved render"} · {settings.resolution}p{" "}
-          <i> / </i> {settings.ratio}
+        <span className="edit-toolbar-status">
+          <Badge variant={dirty ? "warning" : "success"}>
+            {dirty ? "Unsaved" : "Saved"}
+          </Badge>
+          <span>
+            {settings.resolution}p · {settings.ratio}
+          </span>
         </span>
-        <div>
+        <div className="edit-toolbar-actions">
           <select
             className="preview-quality"
             aria-label="Preview quality"
@@ -460,8 +472,10 @@ export function VideoEditor({
             <option value={360}>360p preview</option>
             <option value={720}>720p preview</option>
           </select>
-          <button
+          <Button
             type="button"
+            variant={useProxy && proxyReady ? "default" : "secondary"}
+            size="sm"
             aria-pressed={useProxy && proxyReady}
             disabled={proxyBusy}
             title={
@@ -479,75 +493,129 @@ export function VideoEditor({
               : useProxy && proxyReady
                 ? "Proxy on"
                 : "Proxy"}
-          </button>
-          <button
-            title="Toggle inspector"
+          </Button>
+          <Button
+            type="button"
+            variant={inspector ? "secondary" : "ghost"}
+            size="sm"
             aria-pressed={inspector}
             onClick={() => setInspector(!inspector)}
           >
             Inspector
-          </button>
-          <button
-            disabled={
-              splitAt === null && (now <= start + 0.04 || now >= end - 0.04)
-            }
-            title="Split at playhead"
-            onClick={() => setSplitAt(splitAt === null ? now : null)}
-          >
-            {splitAt === null ? (
-              <Scissors size={16} />
-            ) : (
-              "Clear split " + timecode(splitAt)
-            )}
-          </button>
-          <button
-            disabled={!historyCount[0]}
-            title="Undo"
-            onClick={() => restore(false)}
-          >
-            <Undo2 size={16} />
-          </button>
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={
+                  splitAt === null && (now <= start + 0.04 || now >= end - 0.04)
+                }
+                onClick={() => setSplitAt(splitAt === null ? now : null)}
+              >
+                {splitAt === null ? (
+                  <Scissors size={16} />
+                ) : (
+                  <span className="text-xs">Clear</span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {splitAt === null
+                ? "Split at playhead"
+                : "Clear split " + timecode(splitAt)}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={!historyCount[0]}
+                onClick={() => restore(false)}
+              >
+                <Undo2 size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Undo</TooltipContent>
+          </Tooltip>
 
-          <button
-            disabled={!historyCount[1]}
-            title="Redo"
-            onClick={() => restore(true)}
-          >
-            <Redo2 size={16} />
-          </button>
-          <button
-            aria-pressed={safe}
-            title="Safe area guides"
-            onClick={() => setSafe(!safe)}
-          >
-            <Scan size={16} />
-          </button>
-          <button
-            title="Fullscreen monitor"
-            onClick={() =>
-              void document
-                .querySelector(".editor-preview")
-                ?.requestFullscreen()
-                .catch(() =>
-                  setError("Fullscreen is unavailable in this browser."),
-                )
-            }
-          >
-            <Maximize size={16} />
-          </button>
-          <a
-            id="export-saved-render"
-            className="editor-export"
-            download
-            href={`/api/download?project=${project.id}&clip=${clip.id}&kind=bundle`}
-          >
-            Export saved clip
-          </a>
-          <button title="Keyboard shortcuts" onClick={() => setHelp(!help)}>
-            <Keyboard size={16} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={!historyCount[1]}
+                onClick={() => restore(true)}
+              >
+                <Redo2 size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant={safe ? "secondary" : "ghost"}
+                size="icon"
+                aria-pressed={safe}
+                onClick={() => setSafe(!safe)}
+              >
+                <Scan size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Safe area guides</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  void document
+                    .querySelector(".editor-preview")
+                    ?.requestFullscreen()
+                    .catch(() =>
+                      setError("Fullscreen is unavailable in this browser."),
+                    )
+                }
+              >
+                <Maximize size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Fullscreen monitor</TooltipContent>
+          </Tooltip>
+          <Button asChild size="sm" variant="secondary">
+            <a
+              id="export-saved-render"
+              className="editor-export"
+              download
+              href={`/api/download?project=${project.id}&clip=${clip.id}&kind=bundle`}
+            >
+              Export saved clip
+            </a>
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setHelp(!help)}
+              >
+                <Keyboard size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Keyboard shortcuts</TooltipContent>
+          </Tooltip>
         </div>
       </div>
+      </TooltipProvider>
       {draftOffer && (
         <p className="hint" role="status">
           A newer local draft exists (
