@@ -579,6 +579,13 @@ export async function render(
   if (s.rotation) transforms.push(`rotate=${s.rotation}*PI/180:c=black`);
   if (alpha !== 1)
     transforms.push(`colorchannelmixer=rr=${alpha}:gg=${alpha}:bb=${alpha}`);
+  const cut = s.cutTransition;
+  if (cut?.type === "fade")
+    transforms.push(`fade=t=in:st=0:d=${cut.duration}:alpha=1`);
+  else if (cut?.type === "fadeblack")
+    transforms.push(`fade=t=in:st=0:d=${cut.duration}:c=black`);
+  else if (cut?.type === "fadewhite")
+    transforms.push(`fade=t=in:st=0:d=${cut.duration}:c=white`);
   if (s.grade || s.effectStack?.length)
     transforms.push(...gradeFilters(s.grade || {}, w, height, s.effectStack));
   transforms.push(...adjustmentFilters(s.adjustmentLayers, height));
@@ -665,6 +672,14 @@ export async function render(
           audio: audioLabel,
           duration,
         };
+  if (s.reverse && !curved) {
+    remap.graph.push(`[${remap.video}]reverse[cliprevv]`);
+    remap.video = "cliprevv";
+    if (remap.audio) {
+      remap.graph.push(`[${remap.audio}]areverse[clipreva]`);
+      remap.audio = "clipreva";
+    }
+  }
   const audioMap = remap.audio
     ? (["-map", `[${remap.audio}]`] as string[])
     : curved
@@ -692,8 +707,17 @@ export async function render(
       "Insufficient free storage for the estimated render. Free disk space and retry.",
     );
   const profile = s.encodeProfile || "fast";
+  const codecs = ["h264_nvenc", "h264_qsv", "h264_amf", "libx264"];
+  const presets: Record<string, { preset: string; crf: string }> = {
+    draft: { preset: "ultrafast", crf: "28" },
+    fast: { preset: process.env.FFMPEG_PRESET || "superfast", crf: "21" },
+    balanced: { preset: "medium", crf: "19" },
+    quality: { preset: "slow", crf: "17" },
+    archive: { preset: "veryslow", crf: "15" },
+  };
+  const enc = presets[profile] || presets.fast;
 
-  try {
+  async function encode(videoCodec: string) {
     await run(
       bin.ffmpeg,
       [
@@ -718,15 +742,20 @@ export async function render(
           ? ["-ss", String(preview.offset), "-t", String(preview.duration)]
           : []),
         "-c:v",
-        "libx264",
-        "-preset",
-        profile === "quality"
-          ? "slow"
-          : profile === "balanced"
-            ? "medium"
-            : process.env.FFMPEG_PRESET || "superfast",
-        "-crf",
-        profile === "quality" ? "17" : profile === "balanced" ? "19" : "21",
+        videoCodec,
+        ...(videoCodec === "libx264"
+          ? [
+              "-preset",
+              enc.preset,
+              "-crf",
+              enc.crf,
+            ]
+          : [
+              "-preset",
+              profile === "draft" ? "p1" : "p4",
+              "-b:v",
+              profile === "archive" ? "12M" : profile === "quality" ? "8M" : "5M",
+            ]),
         "-pix_fmt",
         "yuv420p",
         "-c:a",
@@ -761,6 +790,22 @@ export async function render(
       },
       preview ? 120_000 : undefined,
     );
+  }
+
+  try {
+    if (s.hardwareEncode) {
+      let encoded = false;
+      for (const videoCodec of codecs) {
+        try {
+          await encode(videoCodec);
+          encoded = true;
+          break;
+        } catch {
+          if (videoCodec === "libx264") throw Error("Hardware encode failed.");
+        }
+      }
+      if (!encoded) await encode("libx264");
+    } else await encode("libx264");
     signal.throwIfAborted();
     const qa = await verifyRender(
       temporary,

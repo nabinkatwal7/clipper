@@ -1,7 +1,19 @@
+export const TEXT_TRACK_ASSET = "00000000-0000-0000-0000-000000000000";
+
+export type CutTransition = {
+  type: "fade" | "fadeblack" | "fadewhite";
+  duration: number;
+};
+
 export type Settings = {
   playbackRate?: number;
+  reverse?: boolean;
   speedCurve?: import("./speed-curve").SpeedPoint[];
-  encodeProfile?: "fast" | "balanced" | "quality";
+  cutTransition?: CutTransition;
+  encodeProfile?: "fast" | "balanced" | "quality" | "draft" | "archive";
+  hardwareEncode?: boolean;
+  backgroundAsset?: string;
+  captionSpacing?: number;
   cropPoints?: import("./reframe").CropPoint[];
   grade?: Partial<import("./grading").Grade>;
   effectStack?: import("./grading").StackedEffect[];
@@ -19,7 +31,14 @@ export type Settings = {
   model?: string;
   captionColor?: string;
   captionBackground?: boolean;
-  captionAnimation?: "none" | "fade" | "pop" | "slide" | "scale";
+  captionAnimation?:
+    | "none"
+    | "fade"
+    | "pop"
+    | "slide"
+    | "scale"
+    | "bounce"
+    | "typewriter";
   outline?: number;
   shadow?: number;
   font?: string;

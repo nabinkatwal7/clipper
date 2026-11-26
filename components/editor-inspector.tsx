@@ -167,6 +167,62 @@ function SpeedControls({
           </button>
         </div>
       ))}
+      <label className="check-row">
+        <input
+          type="checkbox"
+          checked={!!settings.reverse}
+          disabled={!!curve.length}
+          onChange={(e) => adjust({ reverse: e.target.checked || undefined })}
+        />
+        Reverse playback (export only — HTML5 preview plays forward)
+      </label>
+      <h4>Clip intro transition</h4>
+      <label className="field">
+        Style
+        <select
+          value={settings.cutTransition?.type ?? "none"}
+          onChange={(e) => {
+            const type = e.target.value;
+            adjust(
+              type === "none"
+                ? { cutTransition: undefined }
+                : {
+                    cutTransition: {
+                      type: type as NonNullable<
+                        typeof settings.cutTransition
+                      >["type"],
+                      duration: settings.cutTransition?.duration ?? 0.5,
+                    },
+                  },
+            );
+          }}
+        >
+          <option value="none">None</option>
+          <option value="fade">Dissolve in</option>
+          <option value="fadeblack">Fade from black</option>
+          <option value="fadewhite">Fade from white</option>
+        </select>
+      </label>
+      {settings.cutTransition && (
+        <label className="field">
+          Duration · {settings.cutTransition.duration.toFixed(2)}s
+          <input
+            type="range"
+            min=".05"
+            max="2"
+            step=".05"
+            value={settings.cutTransition.duration}
+            onChange={(e) =>
+              adjust({
+                cutTransition: {
+                  ...settings.cutTransition!,
+                  duration: +e.target.value,
+                },
+              })
+            }
+          />
+        </label>
+      )}
       <p className="hint">
         Curves remap video and audio in segments. Captions stay source-timed and
         ride along with the remapped frames. Use Preview from playhead to check.
@@ -199,6 +255,7 @@ function TemplateBrowser({
     "11111111-1111-4111-8111-111111111111",
     "22222222-2222-4222-8222-222222222222",
     "33333333-3333-4333-8333-333333333333",
+    "44444444-4444-4444-8444-444444444444",
   ]);
   async function refresh() {
     const r = await fetch("/api/templates");

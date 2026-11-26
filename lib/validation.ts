@@ -34,9 +34,36 @@ export function settings(input: unknown): Settings {
     s.speedCurve = validateSpeedCurve(s.speedCurve, 600);
   if (
     s.encodeProfile !== undefined &&
-    !["fast", "balanced", "quality"].includes(s.encodeProfile)
+    !["fast", "balanced", "quality", "draft", "archive"].includes(
+      s.encodeProfile,
+    )
   )
     throw Error("Invalid encoding profile");
+  if (s.reverse !== undefined && typeof s.reverse !== "boolean")
+    throw Error("Invalid reverse playback");
+  if (s.hardwareEncode !== undefined && typeof s.hardwareEncode !== "boolean")
+    throw Error("Invalid hardware encode setting");
+  if (
+    s.cutTransition !== undefined &&
+    (!s.cutTransition ||
+      !["fade", "fadeblack", "fadewhite"].includes(s.cutTransition.type) ||
+      !Number.isFinite(s.cutTransition.duration) ||
+      s.cutTransition.duration < 0.05 ||
+      s.cutTransition.duration > 2)
+  )
+    throw Error("Invalid cut transition");
+  if (
+    s.backgroundAsset !== undefined &&
+    !/^[0-9a-f-]{36}$/.test(s.backgroundAsset)
+  )
+    throw Error("Invalid background asset");
+  if (
+    s.captionSpacing !== undefined &&
+    (!Number.isFinite(s.captionSpacing) ||
+      s.captionSpacing < -10 ||
+      s.captionSpacing > 40)
+  )
+    throw Error("Invalid caption spacing");
   const choices: Record<string, unknown[]> = {
     duration: ["15-30", "30-60", "60-90"],
     count: [0, 5, 10, 20],
@@ -72,12 +99,22 @@ export function settings(input: unknown): Settings {
       throw Error("Invalid clipping preferences");
   if (
     s.font &&
-    !["Arial", "Verdana", "Georgia", "Tahoma", "Courier New"].includes(s.font)
+    ![
+      "Arial",
+      "Verdana",
+      "Georgia",
+      "Tahoma",
+      "Courier New",
+      "Impact",
+      "Comic Sans MS",
+    ].includes(s.font)
   )
     throw Error("Invalid font");
   if (
     s.captionAnimation &&
-    !["none", "fade", "pop", "slide", "scale"].includes(s.captionAnimation)
+    !["none", "fade", "pop", "slide", "scale", "bounce", "typewriter"].includes(
+      s.captionAnimation,
+    )
   )
     throw Error("Invalid caption animation");
   if (
