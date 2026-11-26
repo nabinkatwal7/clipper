@@ -16,6 +16,38 @@ function Write-SetupStage([int] $number) {
     if ($ReportStages) { Write-Host "CLIPPER_SETUP_STAGE=$number" }
 }
 
+function Write-LocalConfiguration([System.Collections.IDictionary] $toolPaths) {
+    if (Test-Path -LiteralPath $envFile) {
+        Write-Host 'Keeping your existing .env.local settings.'
+        return
+    }
+
+    $template = Get-Content -LiteralPath (Join-Path $PSScriptRoot '.env.example')
+    $lines = foreach ($line in $template) {
+        if ($line -match '^(?:# )?(\w+)=' -and $toolPaths.Contains($Matches[1])) {
+            $key = $Matches[1]
+            $path = $toolPaths[$key].Replace('\', '/').Replace('$', '\$')
+            "$key=`"$path`""
+        } else {
+            $line
+        }
+    }
+
+    $temporary = "$envFile.$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        [IO.File]::WriteAllLines($temporary, [string[]] $lines, [Text.UTF8Encoding]::new($false))
+        try { [IO.File]::Move($temporary, $envFile) }
+        catch [IO.IOException] {
+            if (!(Test-Path -LiteralPath $envFile -PathType Leaf)) { throw }
+            Write-Host 'Keeping your existing .env.local settings.'
+            return
+        }
+        Write-Host 'Created .env.local with the installed tool paths and Studio defaults.'
+    } finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary }
+    }
+}
+
 function Get-Setting($name, $default) {
     $value = [Environment]::GetEnvironmentVariable($name)
     if ($value) { return $value }
@@ -26,7 +58,7 @@ function Get-Setting($name, $default) {
         if ($matchLine) {
             $raw = $matchLine.Matches[0].Groups[1].Value.Trim()
             if ($raw -match '^("([^"]*)"|''([^'']*)''|`([^`]*)`)') {
-                $value = $Matches[1].Substring(1, $Matches[1].Length - 2)
+                $value = $Matches[1].Substring(1, $Matches[1].Length - 2).Replace('\$', '$')
             } else {
                 $value = ($raw -split '#', 2)[0].Trim()
             }
@@ -127,7 +159,8 @@ function Install-Speech {
         $binary = Get-ChildItem -LiteralPath $runtime -Filter 'whisper-cli.exe' -Recurse -File |
             Select-Object -First 1 -ExpandProperty FullName
     }
-    if (!$binary -or !(Find-Tool @($binary) '-h')) {
+    if ($binary) { $binary = Find-Tool @($binary) '-h' }
+    if (!$binary) {
         throw 'whisper.cpp could not start. Check CLIPPER_SPEECH_BIN and the Windows x64 runtime.'
     }
     if (!(Test-Path -LiteralPath $model -PathType Leaf)) {
@@ -139,6 +172,7 @@ function Install-Speech {
             '60ED5BC3DD14EEA856493D334349B405782DDCAF0028D4B5DF4088345FBA2EFE'
     }
     Write-Host 'Local speech recognition is ready.'
+    return @{ Binary = $binary; Model = (Resolve-Path -LiteralPath $model).ProviderPath }
 }
 
 function Get-OllamaTags($url) {
@@ -234,11 +268,8 @@ try {
         $ffprobe = Get-Tool 'FFprobe' 'Gyan.FFmpeg' @((Get-Setting 'FFPROBE_BIN' 'ffprobe'), 'ffprobe.exe') '-version'
         $ytdlp = Get-Tool 'yt-dlp' 'yt-dlp.yt-dlp' @((Get-Setting 'YTDLP_BIN' 'yt-dlp'), 'yt-dlp.exe') '--version'
         $deno = Get-Tool 'Deno' 'DenoLand.Deno' @('deno.exe') '--version'
-        if (!(Test-Path -LiteralPath $envFile)) {
-            Copy-Item -LiteralPath '.env.example' -Destination $envFile
-        }
         Write-SetupStage 3
-        Install-Speech
+        $speech = Install-Speech
         Write-SetupStage 4
         Write-Host 'Installing Studio dependencies from package-lock.json...'
         Invoke-Checked $npmExecutable ($npmPrefix + @('ci', '--include=dev', '--no-audit', '--no-fund'))
@@ -249,6 +280,13 @@ try {
     Write-SetupStage 5
     Initialize-Ollama
     if (!$LaunchOnly) {
+        Write-LocalConfiguration ([ordered] @{
+            FFMPEG_BIN = $ffmpeg
+            FFPROBE_BIN = $ffprobe
+            YTDLP_BIN = $ytdlp
+            CLIPPER_SPEECH_BIN = $speech.Binary
+            CLIPPER_SPEECH_MODEL = $speech.Model
+        })
         Set-Content -LiteralPath 'node_modules\.clipper-setup-complete' -Value 'ready'
     }
     if ($NoLaunch) {

@@ -21,7 +21,7 @@ Make sure each command is on your `PATH` **before** starting Next.js, or set abs
 
 Double-click the same file next time and choose **Open Studio**. If something needs attention during setup, follow the instructions in the wizard and choose **Try again**. Use **Show details** to see the installer output.
 
-Setup installs Node.js and npm, FFmpeg and FFprobe, yt-dlp and its Deno runtime, Ollama with the configured chat model and `all-minilm`, and whisper.cpp with the multilingual base speech model. It installs the app dependencies from the lockfile and creates `.env.local` on first run. Existing settings and stored projects are preserved.
+Setup installs Node.js and npm, FFmpeg and FFprobe, yt-dlp and its Deno runtime, Ollama with the configured chat model and `all-minilm`, and whisper.cpp with the multilingual base speech model. After installing the dependencies and models, it creates `.env.local` from `.env.example` with the detected paths for the video tools and Whisper. Existing settings and stored projects are preserved.
 
 To install without starting Studio or to launch again later, run these commands from the project folder in PowerShell:
 
