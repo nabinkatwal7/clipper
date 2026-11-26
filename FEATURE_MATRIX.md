@@ -1218,6 +1218,9 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Design formats (thumb/story/banner/…) | Implemented |
 | Design bulk CSV variable generation | Implemented |
 | Design PNG / transparent PNG export | Implemented |
+| Design multi-page documents | Implemented |
+| Design drag / align / lock / shadow / rotation | Implemented |
+| Design JPEG / WebP export | Implemented |
 | Image editor crop / flip / rotate / tone | Partial |
 | 3D Studio templates (logo/nameplate/geo) | Partial |
 | 3D still PNG overlay export | Implemented |

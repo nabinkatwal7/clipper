@@ -28,9 +28,13 @@ export type DesignLayer = {
   color?: string;
   assetId?: string;
   fontSize?: number;
+  fontWeight?: number;
   opacity?: number;
   visible?: boolean;
   locked?: boolean;
+  /** Degrees */
+  rotation?: number;
+  shadow?: { blur: number; color: string; ox: number; oy: number };
   /** Optional second color for vertical gradient fills on rects */
   gradientTo?: string;
 };
@@ -44,6 +48,18 @@ export type DesignArtboard = {
   height: number;
   updatedAt: string;
   layers: DesignLayer[];
+  /** Sibling pages in a multi-page design (same document id via parentId) */
+  parentId?: string;
+  pageIndex?: number;
+};
+
+export type DesignDocument = {
+  version: 1;
+  id: string;
+  name: string;
+  format: DesignFormat;
+  updatedAt: string;
+  pages: DesignArtboard[];
 };
 
 export const DESIGN_FORMATS: {
@@ -97,6 +113,7 @@ export function emptyArtboard(
         opacity: 1,
         visible: true,
         locked: false,
+        rotation: 0,
       },
       {
         id: uuid(),
@@ -109,11 +126,32 @@ export function emptyArtboard(
         text: "Your headline",
         color: "#f8fafc",
         fontSize: 72,
+        fontWeight: 700,
         opacity: 1,
         visible: true,
         locked: false,
+        rotation: 0,
+        shadow: { blur: 18, color: "#00000088", ox: 0, oy: 0.01 },
       },
     ],
+  };
+}
+
+export function emptyDocument(
+  format: DesignFormat = "youtube-thumb",
+  name = "Untitled design",
+): DesignDocument {
+  const page = emptyArtboard(format, "Page 1");
+  const id = uuid();
+  page.parentId = id;
+  page.pageIndex = 0;
+  return {
+    version: 1,
+    id,
+    name: name.slice(0, 80),
+    format: page.format,
+    updatedAt: new Date().toISOString(),
+    pages: [page],
   };
 }
 
@@ -152,6 +190,79 @@ export function validateLayer(input: unknown): DesignLayer {
     visible: l.visible !== false,
     locked: !!l.locked,
     gradientTo: l.gradientTo,
+    fontWeight:
+      l.fontWeight !== undefined &&
+      Number.isFinite(l.fontWeight) &&
+      l.fontWeight >= 100 &&
+      l.fontWeight <= 900
+        ? l.fontWeight
+        : undefined,
+    rotation:
+      l.rotation !== undefined &&
+      Number.isFinite(l.rotation) &&
+      Math.abs(l.rotation) <= 180
+        ? l.rotation
+        : 0,
+    shadow:
+      l.shadow &&
+      Number.isFinite(l.shadow.blur) &&
+      l.shadow.blur >= 0 &&
+      l.shadow.blur <= 80
+        ? {
+            blur: l.shadow.blur,
+            color: l.shadow.color || "#00000088",
+            ox: Number.isFinite(l.shadow.ox) ? l.shadow.ox : 0,
+            oy: Number.isFinite(l.shadow.oy) ? l.shadow.oy : 0,
+          }
+        : undefined,
+  };
+}
+
+export type AlignMode =
+  | "left"
+  | "center-x"
+  | "right"
+  | "top"
+  | "center-y"
+  | "bottom";
+
+export function alignLayer(
+  layer: DesignLayer,
+  mode: AlignMode,
+): DesignLayer {
+  const next = { ...layer };
+  switch (mode) {
+    case "left":
+      next.x = 0;
+      break;
+    case "center-x":
+      next.x = Math.max(0, (1 - layer.w) / 2);
+      break;
+    case "right":
+      next.x = Math.max(0, 1 - layer.w);
+      break;
+    case "top":
+      next.y = 0;
+      break;
+    case "center-y":
+      next.y = Math.max(0, (1 - layer.h) / 2);
+      break;
+    case "bottom":
+      next.y = Math.max(0, 1 - layer.h);
+      break;
+  }
+  return next;
+}
+
+export function addPage(doc: DesignDocument): DesignDocument {
+  const page = emptyArtboard(doc.format, `Page ${doc.pages.length + 1}`);
+  page.parentId = doc.id;
+  page.pageIndex = doc.pages.length;
+  if (doc.pages.length >= 12) throw Error("At most 12 pages per design");
+  return {
+    ...doc,
+    updatedAt: new Date().toISOString(),
+    pages: [...doc.pages, page],
   };
 }
 
@@ -184,6 +295,40 @@ export function validateArtboard(input: unknown): DesignArtboard {
     height: Math.round(a.height),
     updatedAt: new Date().toISOString(),
     layers: a.layers.map(validateLayer),
+    parentId: a.parentId,
+    pageIndex: a.pageIndex,
+  };
+}
+
+export function validateDocument(input: unknown): DesignDocument {
+  const d = input as DesignDocument;
+  if (
+    !d ||
+    d.version !== 1 ||
+    typeof d.id !== "string" ||
+    !/^[0-9a-f-]{36}$/i.test(d.id) ||
+    typeof d.name !== "string" ||
+    !d.name.trim() ||
+    !DESIGN_FORMATS.some((f) => f.id === d.format) ||
+    !Array.isArray(d.pages) ||
+    !d.pages.length ||
+    d.pages.length > 12
+  )
+    throw Error("Invalid design document");
+  return {
+    version: 1,
+    id: d.id,
+    name: d.name.trim().slice(0, 80),
+    format: d.format,
+    updatedAt: new Date().toISOString(),
+    pages: d.pages.map((p, i) =>
+      validateArtboard({
+        ...p,
+        parentId: d.id,
+        pageIndex: i,
+        format: d.format,
+      }),
+    ),
   };
 }
 
@@ -238,6 +383,36 @@ export function reorderLayer(
 
 function designsPath() {
   return path.join(workspaceRoot(), "design-artboards.json");
+}
+
+function documentsPath() {
+  return path.join(workspaceRoot(), "design-documents.json");
+}
+
+export async function listDocuments(): Promise<DesignDocument[]> {
+  try {
+    const raw = JSON.parse(await fs.readFile(documentsPath(), "utf8"));
+    if (!Array.isArray(raw)) return [];
+    return raw.map((d) => validateDocument(d)).slice(0, 32);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveDocument(doc: DesignDocument) {
+  const row = validateDocument(doc);
+  const rows = await listDocuments();
+  const next = [row, ...rows.filter((r) => r.id !== row.id)].slice(0, 32);
+  const tmp = documentsPath() + "." + uuid() + ".tmp";
+  try {
+    await fs.writeFile(tmp, JSON.stringify(next, null, 2));
+    await fs.rename(tmp, documentsPath());
+  } finally {
+    await fs.rm(tmp, { force: true });
+  }
+  // Also mirror pages into artboard list for older callers
+  await saveArtboards(row.pages);
+  return row;
 }
 
 export async function listArtboards(): Promise<DesignArtboard[]> {

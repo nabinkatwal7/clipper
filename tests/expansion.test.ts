@@ -1180,7 +1180,11 @@ test("review studio items accept timestamped comments and statuses", () => {
 
 import {
   emptyArtboard,
+  emptyDocument,
   validateArtboard,
+  validateDocument,
+  alignLayer,
+  addPage,
   DESIGN_FORMATS,
   applyDesignVariables,
   bulkFromRows,
@@ -1191,6 +1195,13 @@ test("design artboards and AI lab prompts validate local documents", () => {
   const board = validateArtboard(emptyArtboard("square-post", "Post"));
   assert.equal(board.width, 1080);
   assert.ok(board.layers.length >= 1);
+  const text = board.layers.find((l) => l.type === "text")!;
+  assert.equal(alignLayer(text, "center-x").x, Math.max(0, (1 - text.w) / 2));
+  assert.equal(alignLayer(text, "left").x, 0);
+  const doc = validateDocument(emptyDocument("youtube-thumb", "Doc"));
+  assert.equal(doc.pages.length, 1);
+  assert.equal(addPage(doc).pages.length, 2);
+  assert.ok(text.shadow || board.layers[0].gradientTo);
   const filled = applyDesignVariables(
     {
       ...board,

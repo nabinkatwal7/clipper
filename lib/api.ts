@@ -814,9 +814,11 @@ export async function handle(
       const ds = await import("./design-studio");
       if (req.method === "GET") {
         const boards = await ds.listArtboards();
+        const documents = await ds.listDocuments();
         return NextResponse.json({
           formats: ds.DESIGN_FORMATS,
           boards,
+          documents,
           default: boards[0] || ds.emptyArtboard(),
         });
       }
@@ -826,8 +828,14 @@ export async function handle(
           return NextResponse.json(
             await ds.saveArtboard(ds.emptyArtboard(b.format, b.name)),
           );
+        if (b.op === "create-doc")
+          return NextResponse.json(
+            await ds.saveDocument(ds.emptyDocument(b.format, b.name)),
+          );
         if (b.op === "save")
           return NextResponse.json(await ds.saveArtboard(b.board));
+        if (b.op === "save-doc")
+          return NextResponse.json(await ds.saveDocument(b.document));
         if (b.op === "bulk") {
           const boards = ds.bulkFromRows(b.template, b.rows || []);
           return NextResponse.json(await ds.saveArtboards(boards));
