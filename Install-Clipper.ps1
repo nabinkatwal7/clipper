@@ -95,7 +95,9 @@ function Find-Tool($candidates, $versionArgument, $versionPattern = '.') {
 }
 
 function Invoke-Checked($command, [string[]] $arguments) {
-    & $command @arguments
+    # Show the tool's output but do not return it: callers such as Get-Tool return a path, and
+    # leaked output lines (including empty ones) would corrupt it.
+    & $command @arguments | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "$([IO.Path]::GetFileName($command)) failed with exit code $LASTEXITCODE."
     }
@@ -120,7 +122,7 @@ function Get-Tool($label, $id, $candidates, $versionArgument, $versionPattern = 
     }
     if (!$command) { throw "$label is unavailable. Run Install-Clipper.cmd to finish setup, then reopen the terminal if needed." }
     Write-Host "Found $label"
-    return $command
+    return [string] ($command | Select-Object -Last 1)
 }
 
 function Save-Download($url, $target, $sha256) {
