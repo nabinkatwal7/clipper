@@ -73,6 +73,13 @@ import { readOllamaResponse } from "./ollama";
 import { run, bin } from "./process";
 import { transcriptAction } from "./transcript-actions";
 import { indexStream } from "./stream-index";
+import { momentsFile, chatFile, replayFile, runMomentAnalysis, parseMomentOptions } from "./clipping/engine";
+import { readJson, writeJsonAtomic } from "./clipping/media-analysis";
+import { parseChat } from "./clipping/chat";
+import { parseReplayHeatmap } from "./clipping/replay";
+import { BUILTIN_PROFILES, DEFAULT_WEIGHTS } from "./clipping/profiles";
+import { BUILTIN_DICTIONARIES } from "./clipping/hype";
+import { snapshot as resourceSnapshot } from "./clipping/resources";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
 const noTranscript =
@@ -1274,6 +1281,46 @@ export async function handle(
         },
         { status: 202 },
       );
+    }
+    if (action === "moment-profiles" && req.method === "GET")
+      return NextResponse.json({
+        profiles: BUILTIN_PROFILES,
+        defaultWeights: DEFAULT_WEIGHTS,
+        dictionaries: BUILTIN_DICTIONARIES.map((d) => ({ id: d.id, label: d.label, phrases: d.phrases.length })),
+        resources: resourceSnapshot(),
+      });
+    if (action === "moments") {
+      const project = await read(query.get("project") || "");
+      if (req.method === "GET")
+        return NextResponse.json({
+          result: await readJson(momentsFile(project.id)),
+          hasChat: !!(await readJson(chatFile(project.id))),
+          hasReplay: !!(await readJson(replayFile(project.id))),
+        });
+      if (req.method === "POST") {
+        if (busy(project.id)) throw Error("Wait for the current job to finish.");
+        if (!project.duration) throw Error("Import the source first.");
+        const options = parseMomentOptions(await req.json());
+        enqueue(project.id, (signal) => runMomentAnalysis(project, options, signal));
+        return NextResponse.json({ ok: true }, { status: 202 });
+      }
+    }
+    if (action === "moments-import" && req.method === "POST") {
+      const b = await req.json();
+      const project = await read(String(b.project || ""));
+      if (!project.duration) throw Error("Import the source first.");
+      if (typeof b.text !== "string" || b.text.length > 60_000_000) throw Error("Provide the file contents as text (up to 60 MB).");
+      if (b.kind === "chat") {
+        const { messages, skipped } = parseChat(b.text, b.format === "csv" || b.format === "json" ? b.format : "auto");
+        await writeJsonAtomic(chatFile(project.id), messages);
+        return NextResponse.json({ ok: true, messages: messages.length, skipped });
+      }
+      if (b.kind === "replay") {
+        const points = parseReplayHeatmap(JSON.parse(b.text), project.duration);
+        await writeJsonAtomic(replayFile(project.id), points);
+        return NextResponse.json({ ok: true, points: points.length });
+      }
+      throw Error("Unknown import kind.");
     }
     if (action === "source-index") {
       const project = await read(query.get("project") || "");
