@@ -259,6 +259,14 @@ export async function handle(
           await checkpoint(p, c, (await req.json()).name),
         );
     }
+    if (action === "beat-detect" && req.method === "POST") {
+      const b = await req.json();
+      const p = await read(b.project);
+      if (busy(p.id))
+        throw Error("A render is already running. Try again when it finishes.");
+      const { analyzeProjectBeats } = await import("./beat-detect");
+      return NextResponse.json(await analyzeProjectBeats(p.id, req.signal));
+    }
     if (action === "media-proxy") {
       const mediaProxy = await import("./media-proxy");
       const body =

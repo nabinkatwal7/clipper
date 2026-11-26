@@ -407,3 +407,19 @@ test("effect stacks apply multiple timed filters in order", () => {
     ]),
   );
 });
+
+import { detectBeats, snapToBeats } from "../lib/beat-detect";
+test("beat detection finds periodic onsets and supports snapping", () => {
+  const rate = 22050;
+  const duration = 4;
+  const samples = new Float32Array(rate * duration);
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / rate;
+    const click = Math.abs(t % 0.5) < 0.01 ? 1 : 0;
+    samples[i] = click * (0.5 + 0.5 * Math.random());
+  }
+  const result = detectBeats(samples, rate, duration);
+  assert.ok(result.beats.length >= 4);
+  assert.ok(result.bpm > 100 && result.bpm < 140);
+  assert.equal(snapToBeats(0.52, result.beats, 0.15), result.beats.find(b => Math.abs(b.time-0.5)<0.05)?.time || 0.52);
+});

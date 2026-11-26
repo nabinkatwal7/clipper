@@ -220,6 +220,32 @@ export function VideoEditor({
   });
   const [quality, setQuality] = useState(720);
   const [useProxy, setUseProxy] = useState(false);
+  const [beats, setBeats] = useState<{ time: number; strength: number }[]>([]);
+  const [beatBusy, setBeatBusy] = useState(false);
+  const [beatInfo, setBeatInfo] = useState("");
+  async function analyzeBeats() {
+    setBeatBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/beat-detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project: project.id }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error);
+      setBeats(data.beats || []);
+      setBeatInfo(
+        data.bpm
+          ? `~${data.bpm} BPM · ${Math.round((data.confidence || 0) * 100)}% confidence`
+          : "Beats detected without a stable BPM estimate",
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBeatBusy(false);
+    }
+  }
   const [proxyReady, setProxyReady] = useState(false);
   const [proxyBusy, setProxyBusy] = useState(false);
   useEffect(() => {
@@ -808,8 +834,12 @@ export function VideoEditor({
           )}
         </div>
       </div>
+      {beatInfo && <p className="hint">{beatInfo}</p>}
       <EditTimeline
         tracks={settings.composition?.tracks}
+        beats={beats}
+        beatBusy={beatBusy}
+        onAnalyzeBeats={analyzeBeats}
         onTracks={(tracks) =>
           setSettings({
             ...settings,

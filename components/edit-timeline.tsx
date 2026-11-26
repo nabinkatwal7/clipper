@@ -28,6 +28,9 @@ export function EditTimeline({
   inPoint,
   outPoint,
   segments,
+  beats = [],
+  onAnalyzeBeats,
+  beatBusy,
 }: {
   overlay?: string;
   tracks?: Track[];
@@ -45,6 +48,9 @@ export function EditTimeline({
   inPoint: (v: number) => void;
   outPoint: (v: number) => void;
   segments: Segment[];
+  beats?: { time: number; strength: number }[];
+  onAnalyzeBeats?: () => void;
+  beatBusy?: boolean;
 }) {
   const bed = useRef<HTMLDivElement>(null);
   const drag = useRef<{
@@ -81,6 +87,7 @@ export function EditTimeline({
       ...markers,
       ...visibleTracks.flatMap((t) => [start + t.at, start + t.at + t.length]),
       ...segments.flatMap((s) => [s.start, s.end]),
+      ...beats.map((b) => b.time),
     ];
     let best = at,
       delta = 0.12;
@@ -175,6 +182,15 @@ export function EditTimeline({
           <button title="Add or remove marker at playhead" onClick={mark}>
             Marker
           </button>
+          {onAnalyzeBeats && (
+            <button
+              title="Detect beats from source audio"
+              disabled={beatBusy}
+              onClick={onAnalyzeBeats}
+            >
+              {beatBusy ? "Detecting…" : beats.length ? `Beats · ${beats.length}` : "Detect beats"}
+            </button>
+          )}
           <button
             title="Snap trim handles to nearby markers and captions"
             aria-pressed={snap}
@@ -203,6 +219,22 @@ export function EditTimeline({
           <time key={i}>{duration(left + (i * span) / 5)}</time>
         ))}
       </div>
+      {beats.some((m) => m.time >= left && m.time <= right) && (
+        <div className="marker-lane beat-lane" aria-label="Detected beats">
+          {beats
+            .filter((m) => m.time >= left && m.time <= right)
+            .map((m) => (
+              <button
+                key={"beat-" + m.time}
+                title={"Beat " + duration(m.time)}
+                style={{ left: pct(m.time) + "%", opacity: 0.35 + 0.65 * m.strength }}
+                onClick={() => seek(m.time)}
+              >
+                |
+              </button>
+            ))}
+        </div>
+      )}
       {markers.some((m) => m >= left && m <= right) && (
         <div className="marker-lane">
           {markers
