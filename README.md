@@ -37,11 +37,11 @@ See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for implementation status of every fe
 
 ## Quick start
 
-Requirements: Node.js 22 or 24, FFmpeg (with `libass`) and FFprobe, yt-dlp, and Ollama. A GPU is optional. Python is not required.
+**Windows x64:** Download or clone the repository and double-click [Install-Clipper.cmd](Install-Clipper.cmd). It installs the app, media tools, Ollama models, and local Whisper transcription, then starts Studio on port 4000. See the [Windows setup guide](docs/INSTALL.md#windows-setup) for requirements and launch options.
+
+For manual setup, you need Node.js 22 or 24, FFmpeg (with `libass`) and FFprobe, yt-dlp, and Ollama. A GPU is optional. Python is not required.
 
 ```sh
-# Windows
-winget install Gyan.FFmpeg yt-dlp.yt-dlp Ollama.Ollama
 # macOS
 brew install node@22 ffmpeg yt-dlp ollama
 # Linux: install ffmpeg and yt-dlp from your package manager, Ollama from ollama.com

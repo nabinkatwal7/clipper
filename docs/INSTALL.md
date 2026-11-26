@@ -13,16 +13,22 @@ Python is **not** required. A GPU is optional; CPU encoding works and Ollama use
 
 Make sure each command is on your `PATH` **before** starting Next.js, or set absolute paths in `.env.local` (see [CONFIGURATION.md](CONFIGURATION.md)).
 
-## Windows (PowerShell)
+## Windows setup
+
+1. Clone the repository or extract its source ZIP to a folder you can write to. Use Windows 10 or 11 on an x64 PC with [App Installer](https://learn.microsoft.com/en-us/windows/package-manager/winget/) and an internet connection.
+2. Double-click **Install-Clipper.cmd** in that folder. Approve any Windows prompts for the dependency installers. The initial setup downloads several gigabytes, mostly Ollama models.
+3. Once Studio starts, open <http://127.0.0.1:4000>, choose **Get started**, and create your owner account. Save the recovery code. Keep the terminal open while using Studio.
+
+Setup installs Node.js and npm, FFmpeg and FFprobe, yt-dlp and its Deno runtime, Ollama with the configured chat model and `all-minilm`, and whisper.cpp with the multilingual base speech model. It installs the app dependencies from the lockfile and creates `.env.local` on first run. Existing settings and stored projects are preserved.
+
+To install without starting Studio or to launch again later, run these commands from the project folder in PowerShell:
 
 ```powershell
-winget install Gyan.FFmpeg
-winget install yt-dlp.yt-dlp
-winget install Ollama.Ollama
-ollama pull qwen2.5:3b
+.\Install-Clipper.cmd -NoLaunch
+.\Install-Clipper.cmd -LaunchOnly
 ```
 
-Open a new terminal afterwards so the new commands are found. Install Node.js from <https://nodejs.org>.
+The installer starts local Ollama if needed. When `OLLAMA_URL` points to a remote service, setup checks connectivity and uses that service's existing models.
 
 ## macOS
 
