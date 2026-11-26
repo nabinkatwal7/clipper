@@ -1207,6 +1207,13 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Source + Program monitors | Implemented |
 | Source Mark In / Mark Out | Implemented |
 | Overwrite / Insert from source range | Partial |
-| Motion / Compositing / Recording / 3D studios | Planned |
-| Reel Factory / Language Factory | Planned |
-| Universal Media Toolbox | Planned |
+| Soundboard + step sequencer | Implemented |
+| Recording Studio (getDisplayMedia / MediaRecorder) | Implemented |
+| Instant replay rolling buffer (bounded segments) | Implemented |
+| Instant replay bookmark scrub + extract | Implemented |
+| Motion Studio scaffold (text/shape layers) | Partial |
+| Compositing Studio node graph scaffold | Partial |
+| Compositing graph validate / compile plan | Implemented |
+| 3D Studio | Planned |
+| Reel Factory / Language Factory | Implemented |
+| Universal Media Toolbox | Partial |

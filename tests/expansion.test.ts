@@ -618,7 +618,16 @@ test("studio registry exposes live pages without planned routes", () => {
   assert.ok(studioGroups.some((g) => g.id === "editing"));
   const pages = livePages();
   assert.ok(pages.includes("Video editor"));
-  assert.ok(!pages.includes("Motion Studio"));
+  assert.ok(pages.includes("Motion Studio"));
+  assert.ok(pages.includes("Soundboard"));
+  assert.ok(pages.includes("Recording Studio"));
+  assert.ok(pages.includes("Instant replay"));
+  assert.ok(pages.includes("Compositing Studio"));
+  assert.ok(
+    !studioGroups
+      .flatMap((g) => g.routes)
+      .some((r) => r.id === "three-d" && r.page),
+  );
 });
 
 import {
@@ -891,5 +900,140 @@ test("audio restore plans compile to ffmpeg filters", () => {
   assert.equal(
     compositionFingerprint({ version: 1, tracks: [] }).length,
     24,
+  );
+});
+
+import {
+  emptyProfile,
+  emptySequencer,
+  validatePad,
+  validateProfile as validateSoundboard,
+  validateSequencer,
+} from "../lib/soundboard";
+import { defaultScenes, validateScene, newSession } from "../lib/recording-meta";
+test("soundboard validates pads, profiles and sequencer lanes", () => {
+  const padId = "11111111-1111-4111-8111-111111111111";
+  const assetId = "22222222-2222-4222-8222-222222222222";
+  const pad = validatePad({
+    id: padId,
+    label: "Hit",
+    assetId,
+    volume: 0.8,
+    loop: false,
+    key: "1",
+  });
+  assert.equal(pad.label, "Hit");
+  const profile = validateSoundboard({
+    ...emptyProfile("SFX"),
+    pads: [pad],
+  });
+  assert.equal(profile.pads.length, 1);
+  const seq = emptySequencer();
+  seq.patterns[0].lanes[padId] = Array(16).fill(false);
+  seq.patterns[0].lanes[padId][0] = true;
+  const ok = validateSequencer(seq);
+  assert.equal(ok.tempo, 120);
+  assert.throws(() =>
+    validateSequencer({
+      ...seq,
+      patterns: [{ ...seq.patterns[0], steps: 12 }],
+    }),
+  );
+});
+test("recording scenes and sessions stay bounded", () => {
+  assert.ok(defaultScenes.length >= 3);
+  const scene = validateScene(defaultScenes[0]);
+  assert.equal(scene.layout, "fullscreen");
+  const session = newSession(scene.id);
+  assert.equal(session.version, 1);
+  assert.equal(session.bookmarks.length, 0);
+  assert.throws(() =>
+    validateScene({ ...defaultScenes[0], layout: "orbital" }),
+  );
+});
+
+import {
+  bookmarkWindow,
+  validateReplaySeconds,
+  REPLAY_SECONDS,
+} from "../lib/instant-replay";
+test("instant replay windows stay bounded and validated", () => {
+  assert.ok(REPLAY_SECONDS.includes(30));
+  assert.equal(validateReplaySeconds(90), 90);
+  assert.throws(() => validateReplaySeconds(45));
+  const win = bookmarkWindow(40, 10, 5, 120);
+  assert.equal(win.start, 30);
+  assert.equal(win.end, 45);
+  const edge = bookmarkWindow(2, 10, 5, 20);
+  assert.equal(edge.start, 0);
+  assert.ok(edge.end <= 20);
+  assert.throws(() => bookmarkWindow(150, 0, 400, 600));
+});
+
+import {
+  emptyGraph,
+  createNode,
+  validateGraph,
+  compileGraph,
+  topoOrder,
+} from "../lib/comp-graph";
+test("compositing graphs reject cycles and compile connected outputs", () => {
+  const g = emptyGraph("Test");
+  const blur = createNode("effect.blur", 200, 120);
+  g.nodes.push(blur);
+  g.edges.push({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    from: g.nodes[0].id,
+    fromPort: "out",
+    to: blur.id,
+    toPort: "in",
+  });
+  g.edges.push({
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    from: blur.id,
+    fromPort: "out",
+    to: g.nodes[1].id,
+    toPort: "in",
+  });
+  const ok = validateGraph(g);
+  assert.equal(topoOrder(ok).length, 3);
+  const plan = compileGraph(ok);
+  assert.ok(plan.steps.some((s) => s.includes("gblur")));
+  assert.ok(plan.outputs.length);
+  const cyclic = structuredClone(ok);
+  cyclic.edges.push({
+    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    from: g.nodes[1].id,
+    fromPort: "out",
+    to: g.nodes[0].id,
+    toPort: "in",
+  });
+  // preview has no out port — force a bogus cycle via duplicated merge loop
+  const a = createNode("comp.merge", 0, 0);
+  const b = createNode("comp.merge", 100, 0);
+  assert.throws(() =>
+    validateGraph({
+      version: 1,
+      id: g.id,
+      name: "cycle",
+      updatedAt: new Date().toISOString(),
+      nodes: [a, b],
+      edges: [
+        {
+          id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+          from: a.id,
+          fromPort: "out",
+          to: b.id,
+          toPort: "base",
+        },
+        {
+          id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          from: b.id,
+          fromPort: "out",
+          to: a.id,
+          toPort: "base",
+        },
+      ],
+    }),
   );
 });

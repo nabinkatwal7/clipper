@@ -106,8 +106,18 @@ export const studioGroups: StudioGroup[] = [
         page: "Compilations",
         status: "live",
       },
-      { id: "motion", label: "Motion Studio", status: "planned" },
-      { id: "compositing", label: "Compositing Studio", status: "planned" },
+      {
+        id: "motion",
+        label: "Motion Studio",
+        page: "Motion Studio",
+        status: "partial",
+      },
+      {
+        id: "compositing",
+        label: "Compositing Studio",
+        page: "Compositing Studio",
+        status: "partial",
+      },
       { id: "color", label: "Color Studio", page: "Video editor", status: "partial" },
     ],
   },
@@ -128,7 +138,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Audio restoration",
         status: "live",
       },
-      { id: "soundboard", label: "Soundboard", status: "planned" },
+      {
+        id: "soundboard",
+        label: "Soundboard",
+        page: "Soundboard",
+        status: "live",
+      },
     ],
   },
   {
@@ -177,8 +192,18 @@ export const studioGroups: StudioGroup[] = [
     label: "Recording",
     description: "Screen, webcam and scene capture",
     routes: [
-      { id: "record", label: "Recording Studio", status: "planned" },
-      { id: "replay", label: "Instant replay", status: "planned" },
+      {
+        id: "record",
+        label: "Recording Studio",
+        page: "Recording Studio",
+        status: "live",
+      },
+      {
+        id: "replay",
+        label: "Instant replay",
+        page: "Instant replay",
+        status: "live",
+      },
     ],
   },
   {

@@ -734,6 +734,91 @@ export async function handle(
         ),
       });
     }
+    if (action === "soundboard") {
+      const sb = await import("./soundboard");
+      if (req.method === "GET") {
+        if (query.get("kind") === "sequencer")
+          return NextResponse.json(await sb.loadSequencer());
+        return NextResponse.json(await sb.loadSoundboard());
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.kind === "sequencer")
+          return NextResponse.json(await sb.saveSequencer(b.doc));
+        return NextResponse.json(await sb.saveSoundboard(b.profile));
+      }
+    }
+    if (action === "recording-meta") {
+      const rec = await import("./recording-meta");
+      if (req.method === "GET") {
+        if (query.get("kind") === "sessions")
+          return NextResponse.json(await rec.listSessions());
+        return NextResponse.json(await rec.loadScenes());
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "session")
+          return NextResponse.json(await rec.appendSession(b.session));
+        if (b.op === "scenes")
+          return NextResponse.json(await rec.saveScenes(b.scenes));
+        throw Error("Unsupported recording-meta operation");
+      }
+    }
+    if (action === "instant-replay") {
+      const ir = await import("./instant-replay");
+      if (req.method === "GET")
+        return NextResponse.json({ durations: ir.REPLAY_SECONDS });
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "window")
+          return NextResponse.json(
+            ir.bookmarkWindow(
+              Number(b.at),
+              Number(b.before),
+              Number(b.after),
+              Number(b.duration),
+            ),
+          );
+        if (b.op === "extract") {
+          const start = Number(b.start);
+          const end = Number(b.end);
+          return NextResponse.json(
+            await ir.cutAssetReplay(b.assetId, start, end, req.signal),
+          );
+        }
+        throw Error("Unsupported instant-replay operation");
+      }
+    }
+    if (action === "comp-graph") {
+      const cg = await import("./comp-graph");
+      if (req.method === "GET") {
+        const graphs = await cg.listGraphs();
+        return NextResponse.json({
+          catalog: cg.NODE_CATALOG,
+          graphs,
+          default: graphs[0] || cg.emptyGraph(),
+        });
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "create-node") {
+          if (!cg.NODE_CATALOG.some((n) => n.kind === b.kind))
+            throw Error("Unknown node kind");
+          return NextResponse.json(
+            cg.createNode(b.kind, Number(b.x) || 80, Number(b.y) || 80),
+          );
+        }
+        if (b.op === "save")
+          return NextResponse.json(await cg.saveGraph(b.graph));
+        if (b.op === "delete")
+          return NextResponse.json(await cg.deleteGraph(b.id));
+        if (b.op === "compile")
+          return NextResponse.json(cg.compileGraph(b.graph));
+        if (b.op === "validate")
+          return NextResponse.json(cg.validateGraph(b.graph));
+        throw Error("Unsupported comp-graph operation");
+      }
+    }
     if (action === "render-replace") {
       const rr = await import("./render-replace");
       if (req.method === "GET") {

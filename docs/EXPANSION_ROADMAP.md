@@ -10,11 +10,11 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 2 | Clipping productivity | **In progress** — transcript cuts, instant clip, monitors, suggestions, Moment Search, Creator Memory, Reel Factory |
 | 3 | Professional video workflows | **In progress** — sequences, bins, render-and-replace |
 | 4 | Language Studio | Partial (subtitle studio live) |
-| 5 | Audio production | **In progress** — mixer + restoration/spectrogram; sequencer planned |
+| 5 | Audio production | **In progress** — mixer, restoration/spectrogram, soundboard + sequencer |
 | 6 | Design Studio | Partial (thumbnails live) |
-| 7 | Motion Studio | Planned |
-| 8 | Recording Studio | Planned |
-| 9 | Compositing Studio | Planned |
+| 7 | Motion Studio | Partial — layer/timeline scaffold feeding composition |
+| 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
+| 9 | Compositing Studio | Partial — typed node graph, validate/compile plan |
 | 10 | Media Toolbox | Partial — convert/inspect live |
 | 11 | Production and Review | Partial (desk/calendar live) |
 | 12 | Automation | Partial (workflow builder live) |
@@ -57,6 +57,10 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 12. ~~Media Toolbox (HandBrake-style)~~
 13. ~~Render and Replace~~
 14. ~~Audio restoration spectrogram~~
-15. Soundboard / basic sequencer
-16. Recording Studio (getDisplayMedia)
-17. Motion Studio scaffold
+15. ~~Soundboard / basic sequencer~~
+16. ~~Recording Studio (getDisplayMedia)~~
+17. ~~Motion Studio scaffold~~
+18. ~~Instant replay / bookmark scrub~~
+19. ~~Compositing Studio foundations~~
+20. Compositing graph → FFmpeg bake
+21. Deeper motion presets + preview

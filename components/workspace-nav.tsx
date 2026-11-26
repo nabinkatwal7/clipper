@@ -24,6 +24,7 @@ import {
   Box,
   Bot,
   LayoutGrid,
+  Layers,
 } from "lucide-react";
 import { studioGroups, type StudioId } from "@/lib/studios";
 
@@ -67,6 +68,11 @@ const pageIcons: Record<string, LucideIcon> = {
   "Media toolbox": HardDrive,
   "Clip Family Tree": Clapperboard,
   "Audio restoration": AudioLines,
+  Soundboard: AudioLines,
+  "Recording Studio": Video,
+  "Instant replay": Video,
+  "Motion Studio": Scissors,
+  "Compositing Studio": Layers,
   "Workflow builder": Workflow,
   "Production desk": SlidersHorizontal,
   "Content calendar": CalendarDays,

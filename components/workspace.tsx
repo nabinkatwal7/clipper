@@ -51,6 +51,11 @@ import { ProjectBinsPanel } from "./project-bins-panel";
 import { MediaToolboxPanel } from "./media-toolbox-panel";
 import { ClipFamilyPanel } from "./clip-family-panel";
 import { AudioRestoreStudio } from "./audio-restore-studio";
+import { SoundboardStudio } from "./soundboard-studio";
+import { RecordingStudio } from "./recording-studio";
+import { InstantReplayPanel } from "./instant-replay";
+import { MotionStudio } from "./motion-studio";
+import { CompositingStudio } from "./compositing-studio";
 import { SetupOptions } from "./setup-options";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
@@ -494,6 +499,11 @@ export default function Workspace() {
             {page === "Audio restoration" && (
               <AudioRestoreStudio projects={projects} />
             )}
+            {page === "Soundboard" && <SoundboardStudio />}
+            {page === "Recording Studio" && <RecordingStudio />}
+            {page === "Instant replay" && <InstantReplayPanel />}
+            {page === "Motion Studio" && <MotionStudio projects={projects} />}
+            {page === "Compositing Studio" && <CompositingStudio />}
             {page === "Clip Family Tree" &&
               (project ? (
                 <>
