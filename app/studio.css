@@ -1666,11 +1666,53 @@ time,
   background: var(--surface);
   overflow: hidden;
 }
-.overlay-track span {
+.overlay-track span,
+.overlay-track .track-clip {
   display: block;
+  position: relative;
   background: var(--active);
   color: var(--accent-text);
   font-size: 10px;
+  min-width: 8px;
+  box-sizing: border-box;
+}
+.overlay-track .track-clip.is-editable {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.overlay-track .track-clip.is-editable:active {
+  cursor: grabbing;
+}
+.overlay-track .track-clip.is-locked {
+  cursor: not-allowed;
+}
+.overlay-track .track-clip b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 6px;
+  font-weight: 550;
+  pointer-events: auto;
+}
+.overlay-track .track-trim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 1;
+}
+.overlay-track .track-trim.start {
+  left: 0;
+}
+.overlay-track .track-trim.end {
+  right: 0;
+}
+.overlay-track .track-trim:hover,
+.overlay-track .track-trim:active {
+  background: color-mix(in oklab, var(--accent-text) 35%, transparent);
 }
 @media (max-width: 650px) {
   .editor-grid,

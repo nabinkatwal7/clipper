@@ -15,7 +15,7 @@ Keyframeable properties: `x`, `y`, `volume`, `rotation`, `opacity`, `size`. Inte
 | Surface | Role |
 | --- | --- |
 | `components/video-editor.tsx` | Full editor shell, undo/redo, save, tabs |
-| `components/edit-timeline.tsx` | Source trim, markers, zoom, composition span bars |
+| `components/edit-timeline.tsx` | Source trim, markers, zoom, composition drag/trim gestures |
 | `components/layers-panel.tsx` | Track CRUD, transforms, masks, chroma, keyframes |
 | `components/editor-monitor.tsx` | Fast source canvas (layout, crop, captions) |
 | `components/render-preview.tsx` | Short FFmpeg composition preview |

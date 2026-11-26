@@ -1,12 +1,20 @@
 "use client";
-import {studioStorage} from "@/lib/client-storage";
-import { useEffect, useState } from "react";
+import { studioStorage } from "@/lib/client-storage";
+import { useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { FrameStrip } from "./frame-strip";
 import { duration } from "./studio-media";
+import {
+  dragTrack,
+  type TrackGesture,
+} from "@/lib/timeline-gestures";
+import type { Track } from "@/lib/composition";
 import type { Segment } from "@/lib/types";
+
 export function EditTimeline({
-  overlay,tracks=[],
+  overlay,
+  tracks = [],
+  onTracks,
   project,
   clip,
   originalStart,
@@ -21,7 +29,9 @@ export function EditTimeline({
   outPoint,
   segments,
 }: {
-  overlay?: string;tracks?:import("@/lib/composition").Track[];
+  overlay?: string;
+  tracks?: Track[];
+  onTracks?: (tracks: Track[]) => void;
   project: string;
   clip: string;
   originalStart: number;
@@ -36,6 +46,13 @@ export function EditTimeline({
   outPoint: (v: number) => void;
   segments: Segment[];
 }) {
+  const bed = useRef<HTMLDivElement>(null);
+  const drag = useRef<{
+    id: string;
+    gesture: TrackGesture;
+    originX: number;
+    snapshot: Track[];
+  } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [markers, setMarkers] = useState<number[]>([]),
     [snap, setSnap] = useState(true);
@@ -58,7 +75,8 @@ export function EditTimeline({
     const points = [
       originalStart,
       originalEnd,
-      ...markers, ...tracks.flatMap(t=>[start+t.at,start+t.at+t.length]),
+      ...markers,
+      ...tracks.flatMap((t) => [start + t.at, start + t.at + t.length]),
       ...segments.flatMap((s) => [s.start, s.end]),
     ];
     let best = at,
@@ -80,6 +98,50 @@ export function EditTimeline({
     right = left + span;
   const pct = (v: number) =>
     Math.max(0, Math.min(100, ((v - left) / span) * 100));
+  const clipLength = Math.max(0.04, end - start);
+
+  function beginDrag(
+    event: React.PointerEvent,
+    id: string,
+    gesture: TrackGesture,
+  ) {
+    if (!onTracks || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    drag.current = {
+      id,
+      gesture,
+      originX: event.clientX,
+      snapshot: tracks.map((track) => ({ ...track, keys: { ...track.keys } })),
+    };
+  }
+
+  function moveDrag(event: React.PointerEvent) {
+    if (!drag.current || !onTracks || !bed.current) return;
+    const width = bed.current.getBoundingClientRect().width || 1;
+    const deltaSeconds = ((event.clientX - drag.current.originX) / width) * span;
+    onTracks(
+      dragTrack(
+        drag.current.snapshot,
+        drag.current.id,
+        drag.current.gesture,
+        deltaSeconds,
+        clipLength,
+      ),
+    );
+  }
+
+  function endDrag(event: React.PointerEvent) {
+    if (!drag.current) return;
+    try {
+      (event.currentTarget as HTMLElement).releasePointerCapture(
+        event.pointerId,
+      );
+    } catch {}
+    drag.current = null;
+  }
+
   return (
     <section className="edit-timeline" aria-label="Editing timeline">
       <div className="section-row">
@@ -133,7 +195,7 @@ export function EditTimeline({
             ))}
         </div>
       )}
-      <div className="timeline-bed">
+      <div className="timeline-bed" ref={bed}>
         <div className="frame-track">
           <FrameStrip project={project} left={left} span={span} />
           <b className="track-label">Video</b>
@@ -186,7 +248,59 @@ export function EditTimeline({
             </span>
           </div>
         )}
-        {tracks.map(t=><div key={t.id} className="overlay-track" aria-label={t.type+" track "+t.name}><span style={{marginLeft:pct(start+t.at)+"%",width:(pct(start+t.at+t.length)-pct(start+t.at))+"%",opacity:t.visible||!t.muted?1:.5}}>{t.locked?"🔒 ":""}{t.name}</span></div>)}
+        {tracks.map((t) => (
+          <div
+            key={t.id}
+            className="overlay-track"
+            aria-label={t.type + " track " + t.name}
+          >
+            <span
+              className={
+                "track-clip" +
+                (t.locked ? " is-locked" : "") +
+                (onTracks && !t.locked ? " is-editable" : "")
+              }
+              style={{
+                marginLeft: pct(start + t.at) + "%",
+                width: pct(start + t.at + t.length) - pct(start + t.at) + "%",
+                opacity: t.visible || !t.muted ? 1 : 0.5,
+              }}
+              title={
+                t.locked
+                  ? t.name + " (locked)"
+                  : t.name + " — drag to move, edges to trim"
+              }
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+            >
+              {onTracks && !t.locked && (
+                <i
+                  className="track-trim start"
+                  aria-hidden
+                  onPointerDown={(e) => beginDrag(e, t.id, "trim-start")}
+                />
+              )}
+              <b
+                onPointerDown={(e) =>
+                  onTracks && !t.locked
+                    ? beginDrag(e, t.id, "move")
+                    : undefined
+                }
+              >
+                {t.locked ? "🔒 " : ""}
+                {t.name}
+              </b>
+              {onTracks && !t.locked && (
+                <i
+                  className="track-trim end"
+                  aria-hidden
+                  onPointerDown={(e) => beginDrag(e, t.id, "trim-end")}
+                />
+              )}
+            </span>
+          </div>
+        ))}
         <i className="playhead" style={{ left: pct(now) + "%" }} />
         <input
           className="timeline-scrub"

@@ -5,6 +5,7 @@ import { compileWorkflow, type Workflow } from "../lib/workflow";
 import { analysisWindows, passesRules } from "../lib/discovery";
 import { defaults, type Highlight, type Segment } from "../lib/types";
 import { curve, validateComposition } from "../lib/composition";
+import { dragTrack } from "../lib/timeline-gestures";
 test("director keeps only bounded, explained edit proposals", () => {
   const proposals = [
     { kind: "range", start: 1, end: 2, why: "Lead in" },
@@ -63,6 +64,60 @@ test("composition versioning and interpolation enforce explicit timeline offsets
     ),
     /lt\(t,5\)/,
   );
+});
+test("timeline gestures move, trim and respect locked tracks", () => {
+  const track = {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "B-roll",
+    asset: "22222222-2222-4222-8222-222222222222",
+    type: "video" as const,
+    at: 1,
+    length: 2,
+    slip: 0.5,
+    x: 0.5,
+    y: 0.5,
+    size: 0.4,
+    opacity: 1,
+    volume: 1,
+    visible: true,
+    muted: false,
+    locked: false,
+    solo: false,
+    loop: false,
+    fade: 0,
+    keys: {},
+  };
+  assert.equal(dragTrack([track], track.id, "move", 0.5, 10)[0].at, 1.5);
+  assert.equal(
+    dragTrack([track], track.id, "trim-end", 1, 10)[0].length,
+    3,
+  );
+  const trimmed = dragTrack([track], track.id, "trim-start", 0.5, 10)[0];
+  assert.equal(trimmed.at, 1.5);
+  assert.equal(trimmed.length, 1.5);
+  assert.equal(trimmed.slip, 1);
+  assert.equal(
+    dragTrack([{ ...track, locked: true }], track.id, "move", 1, 10)[0].at,
+    1,
+  );
+  const peer = {
+    ...track,
+    id: "33333333-3333-4333-8333-333333333333",
+    group: "44444444-4444-4444-8444-444444444444",
+    at: 2,
+  };
+  const grouped = dragTrack(
+    [
+      { ...track, group: peer.group },
+      peer,
+    ],
+    track.id,
+    "move",
+    0.25,
+    10,
+  );
+  assert.equal(grouped[0].at, 1.25);
+  assert.equal(grouped[1].at, 2.25);
 });
 test("layer scale keyframes stay within size bounds and reject audio tracks", () => {
   const base = {

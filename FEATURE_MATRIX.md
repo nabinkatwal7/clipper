@@ -96,9 +96,9 @@ Test coverage — Render fixture preserves original and adds a variation.
 
 Runtime dependencies — Local assets, FFmpeg.
 
-The base clip has captions and text. Additional tracks support local media assets. Ripple operations act on asset timing. Multiple media rows can be grouped and moved together. Timeline spans show their actual timing. Nested compositions are outstanding.
+The base clip has captions and text. Additional tracks support local media assets. Ripple operations act on asset timing. Multiple media rows can be grouped and moved together. Timeline spans show their actual timing and support drag-to-move plus edge trim with slip. Nested compositions are outstanding.
 
-Test coverage — Real split, inset and audio mix fixture.
+Test coverage — Real split, inset and audio mix fixture; timeline gesture unit tests.
 
 | Requested feature | Status |
 | --- | --- |

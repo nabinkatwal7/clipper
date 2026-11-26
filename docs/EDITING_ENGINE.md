@@ -5,7 +5,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | Brief sections | Current implementation | Outstanding work |
 | --- | --- | --- |
 | 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, composition preview and export validation | Broader document schema, full realtime composition and preview caching |
-| 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, undo, checkpoints and asset browser | Expanded track gestures, media proxy workflow and deeper timeline editing |
+| 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, drag/trim composition lanes, undo, checkpoints and asset browser | Media proxy workflow, multi-select timeline editing and deeper NLE gestures |
 | 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes for supported layers | General-purpose curves, graph editor and entrance/exit/loop presets |
 | 14–18 · Effects and transitions | Timed effects, color tools and compilation transitions | Expanded effect catalog, effect stacking and per-cut editor transitions |
 | 19–20 · Speed | Constant 0.5×–4× playback speed, pitch-preserving audio, retimed sidecar captions and source-aligned comparison | Speed curves, reverse playback and motion interpolation |

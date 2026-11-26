@@ -748,6 +748,12 @@ export function VideoEditor({
       </div>
       <EditTimeline
         tracks={settings.composition?.tracks}
+        onTracks={(tracks) =>
+          setSettings({
+            ...settings,
+            composition: { version: 1, tracks },
+          })
+        }
         overlay={settings.overlayText}
         clip={clip.id}
         originalStart={clip.start}
