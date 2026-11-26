@@ -474,3 +474,10 @@ test("storage keeps download-manager files out of generic cleanup (resumable par
   assert.equal(REGEN.has("download-partial"), false);
   assert.equal(REGEN.has("downloads"), false);
 });
+
+import { validateUrl } from "../lib/network";
+test("an unresolvable host gives a plain 'no internet' message instead of a raw DNS error", async () => {
+  // .invalid is reserved and can never resolve, whether or not this machine is online.
+  await assert.rejects(validateUrl("https://offline-check.invalid/video.mp4"), /No internet connection, or offline-check\.invalid could not be found/);
+});
+

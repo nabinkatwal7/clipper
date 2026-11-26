@@ -1269,3 +1269,4 @@ Statuses are limited to what was checked; see `CLIPPING_ENGINE_AUDIT.md` for the
 | Embeddings-based similarity, music/SFX extensions, resumable downloads, hardware benchmarks, offline acceptance run | Not done |
 | Download manager (inspect, queue, resume, audio/subtitle/range modes, cache, duplicates, disk check) | Implemented; tested with a stub downloader, metadata read verified live; no real media download yet |
 | Long-form analysis benchmark (10/60 min, resume after interruption) | Measured on one desktop only; not on i5 / 8 GB; synthetic sources |
+| Offline acceptance run (16 steps, simulated network failure) | Passed against the real server; guard is simulated, not a physical disconnect |

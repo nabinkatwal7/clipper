@@ -34,7 +34,11 @@ Set `OLLAMA_URL` (default `http://127.0.0.1:11434`). Keep it on localhost. Studi
 
 ## Network and offline behaviour
 
-Needs internet: importing from a URL, checking creator feeds, downloading dependencies or Ollama models. Everything else (login, local import, no-AI analysis, local Ollama, editing, rendering, packages, storage, campaigns) is local. When a network operation cannot reach the internet it reports an error; nothing silently falls back to another service. An offline acceptance run has not been performed yet.
+Needs internet: importing from a URL, checking creator feeds, downloading dependencies or Ollama models. Everything else (login, local import, no-AI analysis, local Ollama, editing, rendering, packages, storage, campaigns) is local. When a network operation cannot reach the internet it says so plainly ("No internet connection, or <host> could not be found…"); nothing silently falls back to another service.
+
+**Offline acceptance run.** `scripts/offline-acceptance.mjs` drives a running Studio through account creation and sign-in, local video import and render, no-AI analysis, chat and transcript signals, local Ollama ranking, Quick Clip, a manual edit, local translation to Nepali, a campaign compliance report, the publishing-package ZIP, and the local pages, then confirms the internet-only features fail clearly. Start Studio with `scripts/offline-guard.cjs` preloaded (`NODE_OPTIONS=--require=<abs path>`; set `OFFLINE_GUARD_LOG`) and every non-loopback DNS lookup or connection made by the server fails and is logged. The guard simulates a missing network for the Node server only; it does not cover separate programs such as FFmpeg. The machine was not physically disconnected.
+
+Studio launches (`npm run dev|build|start`) go through `scripts/next.mjs`, which turns Next.js telemetry off and blocks the development server's npm-registry version check. Use `npm run build` + `start.ps1 -Production` if you want to be certain no development tooling is running.
 
 ## Scheduled work
 

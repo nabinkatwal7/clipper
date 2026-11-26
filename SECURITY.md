@@ -56,3 +56,7 @@ Clipper Studio is designed to run on a machine you control, bound to `127.0.0.1`
 - Cleanup deletes only paths that appear in a freshly built preview and sit inside the workspace; downloaded sources need explicit authorisation.
 - Backups contain password hashes and personal data; sessions are excluded.
 - A formal security review has not been performed.
+
+## No phone-home
+
+Next.js anonymous telemetry was enabled by default and the Next development server checks the npm registry for a newer version. `scripts/next.mjs` (used by `npm run dev|build|start`) sets `NEXT_TELEMETRY_DISABLED=1` and preloads `scripts/no-phone-home.cjs`, which refuses requests to `registry.npmjs.org` and `telemetry.nextjs.org`. Running `next` directly bypasses this. Verified with the offline guard (no registry attempts). Your global Next.js telemetry setting was not changed.

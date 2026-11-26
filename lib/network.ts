@@ -15,8 +15,15 @@ export async function validateUrl(raw: string) {
   await resolvePublic(url.hostname);
   return url;
 }
+const OFFLINE = new Set(["ENOTFOUND", "EAI_AGAIN", "ENETUNREACH", "ENETDOWN", "EHOSTUNREACH", "ECONNREFUSED", "ETIMEDOUT"]);
 async function resolvePublic(host: string) {
-  const addresses = await lookup(host.replace(/^\[|\]$/g, ""), { all: true });
+  const addresses = await lookup(host.replace(/^\[|\]$/g, ""), { all: true }).catch((e: NodeJS.ErrnoException) => {
+    if (OFFLINE.has(e.code ?? ""))
+      throw Error(
+        `No internet connection, or ${host} could not be found. Importing from a URL, downloading and checking feeds need internet access; local files, analysis, editing and rendering work offline.`,
+      );
+    throw e;
+  });
   if (!addresses.length || addresses.some((a) => !publicAddress(a.address)))
     throw Error("Private, reserved and local network addresses are blocked");
   return addresses[0];
