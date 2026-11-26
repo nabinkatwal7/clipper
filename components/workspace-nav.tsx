@@ -75,6 +75,8 @@ const pageIcons: Record<string, LucideIcon> = {
   "Instant replay": Video,
   "Tutorial tools": BookOpen,
   "Review Studio": MessageSquare,
+  "Design Studio": Palette,
+  "AI Laboratory": Bot,
   "Motion Studio": Scissors,
   "Compositing Studio": Layers,
   "Workflow builder": Workflow,

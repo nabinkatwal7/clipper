@@ -58,6 +58,8 @@ import { MotionStudio } from "./motion-studio";
 import { CompositingStudio } from "./compositing-studio";
 import { TutorialStudio } from "./tutorial-studio";
 import { ReviewStudio } from "./review-studio";
+import { DesignStudio } from "./design-studio";
+import { AiLabPanel } from "./ai-lab";
 import { SetupOptions } from "./setup-options";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
@@ -512,6 +514,8 @@ export default function Workspace() {
             {page === "Review Studio" && (
               <ReviewStudio projects={projects} />
             )}
+            {page === "Design Studio" && <DesignStudio />}
+            {page === "AI Laboratory" && <AiLabPanel />}
             {page === "Clip Family Tree" &&
               (project ? (
                 <>

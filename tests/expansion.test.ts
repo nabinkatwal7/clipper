@@ -625,6 +625,8 @@ test("studio registry exposes live pages without planned routes", () => {
   assert.ok(pages.includes("Compositing Studio"));
   assert.ok(pages.includes("Tutorial tools"));
   assert.ok(pages.includes("Review Studio"));
+  assert.ok(pages.includes("Design Studio"));
+  assert.ok(pages.includes("AI Laboratory"));
   assert.ok(
     !studioGroups
       .flatMap((g) => g.routes)
@@ -1143,4 +1145,23 @@ test("review studio items accept timestamped comments and statuses", () => {
   assert.equal(next.comments.length, 1);
   assert.equal(validateItem({ ...next, status: "approved" }).status, "approved");
   assert.throws(() => addComment(item, "", 0));
+});
+
+import {
+  emptyArtboard,
+  validateArtboard,
+  DESIGN_FORMATS,
+} from "../lib/design-studio";
+import { emptyPrompt, validatePrompt } from "../lib/ai-lab";
+test("design artboards and AI lab prompts validate local documents", () => {
+  assert.ok(DESIGN_FORMATS.length >= 4);
+  const board = validateArtboard(emptyArtboard("square-post", "Post"));
+  assert.equal(board.width, 1080);
+  assert.ok(board.layers.length >= 1);
+  const prompt = validatePrompt(emptyPrompt("Titles"));
+  assert.ok(prompt.user.length);
+  assert.throws(() =>
+    validateArtboard({ ...board, width: 10 }),
+  );
+  assert.throws(() => validatePrompt({ ...prompt, user: "" }));
 });

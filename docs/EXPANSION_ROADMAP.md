@@ -11,7 +11,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 3 | Professional video workflows | **In progress** — sequences, bins, render-and-replace |
 | 4 | Language Studio | Partial (subtitle studio live) |
 | 5 | Audio production | **In progress** — mixer, restoration/spectrogram, soundboard + sequencer |
-| 6 | Design Studio | Partial (thumbnails live) |
+| 6 | Design Studio | Partial — Thumbnail Studio + artboard scaffold |
 | 7 | Motion Studio | Partial — presets, canvas preview, animation recipes → composition |
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
 | 9 | Compositing Studio | Partial — node graph + FFmpeg bake to asset (60s cap) |
@@ -19,7 +19,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 11 | Production and Review | Partial — desk/calendar + Review Studio live |
 | 12 | Automation | Partial (workflow builder live) |
 | 13 | Optional 3D Studio | Planned |
-| 14 | AI Laboratory + original features | Partial (director/templates live) |
+| 14 | AI Laboratory + original features | Partial — director/templates + Ollama lab playground |
 | 15 | Professional product quality | Ongoing |
 
 ## Phase 1 checklist
@@ -68,5 +68,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 23. ~~Tutorial callouts / cursor markers scaffold~~
 24. ~~Media toolbox batch encode + track extract~~
 25. ~~Review Studio (local notes / approvals)~~
-26. Design Studio artboard scaffold
-27. AI Laboratory prompt playground (Ollama-only)
+26. ~~Design Studio artboard scaffold~~
+27. ~~AI Laboratory prompt playground (Ollama-only)~~
+
+Priority queue through item 27 is complete. Remaining large optional scopes (full Canva-class design, Fusion-class compositing, 3D Studio) stay partial/planned by design.

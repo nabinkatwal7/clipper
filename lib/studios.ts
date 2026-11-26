@@ -157,7 +157,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Thumbnail studio",
         status: "live",
       },
-      { id: "design-studio", label: "Design Studio", status: "planned" },
+      {
+        id: "design-studio",
+        label: "Design Studio",
+        page: "Design Studio",
+        status: "partial",
+      },
       { id: "image", label: "Image editor", status: "planned" },
       { id: "three-d", label: "3D Studio", status: "planned" },
     ],
@@ -300,7 +305,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Creator Memory",
         status: "live",
       },
-      { id: "ai-lab", label: "AI Laboratory", status: "planned" },
+      {
+        id: "ai-lab",
+        label: "AI Laboratory",
+        page: "AI Laboratory",
+        status: "live",
+      },
     ],
   },
   {

@@ -789,6 +789,45 @@ export async function handle(
         throw Error("Unsupported instant-replay operation");
       }
     }
+    if (action === "design-studio") {
+      const ds = await import("./design-studio");
+      if (req.method === "GET") {
+        const boards = await ds.listArtboards();
+        return NextResponse.json({
+          formats: ds.DESIGN_FORMATS,
+          boards,
+          default: boards[0] || ds.emptyArtboard(),
+        });
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "create")
+          return NextResponse.json(
+            await ds.saveArtboard(ds.emptyArtboard(b.format, b.name)),
+          );
+        if (b.op === "save")
+          return NextResponse.json(await ds.saveArtboard(b.board));
+        throw Error("Unsupported design-studio operation");
+      }
+    }
+    if (action === "ai-lab") {
+      const lab = await import("./ai-lab");
+      if (req.method === "GET")
+        return NextResponse.json({
+          prompts: await lab.listPrompts(),
+          runs: await lab.listRuns(),
+        });
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "save")
+          return NextResponse.json(await lab.savePrompt(b.prompt));
+        if (b.op === "run")
+          return NextResponse.json(
+            await lab.runPrompt(b.prompt, b.model || "", req.signal),
+          );
+        throw Error("Unsupported ai-lab operation");
+      }
+    }
     if (action === "review-studio") {
       const rs = await import("./review-studio");
       if (req.method === "GET")

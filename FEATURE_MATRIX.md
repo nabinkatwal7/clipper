@@ -1214,6 +1214,8 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Separate-track recording (screen/mic/cam) | Implemented |
 | Tutorial callouts / manual cursor markers | Partial |
 | Review Studio queue + timestamped notes | Implemented |
+| Design Studio artboard scaffold | Partial |
+| AI Laboratory Ollama prompt playground | Implemented |
 | Motion Studio scaffold (text/shape layers) | Partial |
 | Motion title presets + animation recipes | Implemented |
 | Motion canvas preview / scrub | Implemented |

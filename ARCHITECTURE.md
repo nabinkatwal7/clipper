@@ -81,6 +81,9 @@ Server components under `app/` with content in `lib/site-features.ts`, `lib/publ
 - **Recording Studio** — browser `getDisplayMedia` / `MediaRecorder` capture saves WebM into the asset library; scene presets and session metadata live in `lib/recording-meta.ts`.
 - **Instant replay** — overlapping bounded buffer while recording (`Save last N s`); bookmark scrub + FFmpeg stream-copy extract via `lib/instant-replay.ts`.
 - **Tutorial tools** — callouts/highlights/shortcuts/manual cursor markers (`lib/tutorial-annotations.ts`) compile into composition text/shape tracks; no OS cursor tracking.
+- **Review Studio** — local clip review queue with timestamped notes (`lib/review-studio.ts`).
+- **Design Studio** — format presets + layered artboards (`lib/design-studio.ts`); canvas preview only.
+- **AI Laboratory** — Ollama-only prompt playground with saved prompts/runs (`lib/ai-lab.ts`); never auto-applies edits.
 - **Motion Studio** — text/shape layers, title presets (`lib/motion-presets.ts`), animation recipes, and canvas preview/scrub; saves into the shared clip composition.
 - **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation; `bakeGraph` compiles supported nodes to FFmpeg `filter_complex` and writes a bounded MP4 asset (60s, no audio).
 - **Workspace switcher** — `components/workspace-nav.tsx` + `StudioShell` filter the sidebar by the active workspace group.
