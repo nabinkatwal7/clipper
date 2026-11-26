@@ -87,7 +87,7 @@ Server components under `app/` with content in `lib/site-features.ts`, `lib/publ
 - **3D Studio** — optional Three.js templates (`lib/three-d-studio.ts`) with turntable/orbit/bob and still PNG export; requires WebGL.
 - **AI Laboratory** — Ollama-only prompt playground with saved prompts/runs (`lib/ai-lab.ts`); never auto-applies edits.
 - **Motion Studio** — text/shape layers, title presets (`lib/motion-presets.ts`), animation recipes, and canvas preview/scrub; saves into the shared clip composition.
-- **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation; `bakeGraph` compiles supported nodes to FFmpeg `filter_complex` and writes a bounded MP4 asset (60s, no audio).
+- **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation, tone/effect params, and bake size/duration/fps; `bakeGraph` compiles to FFmpeg `filter_complex` (60s, no audio).
 - **Workspace switcher** — `components/workspace-nav.tsx` + `StudioShell` filter the sidebar by the active workspace group.
 - **Capability registry** — `GET /api/capabilities` wraps diagnostics into feature gates (FFmpeg, hardware encode, ASS, xfade, Ollama models).
 - **Sequences** — `lib/sequences.ts` adds a versioned project document (`schemaVersion: 1`) with named sequences, migration from a single `composition`, and cyclic nesting checks. Settings may carry `sequences` alongside legacy `composition`. UUIDs use `lib/id.ts` (`globalThis.crypto.randomUUID`) so validation stays browser-safe when pulled into client bundles.

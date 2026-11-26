@@ -1094,6 +1094,8 @@ test("compositing bake plan emits filter_complex for solid→blur→out", () => 
 test("compositing catalog includes deepen nodes that bake", () => {
   assert.ok(NODE_CATALOG.some((n) => n.kind === "effect.glow"));
   assert.ok(NODE_CATALOG.some((n) => n.kind === "comp.luma"));
+  assert.ok(NODE_CATALOG.some((n) => n.kind === "effect.brightness"));
+  assert.ok(NODE_CATALOG.some((n) => n.kind === "effect.invert"));
   const noise = createNode("source.noise", 0, 0);
   const glow = createNode("effect.glow", 100, 0);
   glow.amount = 0.4;
@@ -1123,6 +1125,50 @@ test("compositing catalog includes deepen nodes that bake", () => {
   });
   const bake = buildBakePlan(g, new Map(), { duration: 1, width: 320, height: 180 });
   assert.match(bake.filterComplex, /gblur|blend/);
+  const bright = createNode("effect.brightness", 100, 0);
+  bright.amount = 0.6;
+  const inv = createNode("effect.invert", 150, 0);
+  const solid = createNode("source.solid", 0, 0);
+  const out2 = createNode("output.video", 250, 0);
+  const tone = validateGraph({
+    version: 1,
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Tone",
+    updatedAt: new Date().toISOString(),
+    nodes: [solid, bright, inv, out2],
+    edges: [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        from: solid.id,
+        fromPort: "out",
+        to: bright.id,
+        toPort: "in",
+      },
+      {
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        from: bright.id,
+        fromPort: "out",
+        to: inv.id,
+        toPort: "in",
+      },
+      {
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        from: inv.id,
+        fromPort: "out",
+        to: out2.id,
+        toPort: "in",
+      },
+    ],
+  });
+  const toneBake = buildBakePlan(tone, new Map(), {
+    duration: 1,
+    width: 320,
+    height: 180,
+    fps: 24,
+  });
+  assert.match(toneBake.filterComplex, /eq=brightness/);
+  assert.match(toneBake.filterComplex, /negate/);
+  assert.equal(toneBake.fps, 24);
 });
 
 import {

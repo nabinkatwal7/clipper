@@ -14,7 +14,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 6 | Design Studio | Partial — multi-page docs, drag/align/shadow, PNG/JPEG/WebP (not full Canva) |
 | 7 | Motion Studio | Partial — presets, canvas preview, animation recipes → composition |
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
-| 9 | Compositing Studio | Partial — expanded nodes + FFmpeg bake (60s cap) |
+| 9 | Compositing Studio | Partial — tone nodes, param inspector, bake W/H/dur/fps (60s, not Fusion) |
 | 10 | Media Toolbox | Partial — inspect/convert/extract/batch (8) |
 | 11 | Production and Review | Partial — desk/calendar + Review Studio live |
 | 12 | Automation | Partial (workflow builder live) |

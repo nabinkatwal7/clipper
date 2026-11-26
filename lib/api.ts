@@ -921,6 +921,7 @@ export async function handle(
               width: b.width,
               height: b.height,
               duration: b.duration,
+              fps: b.fps,
             }),
           );
         throw Error("Unsupported comp-graph operation");

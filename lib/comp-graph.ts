@@ -20,6 +20,10 @@ export type CompNodeKind =
   | "effect.vignette"
   | "effect.grain"
   | "effect.glow"
+  | "effect.brightness"
+  | "effect.contrast"
+  | "effect.invert"
+  | "effect.hue"
   | "comp.merge"
   | "comp.chroma"
   | "comp.luma"
@@ -48,6 +52,8 @@ export type CompNode = {
   keyColor?: string;
   blur?: number;
   amount?: number;
+  /** Degrees for hue rotate (−180..180) */
+  hue?: number;
   flip?: "h" | "v" | "both";
   crop?: { x: number; y: number; w: number; h: number };
   ports: CompPort[];
@@ -88,6 +94,10 @@ const KIND_PORTS: Record<CompNodeKind, CompPort[]> = {
   "effect.vignette": io1,
   "effect.grain": io1,
   "effect.glow": io1,
+  "effect.brightness": io1,
+  "effect.contrast": io1,
+  "effect.invert": io1,
+  "effect.hue": io1,
   "comp.merge": [
     { id: "base", label: "Base", type: "any", dir: "in" },
     { id: "over", label: "Over", type: "any", dir: "in" },
@@ -124,6 +134,10 @@ export const NODE_CATALOG: { kind: CompNodeKind; label: string; group: string }[
     { kind: "effect.vignette", label: "Vignette", group: "Effects" },
     { kind: "effect.grain", label: "Film grain", group: "Effects" },
     { kind: "effect.glow", label: "Glow", group: "Effects" },
+    { kind: "effect.brightness", label: "Brightness", group: "Effects" },
+    { kind: "effect.contrast", label: "Contrast", group: "Effects" },
+    { kind: "effect.invert", label: "Invert", group: "Effects" },
+    { kind: "effect.hue", label: "Hue", group: "Effects" },
     { kind: "comp.merge", label: "Merge", group: "Composite" },
     { kind: "comp.chroma", label: "Chroma key", group: "Composite" },
     { kind: "comp.luma", label: "Luma key", group: "Composite" },
@@ -161,9 +175,12 @@ export function createNode(
       kind === "effect.sharpen" ||
       kind === "effect.grain" ||
       kind === "effect.glow" ||
+      kind === "effect.brightness" ||
+      kind === "effect.contrast" ||
       kind === "comp.luma"
         ? 0.35
         : undefined,
+    hue: kind === "effect.hue" ? 30 : undefined,
     flip: kind === "transform.flip" ? "h" : undefined,
     crop:
       kind === "transform.crop"
@@ -362,6 +379,18 @@ export function compileGraph(graph: CompGraph): {
       case "effect.glow":
         steps.push(`glow amount=${n.amount ?? 0.35}`);
         break;
+      case "effect.brightness":
+        steps.push(`brightness=${n.amount ?? 0.35}`);
+        break;
+      case "effect.contrast":
+        steps.push(`contrast=${n.amount ?? 0.35}`);
+        break;
+      case "effect.invert":
+        steps.push("negate");
+        break;
+      case "effect.hue":
+        steps.push(`hue=h=${n.hue ?? 30}`);
+        break;
       case "comp.merge":
         steps.push("overlay merge (base + over)");
         break;
@@ -398,6 +427,7 @@ export type BakePlan = {
   duration: number;
   width: number;
   height: number;
+  fps: number;
   steps: string[];
 };
 
@@ -425,10 +455,18 @@ function edgeInto(
  * Build an FFmpeg filter_complex for a validated graph.
  * Caps duration at 60s. Requires a connected Preview or Video out.
  */
+export type BakeOptions = {
+  width?: number;
+  height?: number;
+  duration?: number;
+  /** Output frame rate (12–60). Default 30. */
+  fps?: number;
+};
+
 export function buildBakePlan(
   graph: CompGraph,
   sources: Map<string, ResolvedSource>,
-  opts?: { width?: number; height?: number; duration?: number },
+  opts?: BakeOptions,
 ): BakePlan {
   const g = validateGraph(graph);
   const order = topoOrder(g);
@@ -436,6 +474,8 @@ export function buildBakePlan(
   const w = opts?.width && opts.width >= 16 ? Math.round(opts.width / 2) * 2 : 1280;
   const h =
     opts?.height && opts.height >= 16 ? Math.round(opts.height / 2) * 2 : 720;
+  const fps =
+    opts?.fps && opts.fps >= 12 && opts.fps <= 60 ? Math.round(opts.fps) : 30;
   let duration = opts?.duration && opts.duration > 0 ? opts.duration : 0;
 
   const inputArgs: string[] = [];
@@ -468,7 +508,7 @@ export function buildBakePlan(
             "-loop",
             "1",
             "-framerate",
-            "30",
+            String(fps),
             "-t",
             String(Math.min(60, duration || src.duration || 5)),
             "-i",
@@ -581,6 +621,37 @@ export function buildBakePlan(
         steps.push(`glow ${sigma}`);
         break;
       }
+      case "effect.brightness": {
+        const inn = requireIn(id, "in");
+        const b = Math.min(1, Math.max(-1, (n.amount ?? 0.35) * 2 - 1));
+        filters.push(`[${inn}]eq=brightness=${b}[${tag}]`);
+        labels.set(id, tag);
+        steps.push(`brightness ${b}`);
+        break;
+      }
+      case "effect.contrast": {
+        const inn = requireIn(id, "in");
+        const c = Math.min(2, Math.max(0.5, 1 + (n.amount ?? 0.35)));
+        filters.push(`[${inn}]eq=contrast=${c}[${tag}]`);
+        labels.set(id, tag);
+        steps.push(`contrast ${c}`);
+        break;
+      }
+      case "effect.invert": {
+        const inn = requireIn(id, "in");
+        filters.push(`[${inn}]negate[${tag}]`);
+        labels.set(id, tag);
+        steps.push("invert");
+        break;
+      }
+      case "effect.hue": {
+        const inn = requireIn(id, "in");
+        const deg = Math.min(180, Math.max(-180, n.hue ?? 30));
+        filters.push(`[${inn}]hue=h=${deg}[${tag}]`);
+        labels.set(id, tag);
+        steps.push(`hue ${deg}`);
+        break;
+      }
       case "comp.merge": {
         const base = requireIn(id, "base");
         const over = requireIn(id, "over");
@@ -644,6 +715,7 @@ export function buildBakePlan(
     duration,
     width: w,
     height: h,
+    fps,
     steps,
   };
 }
@@ -652,7 +724,7 @@ export function buildBakePlan(
 export async function bakeGraph(
   graph: CompGraph,
   signal?: AbortSignal,
-  opts?: { width?: number; height?: number; duration?: number },
+  opts?: BakeOptions,
 ): Promise<Asset & { steps: string[] }> {
   const g = validateGraph(graph);
   const sources = new Map<string, ResolvedSource>();
@@ -695,6 +767,8 @@ export async function bakeGraph(
         "libx264",
         "-pix_fmt",
         "yuv420p",
+        "-r",
+        String(plan.fps),
         "-t",
         String(plan.duration),
         "-movflags",

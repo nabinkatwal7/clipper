@@ -29,6 +29,10 @@ type Node = {
   color?: string;
   keyColor?: string;
   blur?: number;
+  amount?: number;
+  hue?: number;
+  flip?: "h" | "v" | "both";
+  crop?: { x: number; y: number; w: number; h: number };
   ports: Port[];
 };
 
@@ -63,6 +67,10 @@ export function CompositingStudio() {
     port: string;
   } | null>(null);
   const [plan, setPlan] = useState<string[]>([]);
+  const [bakeW, setBakeW] = useState(1280);
+  const [bakeH, setBakeH] = useState(720);
+  const [bakeDur, setBakeDur] = useState(5);
+  const [bakeFps, setBakeFps] = useState(30);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -213,13 +221,20 @@ export function CompositingStudio() {
       const r = await fetch("/api/comp-graph", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "bake", graph }),
+        body: JSON.stringify({
+          op: "bake",
+          graph,
+          width: bakeW,
+          height: bakeH,
+          duration: bakeDur,
+          fps: bakeFps,
+        }),
       });
       const data = await r.json();
       if (!r.ok) throw Error(data.error || "Bake failed");
       setPlan(data.steps || []);
       setMsg(
-        `Baked asset ${String(data.id).slice(0, 8)}… (${data.duration}s). Open Assets to use it.`,
+        `Baked asset ${String(data.id).slice(0, 8)}… (${data.duration}s · ${bakeW}×${bakeH} @ ${bakeFps}fps). Open Assets to use it.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Bake failed");
@@ -247,12 +262,13 @@ export function CompositingStudio() {
         <div>
           <h2>Compositing Studio</h2>
           <p>
-            Typed node graph for merge, mask and chroma — validates cycles and
-            ports, then bakes a bounded MP4 into Assets via FFmpeg.
+            Closer to Fusion-style node compositing: brightness/contrast/hue/
+            invert, full param inspectors, and bake size/duration/fps controls
+            (60s cap, no audio).
           </p>
         </div>
         <Badge variant="outline">
-          <GitBranch size={12} /> Partial
+          <GitBranch size={12} /> Closer parity
         </Badge>
       </header>
 
@@ -281,6 +297,56 @@ export function CompositingStudio() {
                 <Play size={14} /> Bake to asset
               </Button>
             </div>
+          </div>
+
+          <div className="reel-grid">
+            <label>
+              Bake W
+              <Input
+                type="number"
+                min={160}
+                max={1920}
+                step={2}
+                value={bakeW}
+                onChange={(e) => setBakeW(Number(e.target.value) || 1280)}
+              />
+            </label>
+            <label>
+              Bake H
+              <Input
+                type="number"
+                min={90}
+                max={1080}
+                step={2}
+                value={bakeH}
+                onChange={(e) => setBakeH(Number(e.target.value) || 720)}
+              />
+            </label>
+            <label>
+              Duration (s)
+              <Input
+                type="number"
+                min={0.5}
+                max={60}
+                step={0.5}
+                value={bakeDur}
+                onChange={(e) =>
+                  setBakeDur(Math.min(60, Math.max(0.5, Number(e.target.value) || 5)))
+                }
+              />
+            </label>
+            <label>
+              FPS
+              <Input
+                type="number"
+                min={12}
+                max={60}
+                value={bakeFps}
+                onChange={(e) =>
+                  setBakeFps(Math.min(60, Math.max(12, Number(e.target.value) || 30)))
+                }
+              />
+            </label>
           </div>
 
           <div className="comp-layout">
@@ -412,7 +478,8 @@ export function CompositingStudio() {
                       />
                     </label>
                   )}
-                  {selectedNode.kind === "comp.chroma" && (
+                  {(selectedNode.kind === "comp.chroma" ||
+                    selectedNode.kind === "comp.luma") && (
                     <label>
                       Key color
                       <Input
@@ -441,6 +508,97 @@ export function CompositingStudio() {
                         }
                       />
                     </label>
+                  )}
+                  {(selectedNode.kind === "effect.sharpen" ||
+                    selectedNode.kind === "effect.grain" ||
+                    selectedNode.kind === "effect.glow" ||
+                    selectedNode.kind === "effect.brightness" ||
+                    selectedNode.kind === "effect.contrast" ||
+                    selectedNode.kind === "comp.luma") && (
+                    <label>
+                      Amount
+                      <Input
+                        type="number"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={selectedNode.amount ?? 0.35}
+                        onChange={(e) =>
+                          patchNode(selectedNode.id, {
+                            amount: Math.min(
+                              1,
+                              Math.max(0, Number(e.target.value) || 0),
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                  )}
+                  {selectedNode.kind === "effect.hue" && (
+                    <label>
+                      Hue °
+                      <Input
+                        type="number"
+                        min={-180}
+                        max={180}
+                        value={selectedNode.hue ?? 30}
+                        onChange={(e) =>
+                          patchNode(selectedNode.id, {
+                            hue: Math.min(
+                              180,
+                              Math.max(-180, Number(e.target.value) || 0),
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                  )}
+                  {selectedNode.kind === "transform.flip" && (
+                    <label>
+                      Flip
+                      <select
+                        value={selectedNode.flip || "h"}
+                        onChange={(e) =>
+                          patchNode(selectedNode.id, {
+                            flip: e.target.value as Node["flip"],
+                          })
+                        }
+                      >
+                        <option value="h">Horizontal</option>
+                        <option value="v">Vertical</option>
+                        <option value="both">Both</option>
+                      </select>
+                    </label>
+                  )}
+                  {selectedNode.kind === "transform.crop" && (
+                    <>
+                      {(["x", "y", "w", "h"] as const).map((key) => (
+                        <label key={key}>
+                          Crop {key}
+                          <Input
+                            type="number"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={selectedNode.crop?.[key] ?? 0.1}
+                            onChange={(e) =>
+                              patchNode(selectedNode.id, {
+                                crop: {
+                                  x: selectedNode.crop?.x ?? 0.1,
+                                  y: selectedNode.crop?.y ?? 0.1,
+                                  w: selectedNode.crop?.w ?? 0.8,
+                                  h: selectedNode.crop?.h ?? 0.8,
+                                  [key]: Math.min(
+                                    1,
+                                    Math.max(0, Number(e.target.value) || 0),
+                                  ),
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                      ))}
+                    </>
                   )}
                 </div>
               )}
