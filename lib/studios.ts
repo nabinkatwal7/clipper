@@ -204,6 +204,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Instant replay",
         status: "live",
       },
+      {
+        id: "tutorial",
+        label: "Tutorial tools",
+        page: "Tutorial tools",
+        status: "partial",
+      },
     ],
   },
   {

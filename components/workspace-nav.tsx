@@ -25,6 +25,7 @@ import {
   Bot,
   LayoutGrid,
   Layers,
+  BookOpen,
 } from "lucide-react";
 import { studioGroups, type StudioId } from "@/lib/studios";
 
@@ -71,6 +72,7 @@ const pageIcons: Record<string, LucideIcon> = {
   Soundboard: AudioLines,
   "Recording Studio": Video,
   "Instant replay": Video,
+  "Tutorial tools": BookOpen,
   "Motion Studio": Scissors,
   "Compositing Studio": Layers,
   "Workflow builder": Workflow,

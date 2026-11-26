@@ -56,6 +56,7 @@ import { RecordingStudio } from "./recording-studio";
 import { InstantReplayPanel } from "./instant-replay";
 import { MotionStudio } from "./motion-studio";
 import { CompositingStudio } from "./compositing-studio";
+import { TutorialStudio } from "./tutorial-studio";
 import { SetupOptions } from "./setup-options";
 type Health = { name: string; ok: boolean; detail: string };
 const clock = (s: number) => {
@@ -504,6 +505,9 @@ export default function Workspace() {
             {page === "Instant replay" && <InstantReplayPanel />}
             {page === "Motion Studio" && <MotionStudio projects={projects} />}
             {page === "Compositing Studio" && <CompositingStudio />}
+            {page === "Tutorial tools" && (
+              <TutorialStudio projects={projects} />
+            )}
             {page === "Clip Family Tree" &&
               (project ? (
                 <>

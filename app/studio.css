@@ -2477,11 +2477,30 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
 .recording-studio,
 .instant-replay,
 .motion-studio,
-.compositing-studio {
+.compositing-studio,
+.tutorial-studio {
   display: flex;
   flex-direction: column;
   gap: 14px;
   max-width: 1100px;
+}
+.tutorial-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.tutorial-list li {
+  display: grid;
+  grid-template-columns: 110px 1fr 70px 70px 70px auto;
+  gap: 6px;
+  align-items: center;
+}
+@media (max-width: 800px) {
+  .tutorial-list li {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 .comp-layout {
   display: grid;

@@ -623,6 +623,7 @@ test("studio registry exposes live pages without planned routes", () => {
   assert.ok(pages.includes("Recording Studio"));
   assert.ok(pages.includes("Instant replay"));
   assert.ok(pages.includes("Compositing Studio"));
+  assert.ok(pages.includes("Tutorial tools"));
   assert.ok(
     !studioGroups
       .flatMap((g) => g.routes)
@@ -1094,4 +1095,21 @@ test("motion title presets emit animated layers sampleable on a timeline", () =>
   assert.ok(mid.every((s) => s.opacity >= 0 && s.opacity <= 1));
   const early = sampleMotionLayers(layers, 0.05);
   assert.ok(Array.isArray(early));
+});
+
+import {
+  emptyAnnotation,
+  validateAnnotation,
+  annotationsToTracks,
+} from "../lib/tutorial-annotations";
+test("tutorial annotations convert to composition tracks", () => {
+  const a = validateAnnotation(emptyAnnotation("highlight", 1, "Menu"));
+  assert.equal(a.kind, "highlight");
+  const cursor = emptyAnnotation("cursor", 2, "Click here");
+  const tracks = annotationsToTracks([a, cursor, emptyAnnotation("shortcut", 0, "Ctrl+C")]);
+  assert.ok(tracks.some((t) => t.type === "shape"));
+  assert.ok(tracks.some((t) => t.type === "text"));
+  assert.throws(() =>
+    validateAnnotation({ ...a, kind: "sparkle" }),
+  );
 });
