@@ -1228,8 +1228,16 @@ test("design artboards and AI lab prompts validate local documents", () => {
 import {
   validateAdjustments,
   validateTransform,
+  validateLevels,
+  validateSelection,
   applyPixelAdjustments,
+  applyLevels,
+  stampBrush,
+  historyPush,
+  historyUndo,
+  historyRedo,
   defaultAdjustments,
+  defaultLevels,
   defaultTransform,
 } from "../lib/image-editor";
 test("image editor adjustments clamp and rewrite pixels", () => {
@@ -1241,6 +1249,10 @@ test("image editor adjustments clamp and rewrite pixels", () => {
   assert.equal(adj.brightness, 0.2);
   const xf = validateTransform(defaultTransform);
   assert.equal(xf.rotation, 0);
+  const levels = validateLevels({ ...defaultLevels, black: 10, white: 240, mid: 1.2 });
+  assert.equal(levels.black, 10);
+  assert.ok(validateSelection({ x: 0.1, y: 0.1, w: 0.4, h: 0.4 }));
+  assert.equal(validateSelection(null), null);
   const data = {
     width: 2,
     height: 2,
@@ -1250,7 +1262,25 @@ test("image editor adjustments clamp and rewrite pixels", () => {
   };
   const out = applyPixelAdjustments(data, adj);
   assert.equal(out.data.length, 16);
+  const leveled = applyLevels(data, levels);
+  assert.equal(leveled.data.length, 16);
+  const brushed = stampBrush(data, {
+    nx: 0.5,
+    ny: 0.5,
+    radius: 0.15,
+    color: [255, 0, 0],
+    opacity: 1,
+  });
+  assert.equal(brushed.width, 2);
+  let hist = { past: [] as number[], present: 1, future: [] as number[] };
+  hist = historyPush(hist, 2);
+  hist = historyPush(hist, 3);
+  hist = historyUndo(hist);
+  assert.equal(hist.present, 2);
+  hist = historyRedo(hist);
+  assert.equal(hist.present, 3);
   assert.throws(() => validateAdjustments({ ...adj, brightness: 5 }));
+  assert.throws(() => validateLevels({ black: 200, mid: 1, white: 100 }));
 });
 
 import {
