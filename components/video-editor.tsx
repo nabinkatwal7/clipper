@@ -17,6 +17,7 @@ import { EditorMonitor } from "./editor-monitor";
 import { EditorInspector, editorTools } from "./editor-inspector";
 import { EditTimeline } from "./edit-timeline";
 import { VideoScopes } from "./video-scopes";
+import { CaptionTrackEditor } from "./caption-track-editor";
 import { Undo2, Redo2, Scan, Maximize, Keyboard } from "lucide-react";
 function timecode(value: number) {
   const n = Math.round(value * 100) / 100,
@@ -797,41 +798,12 @@ export function VideoEditor({
           ) : (
             <div className="editor-fields">
               <SubtitleSettings value={settings} onChange={setSettings} />
-              {settings.captions && (
-                <div className="subtitle-lines">
-                  <h3>Subtitle text</h3>
-                  {segments.length ? (
-                    segments.map((segment, i) => (
-                      <label className="subtitle-line" key={i}>
-                        <span>
-                          {Math.floor(segment.start / 60)}:
-                          {String(Math.floor(segment.start % 60)).padStart(
-                            2,
-                            "0",
-                          )}
-                        </span>
-                        <textarea
-                          aria-label={`Subtitle ${i + 1}`}
-                          value={segment.text}
-                          onChange={(e) =>
-                            setSegments(
-                              segments.map((s, index) =>
-                                index === i
-                                  ? { ...s, text: e.target.value, words: [] }
-                                  : s,
-                              ),
-                            )
-                          }
-                        />
-                      </label>
-                    ))
-                  ) : (
-                    <p className="hint">
-                      Subtitles will be transcribed when this clip is rendered.
-                    </p>
-                  )}
-                </div>
-              )}
+              <CaptionTrackEditor
+                segments={segments}
+                change={setSegments}
+                seek={seek}
+                now={now}
+              />
             </div>
           )}
         </div>

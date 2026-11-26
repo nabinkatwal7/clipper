@@ -376,9 +376,9 @@ Test coverage — No dedicated automated behavioral test.
 
 Runtime dependencies — FFmpeg libass.
 
-ASS styling uses recorded timing. Existing captions and title overlay are available. Fade, pop, scale and slide effects render through ASS. Arbitrary animation curves and speaker styling are outstanding.
+ASS styling uses recorded timing. Existing captions and title overlay are available. Fade, pop, scale and slide effects render through ASS. The Captions tab includes a dedicated track editor for find/replace, split, merge, delete and seek. Arbitrary animation curves and speaker styling are outstanding.
 
-Test coverage — Caption ASS timing unit tests.
+Test coverage — Caption ASS timing unit tests; caption track split/merge/replace helpers.
 
 | Requested feature | Status |
 | --- | --- |
@@ -397,6 +397,7 @@ Test coverage — Caption ASS timing unit tests.
 | Per-segment style overrides | Planned |
 | Animated opening hooks | Partial |
 | Caption presets | Implemented |
+| Dedicated caption track editing | Implemented |
 | Custom font imports | Planned |
 | Expand the subtitle studio with a professional caption animation system | Partial |
 | Use ASS subtitles or FFmpeg-supported rendering techniques | Implemented |

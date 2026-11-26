@@ -424,6 +424,34 @@ test("beat detection finds periodic onsets and supports snapping", () => {
   assert.equal(snapToBeats(0.52, result.beats, 0.15), result.beats.find(b => Math.abs(b.time-0.5)<0.05)?.time || 0.52);
 });
 
+import {
+  mergeCaptions,
+  replaceCaptionText,
+  splitCaption,
+} from "../lib/caption-track";
+test("caption track helpers split, merge and replace timed lines", () => {
+  const rows: Segment[] = [
+    {
+      start: 0,
+      end: 2,
+      text: "hello world",
+      words: [
+        { word: "hello", start: 0, end: 1 },
+        { word: "world", start: 1, end: 2 },
+      ],
+    },
+    { start: 2, end: 3, text: "again", words: [] },
+  ];
+  const split = splitCaption(rows, 0);
+  assert.equal(split.length, 3);
+  assert.equal(split[0].end, 1);
+  assert.equal(split[1].start, 1);
+  const merged = mergeCaptions(rows, 0);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].text, "hello world again");
+  assert.equal(replaceCaptionText(rows, "world", "there")[0].text, "hello there");
+});
+
 import { adjustmentFilters, validateAdjustmentLayers } from "../lib/grading";
 test("adjustment layers emit timed effect filters over composition ranges", () => {
   const layers = validateAdjustmentLayers([

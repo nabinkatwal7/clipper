@@ -10,7 +10,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | 14–18 · Effects and transitions | Timed effect stack, color tools and compilation transitions | Expanded effect catalog and per-cut editor transitions |
 | 19–20 · Speed | Constant 0.5×–4× playback speed, optional velocity curves with segmented FFmpeg remapping, pitch-preserving audio, retimed sidecar captions | Reverse playback and motion interpolation |
 | 21–24 · Text and graphics | Title overlay and imported images | Rich text layers, native stickers and motion-graphics authoring |
-| 25–28 · Captions | Unicode captions, word highlighting, several ASS animations, bilingual translation, transcript cleanup and caption updates | Advanced caption motion, typography controls and dedicated caption track editing |
+| 25–28 · Captions | Unicode captions, word highlighting, several ASS animations, bilingual translation, transcript cleanup, and a dedicated caption track editor (find/replace, split, merge, delete, seek) | Advanced caption motion and typography controls |
 | 29–33 · Compositing | Media layers, color-key transparency, eight blend modes, and elliptical or rectangular masks with position, size and feather keyframes | Additional mask shapes, automatic tracking and dedicated background replacement |
 | 34–39 · Audio | Waveform, track gain, EQ, filters, dynamics, ducking, onset beat detection and timeline snap | Richer audio monitoring |
 | 40–45 · Color and enhancement | Grading panel, cube LUTs, effect stacks, adjustment layers and RGB/luma scopes | Broader enhancement controls and waveform/parade scopes |
