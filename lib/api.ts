@@ -1,3 +1,4 @@
+import path from "node:path";
 import { clipPlan } from "./clip-plan";
 import { transcriptInsights } from "./transcript-insights";
 import { suggestCrop } from "./vision-crop";
@@ -90,6 +91,8 @@ import { nicheAnalysis } from "./clipping/niche";
 import { mutateCollection } from "./clipping/collection";
 import { scan as scanStorage, report as storageReport, planCache, planPolicy, execute as executeCleanup, POLICIES, type Policy, type Category, type Plan } from "./clipping/storage";
 import { PLATFORM_PRESETS } from "./clipping/postkit";
+import { parseAutopilot, startRun, retryRun, approveRun, rejectRun, evaluateDue, touchScheduler } from "./clipping/autopilot";
+import type { Autopilot, Run } from "./clipping/autopilot-core";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
@@ -112,6 +115,7 @@ export async function handle(
   try {
     guard(req);
     await init();
+    touchScheduler();
     const query = req.nextUrl.searchParams;
     if (req.method === "POST" && action === "lut")
       return NextResponse.json(await importCube(req));
@@ -1470,6 +1474,39 @@ export async function handle(
       const chosen = Array.isArray(b.paths) ? plan.items.filter((i) => b.paths.includes(i.path)).map((i) => i.path) : plan.items.map((i) => i.path);
       return NextResponse.json(await executeCleanup(workspaceRoot(), plan, chosen));
     }
+    if (action === "autopilots") {
+      if (req.method === "GET") return NextResponse.json(await readCollection("autopilots"));
+      if (req.method === "POST") {
+        const input = await req.json();
+        const prev = (await readCollection<Autopilot>("autopilots")).find((x) => x.id === input?.id);
+        const ap = parseAutopilot({ ...input, id: prev?.id ?? randomUUID() }, prev);
+        if (ap.trigger.kind === "file-arrival") {
+          const st = await fs.stat(path.resolve(ap.trigger.folder)).catch(() => null);
+          if (!path.isAbsolute(ap.trigger.folder) || !st?.isDirectory()) throw Error("Choose an existing absolute folder path.");
+        }
+        // Changing the trigger re-baselines so old uploads/files are never processed by surprise.
+        if (prev && JSON.stringify(prev.trigger) !== JSON.stringify(ap.trigger)) Object.assign(ap, { baselined: false, seen: [], pending: {} });
+        touchScheduler();
+        return NextResponse.json(await upsert("autopilots", ap, 100));
+      }
+      if (req.method === "DELETE") return NextResponse.json({ removed: await remove("autopilots", query.get("id") || "") });
+    }
+    if (action === "autopilot-runs" && req.method === "GET") {
+      touchScheduler();
+      return NextResponse.json((await readCollection<Run>("runs")).slice(-60).reverse());
+    }
+    if (action === "autopilot-run" && req.method === "POST") {
+      const b = await req.json();
+      const ap = (await readCollection<Autopilot>("autopilots")).find((x) => x.id === b.id);
+      if (!ap) throw Error("Autopilot not found.");
+      return NextResponse.json(await startRun(ap, { url: typeof b.url === "string" ? b.url : undefined, projectId: typeof b.projectId === "string" ? b.projectId : undefined }), { status: 202 });
+    }
+    if (action === "autopilot-check" && req.method === "POST") return NextResponse.json(await evaluateDue());
+    if (action === "autopilot-approve" && req.method === "POST") {
+      const b = await req.json();
+      return NextResponse.json(b.reject ? await rejectRun(String(b.run)) : await approveRun(String(b.run), Array.isArray(b.ids) ? b.ids : undefined));
+    }
+    if (action === "autopilot-retry" && req.method === "POST") return NextResponse.json(await retryRun(String((await req.json()).run)), { status: 202 });
     if (action === "moments-ai" && req.method === "POST") {
       const b = await req.json();
       const project = await read(String(b.project || ""));

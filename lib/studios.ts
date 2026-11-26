@@ -277,6 +277,7 @@ export const studioGroups: StudioGroup[] = [
         page: "Workflow builder",
         status: "live",
       },
+      { id: "autopilot", label: "Autopilot", page: "Autopilot", status: "live" },
       {
         id: "queue",
         label: "Processing queue",
