@@ -1219,6 +1219,8 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Design bulk CSV variable generation | Implemented |
 | Design PNG / transparent PNG export | Implemented |
 | Image editor crop / flip / rotate / tone | Partial |
+| 3D Studio templates (logo/nameplate/geo) | Partial |
+| 3D still PNG overlay export | Implemented |
 | AI Laboratory Ollama prompt playground | Implemented |
 | Motion Studio scaffold (text/shape layers) | Partial |
 | Motion title presets + animation recipes | Implemented |
@@ -1227,7 +1229,7 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Compositing graph validate / compile plan | Implemented |
 | Compositing graph FFmpeg bake to asset | Implemented |
 | Compositing deepen nodes (glow/grain/luma/crop/flip) | Implemented |
-| 3D Studio | Planned |
+| 3D Studio | Partial |
 | Reel Factory / Language Factory | Implemented |
 | Universal Media Toolbox | Partial |
 | Media toolbox track extract | Implemented |

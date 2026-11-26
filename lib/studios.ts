@@ -169,7 +169,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Image editor",
         status: "partial",
       },
-      { id: "three-d", label: "3D Studio", status: "planned" },
+      {
+        id: "three-d",
+        label: "3D Studio",
+        page: "3D Studio",
+        status: "partial",
+      },
     ],
   },
   {

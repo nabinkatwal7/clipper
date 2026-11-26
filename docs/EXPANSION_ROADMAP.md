@@ -18,7 +18,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 10 | Media Toolbox | Partial — inspect/convert/extract/batch (8) |
 | 11 | Production and Review | Partial — desk/calendar + Review Studio live |
 | 12 | Automation | Partial (workflow builder live) |
-| 13 | Optional 3D Studio | Planned |
+| 13 | Optional 3D Studio | Partial — Three.js templates + still PNG export |
 | 14 | AI Laboratory + original features | Partial — director/templates + Ollama lab playground |
 | 15 | Professional product quality | Ongoing |
 
@@ -78,4 +78,6 @@ Priority queue through item 27 is complete.
 28. ~~Design Studio depth (formats / bulk / PNG export)~~
 29. ~~Image editor (raster corrections)~~
 30. ~~Compositing node depth~~
-31. 3D Studio scaffold
+31. ~~3D Studio scaffold~~
+
+Optional scopes 28–31 complete. Remaining Blender/Canva/Fusion parity is intentionally out of scope for this local stack.

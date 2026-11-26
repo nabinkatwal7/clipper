@@ -77,6 +77,7 @@ const pageIcons: Record<string, LucideIcon> = {
   "Review Studio": MessageSquare,
   "Design Studio": Palette,
   "Image editor": ImageIcon,
+  "3D Studio": Box,
   "AI Laboratory": Bot,
   "Motion Studio": Scissors,
   "Compositing Studio": Layers,

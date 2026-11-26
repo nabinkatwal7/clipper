@@ -2482,11 +2482,26 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
 .review-studio,
 .design-studio,
 .image-editor-studio,
+.three-d-studio,
 .ai-lab {
   display: flex;
   flex-direction: column;
   gap: 14px;
   max-width: 1100px;
+}
+.three-d-viewport {
+  width: 100%;
+  max-width: 720px;
+  height: 360px;
+  border: 1px solid var(--subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #0a1214;
+}
+.three-d-viewport canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 .image-editor-canvas {
   width: 100%;

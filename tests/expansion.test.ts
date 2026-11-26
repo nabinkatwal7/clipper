@@ -627,12 +627,8 @@ test("studio registry exposes live pages without planned routes", () => {
   assert.ok(pages.includes("Review Studio"));
   assert.ok(pages.includes("Design Studio"));
   assert.ok(pages.includes("Image editor"));
+  assert.ok(pages.includes("3D Studio"));
   assert.ok(pages.includes("AI Laboratory"));
-  assert.ok(
-    !studioGroups
-      .flatMap((g) => g.routes)
-      .some((r) => r.id === "three-d" && r.page),
-  );
 });
 
 import {
@@ -1244,4 +1240,19 @@ test("image editor adjustments clamp and rewrite pixels", () => {
   const out = applyPixelAdjustments(data, adj);
   assert.equal(out.data.length, 16);
   assert.throws(() => validateAdjustments({ ...adj, brightness: 5 }));
+});
+
+import {
+  sceneFromTemplate,
+  validateScene as validateThreeScene,
+  THREE_TEMPLATES,
+} from "../lib/three-d-studio";
+test("3D studio templates validate scene documents", () => {
+  assert.ok(THREE_TEMPLATES.length >= 3);
+  const scene = sceneFromTemplate("logo-reveal");
+  assert.equal(validateThreeScene(scene).animation, "turntable");
+  assert.ok(scene.objects.length >= 1);
+  assert.throws(() =>
+    validateThreeScene({ ...scene, animation: "explode" }),
+  );
 });

@@ -789,6 +789,27 @@ export async function handle(
         throw Error("Unsupported instant-replay operation");
       }
     }
+    if (action === "three-d") {
+      const td = await import("./three-d-studio");
+      if (req.method === "GET") {
+        const scenes = await td.listScenes();
+        return NextResponse.json({
+          templates: td.THREE_TEMPLATES,
+          scenes,
+          default: scenes[0] || td.sceneFromTemplate("logo-reveal"),
+        });
+      }
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "create")
+          return NextResponse.json(
+            await td.saveScene(td.sceneFromTemplate(b.template || "logo-reveal")),
+          );
+        if (b.op === "save")
+          return NextResponse.json(await td.saveScene(b.scene));
+        throw Error("Unsupported three-d operation");
+      }
+    }
     if (action === "design-studio") {
       const ds = await import("./design-studio");
       if (req.method === "GET") {

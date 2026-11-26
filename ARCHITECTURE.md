@@ -84,6 +84,7 @@ Server components under `app/` with content in `lib/site-features.ts`, `lib/publ
 - **Review Studio** — local clip review queue with timestamped notes (`lib/review-studio.ts`).
 - **Design Studio** — format presets, layered artboards, bulk CSV vars, PNG export (`lib/design-studio.ts`).
 - **Image editor** — Canvas raster corrections on asset images (`lib/image-editor.ts`); blur is preview-only.
+- **3D Studio** — optional Three.js templates (`lib/three-d-studio.ts`) with turntable/orbit/bob and still PNG export; requires WebGL.
 - **AI Laboratory** — Ollama-only prompt playground with saved prompts/runs (`lib/ai-lab.ts`); never auto-applies edits.
 - **Motion Studio** — text/shape layers, title presets (`lib/motion-presets.ts`), animation recipes, and canvas preview/scrub; saves into the shared clip composition.
 - **Compositing Studio** — typed node graph (`lib/comp-graph.ts`) with port/cycle validation; `bakeGraph` compiles supported nodes to FFmpeg `filter_complex` and writes a bounded MP4 asset (60s, no audio).

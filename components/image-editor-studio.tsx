@@ -106,7 +106,11 @@ export function ImageEditorStudio() {
       sharpen: 0,
     });
     octx.putImageData(
-      new ImageData(pixels.data, pixels.width, pixels.height),
+      new ImageData(
+        new Uint8ClampedArray(pixels.data),
+        pixels.width,
+        pixels.height,
+      ),
       0,
       0,
     );
@@ -155,7 +159,11 @@ export function ImageEditorStudio() {
         sharpen: 0,
       });
       octx.putImageData(
-        new ImageData(pixels.data, pixels.width, pixels.height),
+        new ImageData(
+          new Uint8ClampedArray(pixels.data),
+          pixels.width,
+          pixels.height,
+        ),
         0,
         0,
       );
