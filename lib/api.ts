@@ -327,15 +327,24 @@ export async function handle(
         c = p.clips.find((c) => c.id === b.clip);
       if (!c) throw Error("Clip not found");
       const start = Number(b.start),
-        end = Math.min(start + 3, Number(b.end), p.duration);
+        end = Math.min(Number(b.end), p.duration);
       if (
         !Number.isFinite(start) ||
         !Number.isFinite(end) ||
         start < 0 ||
-        end <= start
+        end <= start ||
+        end - start > 600 ||
+        (b.playhead !== undefined && !Number.isFinite(b.playhead))
       )
         throw Error("Invalid preview range");
       const s = settings(b.settings);
+      const rate = s.playbackRate ?? 1;
+      const duration = (end - start) / rate;
+      const offset = Math.min(
+        Math.max(0, duration - 0.25),
+        Math.max(0, ((b.playhead ?? start) - start) / rate),
+      );
+      const length = Math.min(3, duration - offset);
       const state = globalThis as typeof globalThis & {
         previewActive?: boolean;
       };
@@ -354,6 +363,10 @@ export async function handle(
           c.segments,
           req.signal,
           id,
+          undefined,
+          offset > 0 || length < duration
+            ? { offset, duration: length }
+            : undefined,
         );
         return new Response(
           new Uint8Array(await fs.readFile(file("clips", clip.id, "mp4"))),

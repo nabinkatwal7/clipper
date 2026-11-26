@@ -542,6 +542,7 @@ export async function render(
   signal: AbortSignal,
   id = randomUUID(),
   onProgress?: (seconds: number) => void,
+  preview?: { offset: number; duration: number },
 ): Promise<Clip> {
   const [w, height] = dimensions(s);
   const rate = s.playbackRate ?? 1;
@@ -662,6 +663,9 @@ export async function render(
         "-map",
         "[out]",
         ...comp.audioMap,
+        ...(preview
+          ? ["-ss", String(preview.offset), "-t", String(preview.duration)]
+          : []),
         "-c:v",
         "libx264",
         "-preset",
@@ -703,13 +707,14 @@ export async function render(
         const seconds = ffmpegSeconds(line);
         if (seconds !== undefined) onProgress?.(seconds * rate);
       },
+      preview ? 120_000 : undefined,
     );
     signal.throwIfAborted();
     const qa = await verifyRender(
       temporary,
       w,
       height,
-      duration,
+      preview?.duration ?? duration,
       comp.hasAudio || p.hasAudio,
       signal,
     );

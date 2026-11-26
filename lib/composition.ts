@@ -1,4 +1,5 @@
 import { validateMask, type LayerMask } from "./layer-mask";
+import { blendModes, type BlendMode } from "./layer-blend";
 
 import type { Keyframe } from "./keyframe-curve";
 export { curve, type Ease, type Keyframe } from "./keyframe-curve";
@@ -24,6 +25,7 @@ export type Track = {
   fade: number;
   keyColor?: { color: string; similarity: number; blend: number };
   mask?: LayerMask;
+  blendMode?: BlendMode;
   keys: Partial<Record<"x" | "y" | "volume", Keyframe[]>>;
 };
 export type Composition = { version: 1; tracks: Track[] };
@@ -47,6 +49,13 @@ export function validateComposition(v: Composition) {
     )
       throw Error("Invalid timeline track");
     ids.add(t.id);
+    if (
+      t.blendMode !== undefined &&
+      (t.type === "audio" ||
+        typeof t.blendMode !== "string" ||
+        !Object.hasOwn(blendModes, t.blendMode))
+    )
+      throw Error("Invalid media layer blend mode.");
     if (t.mask !== undefined) {
       if (t.type === "audio")
         throw Error("Masks require an image or video layer.");

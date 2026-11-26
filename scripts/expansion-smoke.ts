@@ -114,6 +114,75 @@ async function main() {
   );
   assert.deepEqual(alpha, [0, 255, 0]);
   console.log("PASS mask geometry interpolates across rendered frames");
+  const { blendModes, layerBlendGraph } = await import("../lib/layer-blend");
+  const luminance = async (
+    mode: keyof typeof blendModes,
+    x: number,
+    opacity = 1,
+  ) => {
+    const graph = [
+      "[0:v]null[base]",
+      `[1:v]format=rgba,colorchannelmixer=aa=${opacity}[layer]`,
+      ...layerBlendGraph(
+        "base",
+        "layer",
+        "mixed",
+        "x=0:y=0:eof_action=pass:repeatlast=0",
+        mode,
+      ),
+      `[mixed]crop=2:2:${x}:0,showinfo[out]`,
+    ].join(";");
+    let luma: number | undefined;
+    await run(
+      bin.ffmpeg,
+      [
+        "-hide_banner",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=gray:s=64x64:d=0.1",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=gray:s=32x32:d=0.1",
+        "-filter_complex_threads",
+        "2",
+        "-filter_complex",
+        graph,
+        "-map",
+        "[out]",
+        "-frames:v",
+        "1",
+        "-f",
+        "null",
+        "-",
+      ],
+      undefined,
+      (line) => {
+        const match = line.match(/mean:\[(\d+) /);
+        if (match) luma = Number(match[1]);
+      },
+    );
+    assert.ok(luma !== undefined);
+    return luma;
+  };
+  const baseLuma = await luminance("normal", 48);
+  const multiplied = await luminance("multiply", 0);
+  const partial = await luminance("multiply", 0, 0.5);
+  assert.ok(Math.abs(baseLuma - (await luminance("multiply", 48))) <= 2);
+  assert.ok(multiplied < partial && partial < baseLuma);
+  assert.ok((await luminance("screen", 0)) > baseLuma);
+  for (const mode of [
+    "overlay",
+    "darken",
+    "lighten",
+    "addition",
+    "difference",
+  ] as const)
+    await luminance(mode, 0);
+  console.log(
+    "PASS blend modes, partial opacity, and transparent canvas boundaries",
+  );
   await run(bin.ffmpeg, [
     "-hide_banner",
     "-f",
@@ -300,6 +369,7 @@ async function main() {
     fade: 0.1,
     keyColor: { color: "#00ff00", similarity: 0.2, blend: 0.08 },
     mask: moving,
+    blendMode: "screen",
     keys: {
       x: [
         { time: 0, value: 0, ease: "linear" },
@@ -377,6 +447,42 @@ async function main() {
   );
   console.log(
     "PASS masked preview and final export have identical decoded frames for the tested range",
+  );
+  const midPreview = await req("render-preview", "", "POST", {
+    project: id,
+    clip: v.id,
+    start: v.start,
+    end: v.end,
+    playhead: 0.5,
+    settings: v.settings,
+  });
+  assert.equal(
+    midPreview.status,
+    200,
+    await midPreview
+      .clone()
+      .text()
+      .then((t) => t.slice(0, 150)),
+  );
+  const midFile = path.join(tmp, "mid-preview.mp4");
+  await fs.writeFile(midFile, Buffer.from(await midPreview.arrayBuffer()));
+  const duration = Number(
+    await run(bin.ffprobe, [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      midFile,
+    ]),
+  );
+  assert.ok(
+    Math.abs(duration - 1) < 0.15,
+    "Half-speed playhead preview should cover the remaining second",
+  );
+  console.log(
+    "PASS playhead preview uses output-time offset for retimed masked media",
   );
   const { subtitleTrack } = await import("../lib/publishing-package");
   assert.match(

@@ -645,6 +645,7 @@ export function VideoEditor({
                 clip={clip.id}
                 start={start}
                 end={end}
+                playhead={now}
               />
               <LayersPanel
                 project={project.id}
@@ -665,6 +666,7 @@ export function VideoEditor({
               start={start}
               end={end}
               audio={tab === "audio"}
+              playhead={now}
             />
           ) : tab === "director" ? (
             <DirectorPanel
@@ -698,6 +700,7 @@ export function VideoEditor({
                   clip={clip.id}
                   start={start}
                   end={end}
+                  playhead={now}
                 />
               )}
             </>

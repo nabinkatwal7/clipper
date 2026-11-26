@@ -10,6 +10,7 @@ export function GradePanel({
   clip,
   start,
   end,
+  playhead,
   audio,
 }: {
   settings: Settings;
@@ -18,6 +19,7 @@ export function GradePanel({
   clip: string;
   start: number;
   end: number;
+  playhead: number;
   audio: boolean;
 }) {
   const [error, setError] = useState("");
@@ -237,6 +239,7 @@ export function GradePanel({
         clip={clip}
         start={start}
         end={end}
+        playhead={playhead}
         compare
       />
       {error && <p role="alert">{error}</p>}

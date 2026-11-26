@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { AssetLibrary } from "./asset-library";
 import { LayerMaskControls } from "./layer-mask-controls";
+import { blendModes, type BlendMode } from "@/lib/layer-blend";
 import type { Asset } from "@/lib/assets";
 import type { Track, Ease } from "@/lib/composition";
 import type { Settings } from "@/lib/types";
@@ -212,6 +213,23 @@ export function LayersPanel({
             Lock track
           </label>
           <fieldset disabled={t.locked}>
+            {t.type !== "audio" && (
+              <label className="field">
+                Blend mode
+                <select
+                  value={t.blendMode ?? "normal"}
+                  onChange={(e) =>
+                    patch({ blendMode: e.target.value as BlendMode })
+                  }
+                >
+                  {Object.entries(blendModes).map(([mode, label]) => (
+                    <option key={mode} value={mode}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {t.type !== "audio" && (
               <LayerMaskControls
                 key={t.id}
