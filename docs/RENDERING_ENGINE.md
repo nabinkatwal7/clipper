@@ -10,7 +10,7 @@ Final exports and short composition previews share one FFmpeg path. Settings are
 4. Apply constant playback rate, mix/duck audio and write the output container.
 5. Run export QA (`lib/export-qa.ts`) with FFprobe and decode checks.
 
-Preview jobs reuse this graph with a trimmed output window. Capability detection disables unavailable encoders or filters with clear errors.
+Preview jobs reuse this graph with a trimmed output window. Successful previews are stored under the workspace `temp` directory keyed by a SHA-256 of settings, timing and media fingerprints (`lib/preview-cache.ts`). Cache hits skip FFmpeg. At most 24 previews are retained per project. Capability detection disables unavailable encoders or filters with clear errors.
 
 ## Composition graph (`compose`)
 

@@ -4,7 +4,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 
 | Brief sections | Current implementation | Outstanding work |
 | --- | --- | --- |
-| 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, composition preview and export validation | Broader document schema, full realtime composition and preview caching |
+| 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, composition preview, hashed preview cache and export validation | Broader document schema and full realtime composition preview |
 | 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, drag/trim composition lanes, undo, checkpoints and asset browser | Media proxy workflow, multi-select timeline editing and deeper NLE gestures |
 | 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes for supported layers | General-purpose curves, graph editor and entrance/exit/loop presets |
 | 14–18 · Effects and transitions | Timed effects, color tools and compilation transitions | Expanded effect catalog, effect stacking and per-cut editor transitions |
@@ -17,7 +17,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | 46–50 · Templates and AI | Layout and workflow presets, validated Ollama Director proposals | Full project template bundles and deeper review automation |
 | 51–57 · Short-form export | Aspect ratios, safe-zone previews, variations, export queue and FFmpeg quality checks | Expanded export options, hardware-accelerated export, and broader preset coverage |
 | 58–67 · Interaction | Existing studio shell, keyboard actions, inspector and workspace preferences | Expanded canvas interactions, context menus and workspace presets |
-| 68–73 · Reliability | Local caches, version checkpoints, isolated workspaces and authenticated routes | Dedicated proxy and composition cache, and comprehensive autosave recovery |
+| 68–73 · Reliability | Local caches, hashed composition preview cache, version checkpoints, isolated workspaces and authenticated routes | Dedicated proxy media workflow and broader autosave recovery |
 | 74–77 · Verification | Unit suite, production build, desktop checks for Speed and mask controls, FFmpeg alpha and scale-dimension checks, and matching decoded frames for one masked preview and export fixture | Chroma key screenshot coverage and broader preview-to-export comparisons |
 
 ## Using speed and chroma key

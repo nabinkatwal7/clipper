@@ -1013,6 +1013,7 @@ Test coverage — Existing progress and storage tests.
 | Shared source media references | Implemented |
 | Preview proxy generation | Partial |
 | Thumbnail caching | Implemented |
+| Composition preview caching | Implemented |
 | Waveform caching | Implemented |
 | Transcript caching | Implemented |
 | Embedding caching | Implemented |

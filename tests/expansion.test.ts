@@ -6,6 +6,7 @@ import { analysisWindows, passesRules } from "../lib/discovery";
 import { defaults, type Highlight, type Segment } from "../lib/types";
 import { curve, validateComposition } from "../lib/composition";
 import { dragTrack } from "../lib/timeline-gestures";
+import { previewKey } from "../lib/preview-cache";
 test("director keeps only bounded, explained edit proposals", () => {
   const proposals = [
     { kind: "range", start: 1, end: 2, why: "Lead in" },
@@ -63,6 +64,45 @@ test("composition versioning and interpolation enforce explicit timeline offsets
       3,
     ),
     /lt\(t,5\)/,
+  );
+});
+test("preview cache keys change when settings or media fingerprints change", () => {
+  const base = previewKey(
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222",
+    0,
+    5,
+    0,
+    3,
+    defaults,
+    ["upload:1"],
+  );
+  assert.equal(base.length, 64);
+  assert.notEqual(
+    base,
+    previewKey(
+      "11111111-1111-4111-8111-111111111111",
+      "22222222-2222-4222-8222-222222222222",
+      0,
+      5,
+      0,
+      3,
+      { ...defaults, opacity: 0.5 },
+      ["upload:1"],
+    ),
+  );
+  assert.notEqual(
+    base,
+    previewKey(
+      "11111111-1111-4111-8111-111111111111",
+      "22222222-2222-4222-8222-222222222222",
+      0,
+      5,
+      0,
+      3,
+      defaults,
+      ["upload:2"],
+    ),
   );
 });
 test("timeline gestures move, trim and respect locked tracks", () => {

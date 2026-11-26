@@ -345,6 +345,48 @@ export async function handle(
         Math.max(0, ((b.playhead ?? start) - start) / rate),
       );
       const length = Math.min(3, duration - offset);
+      const { previewKey, readPreview, writePreview } = await import(
+        "./preview-cache"
+      );
+      const assetPaths = await Promise.all(
+        (s.composition?.tracks ?? []).map(async (track) => {
+          try {
+            const media = await asset(track.asset);
+            return file("assets", media.id, media.ext);
+          } catch {
+            return "assets/" + track.asset + ":missing";
+          }
+        }),
+      );
+      const fingerprints = await Promise.all(
+        [file("uploads", p.id, "mp4"), ...assetPaths].map(async (target) => {
+          try {
+            const stat = await fs.stat(target);
+            return target + ":" + stat.mtimeMs + ":" + stat.size;
+          } catch {
+            return target + ":missing";
+          }
+        }),
+      );
+      const key = previewKey(
+        p.id,
+        c.id,
+        start,
+        end,
+        offset,
+        length,
+        s,
+        fingerprints,
+      );
+      const cached = await readPreview(p.id, key);
+      if (cached)
+        return new Response(new Uint8Array(cached), {
+          headers: {
+            "Content-Type": "video/mp4",
+            "Cache-Control": "no-store",
+            "X-Preview-Cache": "hit",
+          },
+        });
       const state = globalThis as typeof globalThis & {
         previewActive?: boolean;
       };
@@ -368,15 +410,15 @@ export async function handle(
             ? { offset, duration: length }
             : undefined,
         );
-        return new Response(
-          new Uint8Array(await fs.readFile(file("clips", clip.id, "mp4"))),
-          {
-            headers: {
-              "Content-Type": "video/mp4",
-              "Cache-Control": "no-store",
-            },
+        const rendered = file("clips", clip.id, "mp4");
+        await writePreview(p.id, key, rendered);
+        return new Response(new Uint8Array(await fs.readFile(rendered)), {
+          headers: {
+            "Content-Type": "video/mp4",
+            "Cache-Control": "no-store",
+            "X-Preview-Cache": "miss",
           },
-        );
+        });
       } finally {
         state.previewActive = false;
         await fs.rm(file("clips", id, "mp4"), { force: true });
