@@ -59,6 +59,7 @@ import { CompositingStudio } from "./compositing-studio";
 import { TutorialStudio } from "./tutorial-studio";
 import { ReviewStudio } from "./review-studio";
 import { DesignStudio } from "./design-studio";
+import { ImageEditorStudio } from "./image-editor-studio";
 import { AiLabPanel } from "./ai-lab";
 import { SetupOptions } from "./setup-options";
 type Health = { name: string; ok: boolean; detail: string };
@@ -515,6 +516,7 @@ export default function Workspace() {
               <ReviewStudio projects={projects} />
             )}
             {page === "Design Studio" && <DesignStudio />}
+            {page === "Image editor" && <ImageEditorStudio />}
             {page === "AI Laboratory" && <AiLabPanel />}
             {page === "Clip Family Tree" &&
               (project ? (

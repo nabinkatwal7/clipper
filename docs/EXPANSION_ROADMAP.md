@@ -76,6 +76,6 @@ Priority queue through item 27 is complete.
 ### Optional scopes (in progress)
 
 28. ~~Design Studio depth (formats / bulk / PNG export)~~
-29. Image editor (raster corrections)
+29. ~~Image editor (raster corrections)~~
 30. Compositing node depth
 31. 3D Studio scaffold

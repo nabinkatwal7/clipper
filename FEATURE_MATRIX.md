@@ -1218,6 +1218,7 @@ Test coverage — `tests/expansion.test.ts` sequence/registry assertions.
 | Design formats (thumb/story/banner/…) | Implemented |
 | Design bulk CSV variable generation | Implemented |
 | Design PNG / transparent PNG export | Implemented |
+| Image editor crop / flip / rotate / tone | Partial |
 | AI Laboratory Ollama prompt playground | Implemented |
 | Motion Studio scaffold (text/shape layers) | Partial |
 | Motion title presets + animation recipes | Implemented |

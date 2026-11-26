@@ -626,6 +626,7 @@ test("studio registry exposes live pages without planned routes", () => {
   assert.ok(pages.includes("Tutorial tools"));
   assert.ok(pages.includes("Review Studio"));
   assert.ok(pages.includes("Design Studio"));
+  assert.ok(pages.includes("Image editor"));
   assert.ok(pages.includes("AI Laboratory"));
   assert.ok(
     !studioGroups
@@ -1181,4 +1182,27 @@ test("design artboards and AI lab prompts validate local documents", () => {
     validateArtboard({ ...board, width: 10 }),
   );
   assert.throws(() => validatePrompt({ ...prompt, user: "" }));
+});
+
+import {
+  validateAdjustments,
+  validateTransform,
+  applyPixelAdjustments,
+  defaultAdjustments,
+  defaultTransform,
+} from "../lib/image-editor";
+test("image editor adjustments clamp and rewrite pixels", () => {
+  const adj = validateAdjustments({
+    ...defaultAdjustments,
+    brightness: 0.2,
+    contrast: -0.1,
+  });
+  assert.equal(adj.brightness, 0.2);
+  const xf = validateTransform(defaultTransform);
+  assert.equal(xf.rotation, 0);
+  const data = new ImageData(2, 2);
+  data.data.set([10, 20, 30, 255, 40, 50, 60, 255, 70, 80, 90, 255, 100, 110, 120, 255]);
+  const out = applyPixelAdjustments(data, adj);
+  assert.equal(out.data.length, 16);
+  assert.throws(() => validateAdjustments({ ...adj, brightness: 5 }));
 });
