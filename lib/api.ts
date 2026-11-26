@@ -789,6 +789,33 @@ export async function handle(
         throw Error("Unsupported instant-replay operation");
       }
     }
+    if (action === "review-studio") {
+      const rs = await import("./review-studio");
+      if (req.method === "GET")
+        return NextResponse.json(await rs.listReviews());
+      if (req.method === "POST") {
+        const b = await req.json();
+        if (b.op === "create")
+          return NextResponse.json(
+            await rs.saveReview(
+              rs.emptyReviewItem(b.projectId, b.clipId, b.title || "Clip"),
+            ),
+          );
+        if (b.op === "save")
+          return NextResponse.json(await rs.saveReview(b.item));
+        if (b.op === "comment") {
+          const rows = await rs.listReviews();
+          const item = rows.find((r) => r.id === b.id);
+          if (!item) throw Error("Review item not found");
+          return NextResponse.json(
+            await rs.saveReview(
+              rs.addComment(item, b.body, Number(b.at) || 0, b.author || "local"),
+            ),
+          );
+        }
+        throw Error("Unsupported review-studio operation");
+      }
+    }
     if (action === "comp-graph") {
       const cg = await import("./comp-graph");
       if (req.method === "GET") {

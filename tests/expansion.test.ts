@@ -624,6 +624,7 @@ test("studio registry exposes live pages without planned routes", () => {
   assert.ok(pages.includes("Instant replay"));
   assert.ok(pages.includes("Compositing Studio"));
   assert.ok(pages.includes("Tutorial tools"));
+  assert.ok(pages.includes("Review Studio"));
   assert.ok(
     !studioGroups
       .flatMap((g) => g.routes)
@@ -1124,4 +1125,22 @@ test("tutorial annotations convert to composition tracks", () => {
   assert.throws(() =>
     validateAnnotation({ ...a, kind: "sparkle" }),
   );
+});
+
+import {
+  emptyReviewItem,
+  addComment,
+  validateItem,
+} from "../lib/review-studio";
+test("review studio items accept timestamped comments and statuses", () => {
+  const item = emptyReviewItem(
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222",
+    "Highlight",
+  );
+  assert.equal(item.status, "needs-review");
+  const next = addComment(item, "Trim cold open", 1.5);
+  assert.equal(next.comments.length, 1);
+  assert.equal(validateItem({ ...next, status: "approved" }).status, "approved");
+  assert.throws(() => addComment(item, "", 0));
 });

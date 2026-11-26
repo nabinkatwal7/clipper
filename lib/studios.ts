@@ -275,7 +275,12 @@ export const studioGroups: StudioGroup[] = [
         page: "Content calendar",
         status: "live",
       },
-      { id: "review", label: "Review Studio", status: "planned" },
+      {
+        id: "review",
+        label: "Review Studio",
+        page: "Review Studio",
+        status: "live",
+      },
     ],
   },
   {

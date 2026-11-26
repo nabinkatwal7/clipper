@@ -16,7 +16,7 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 | 8 | Recording Studio | **Live** — capture, scenes, rolling replay buffer, bookmark scrub |
 | 9 | Compositing Studio | Partial — node graph + FFmpeg bake to asset (60s cap) |
 | 10 | Media Toolbox | Partial — inspect/convert/extract/batch (8) |
-| 11 | Production and Review | Partial (desk/calendar live) |
+| 11 | Production and Review | Partial — desk/calendar + Review Studio live |
 | 12 | Automation | Partial (workflow builder live) |
 | 13 | Optional 3D Studio | Planned |
 | 14 | AI Laboratory + original features | Partial (director/templates live) |
@@ -67,3 +67,6 @@ Status reflects the codebase after Phase 1 foundations landed. Features marked *
 22. ~~Separate-track recording (mic/system split where supported)~~
 23. ~~Tutorial callouts / cursor markers scaffold~~
 24. ~~Media toolbox batch encode + track extract~~
+25. ~~Review Studio (local notes / approvals)~~
+26. Design Studio artboard scaffold
+27. AI Laboratory prompt playground (Ollama-only)

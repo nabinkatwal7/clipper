@@ -26,6 +26,7 @@ import {
   LayoutGrid,
   Layers,
   BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { studioGroups, type StudioId } from "@/lib/studios";
 
@@ -73,6 +74,7 @@ const pageIcons: Record<string, LucideIcon> = {
   "Recording Studio": Video,
   "Instant replay": Video,
   "Tutorial tools": BookOpen,
+  "Review Studio": MessageSquare,
   "Motion Studio": Scissors,
   "Compositing Studio": Layers,
   "Workflow builder": Workflow,
