@@ -6,7 +6,7 @@ The current editor uses source timestamps and stores clip settings and media ref
 | --- | --- | --- |
 | 1–5 · Architecture | Next.js, authenticated local storage, FFmpeg, versioned track data, composition preview, hashed preview cache and export validation | Broader document schema and full realtime composition preview |
 | 6–9 · Editor foundation | Editor workspace, source trim, navigation markers, track properties, grouped media layers, drag/trim composition lanes, undo, checkpoints and asset browser | Media proxy workflow, multi-select timeline editing and deeper NLE gestures |
-| 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes for supported layers | General-purpose curves, graph editor and entrance/exit/loop presets |
+| 10–13 · Transforms and animation | Crop, zoom, rotation, opacity, scale and position/gain keyframes, plus entrance/exit presets for supported layers | General-purpose curves, graph editor and loop presets |
 | 14–18 · Effects and transitions | Timed effects, color tools and compilation transitions | Expanded effect catalog, effect stacking and per-cut editor transitions |
 | 19–20 · Speed | Constant 0.5×–4× playback speed, pitch-preserving audio, retimed sidecar captions and source-aligned comparison | Speed curves, reverse playback and motion interpolation |
 | 21–24 · Text and graphics | Title overlay and imported images | Rich text layers, native stickers and motion-graphics authoring |
@@ -41,3 +41,5 @@ To animate rotation, choose **Rotation** under **Keyframes**. Set an angle in **
 Choose **Opacity** under **Keyframes** to animate an image or video layer’s transparency. Set a value from 0% to 100% and add it at the playhead. The keyframes multiply any transparency already present in the layer, including masks and chroma key. Layer fades and blend modes still apply.
 
 Choose **Scale** under **Keyframes** to animate layer size. Values match the **size** field (5%–100% of the canvas). The renderer scales the layer up to the largest keyframe size first, then interpolates down or up so mid-animation frames are not upscaled from a smaller raster. Position still uses the overlay placement formula, so a centered layer stays centered while it grows or shrinks.
+
+Open **Animation presets** on an image or video layer to apply fade, slide, zoom, pop or rotate entrance and exit keyframes. Presets merge into the existing keyframe lists and remain editable. Use **Duplicate** on a keyframe row to copy it 0.25 seconds later when that slot is free.

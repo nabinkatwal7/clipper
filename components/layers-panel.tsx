@@ -3,6 +3,11 @@ import { useState } from "react";
 import { AssetLibrary } from "./asset-library";
 import { LayerMaskControls } from "./layer-mask-controls";
 import { blendModes, type BlendMode } from "@/lib/layer-blend";
+import {
+  animationPresets,
+  applyAnimationPreset,
+  type AnimationPresetId,
+} from "@/lib/animation-presets";
 import type { Asset } from "@/lib/assets";
 import type { Track, Ease } from "@/lib/composition";
 import type { Settings } from "@/lib/types";
@@ -479,6 +484,34 @@ export function LayersPanel({
                 Remove
               </button>
             </div>
+            {t.type !== "audio" && (
+              <details className="clip-context">
+                <summary>Animation presets</summary>
+                <p className="hint">
+                  Applies renderable opacity, position, scale or rotation
+                  keyframes. Preview from playhead to inspect the motion.
+                </p>
+                <div className="candidate-actions">
+                  {animationPresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className="tool"
+                      onClick={() =>
+                        patch(
+                          applyAnimationPreset(
+                            t,
+                            preset.id as AnimationPresetId,
+                          ),
+                        )
+                      }
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
             <h3>Keyframes</h3>
             <label className="field">
               Property
@@ -560,6 +593,33 @@ export function LayersPanel({
               <div className="section-row" key={k.time}>
                 <button onClick={() => seek(t.at + k.time)}>
                   {k.time}s · {k.value} · {k.ease}
+                </button>
+                <button
+                  disabled={
+                    keys.length >= 48 ||
+                    keys.some(
+                      (key) =>
+                        Math.abs(key.time - Math.min(t.length, k.time + 0.25)) <
+                        0.001,
+                    )
+                  }
+                  onClick={() => {
+                    const time =
+                      Math.round(
+                        Math.min(t.length, k.time + 0.25) * 1000,
+                      ) / 1000;
+                    patch({
+                      keys: {
+                        ...t.keys,
+                        [param]: [
+                          ...keys,
+                          { time, value: k.value, ease: k.ease },
+                        ].sort((a, b) => a.time - b.time),
+                      },
+                    });
+                  }}
+                >
+                  Duplicate
                 </button>
                 <button
                   onClick={() =>

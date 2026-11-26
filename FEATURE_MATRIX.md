@@ -158,7 +158,7 @@ Test coverage — Interpolation, animated overlay, scale dimension, opacity alph
 | Ease out | Implemented |
 | Ease in and out | Implemented |
 | Hold keyframes | Implemented |
-| Keyframe duplication | Planned |
+| Keyframe duplication | Implemented |
 | Keyframe deletion | Implemented |
 | Keyframe navigation | Implemented |
 | Provide an intuitive keyframe editor within the timeline | Partial |

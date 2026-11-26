@@ -7,6 +7,10 @@ import { defaults, type Highlight, type Segment } from "../lib/types";
 import { curve, validateComposition } from "../lib/composition";
 import { dragTrack } from "../lib/timeline-gestures";
 import { previewKey } from "../lib/preview-cache";
+import {
+  animationPresets,
+  applyAnimationPreset,
+} from "../lib/animation-presets";
 test("director keeps only bounded, explained edit proposals", () => {
   const proposals = [
     { kind: "range", start: 1, end: 2, why: "Lead in" },
@@ -64,6 +68,39 @@ test("composition versioning and interpolation enforce explicit timeline offsets
       3,
     ),
     /lt\(t,5\)/,
+  );
+});
+test("animation presets write renderable entrance and exit keyframes", () => {
+  const track = {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Inset",
+    asset: "22222222-2222-4222-8222-222222222222",
+    type: "image" as const,
+    at: 0,
+    length: 2,
+    slip: 0,
+    x: 0.5,
+    y: 0.5,
+    size: 0.4,
+    opacity: 1,
+    volume: 1,
+    visible: true,
+    muted: true,
+    locked: false,
+    solo: false,
+    loop: true,
+    fade: 0,
+    keys: {},
+  };
+  assert.equal(animationPresets.length, 10);
+  const faded = applyAnimationPreset(track, "fade-in");
+  assert.equal(faded.keys.opacity?.[0]?.value, 0);
+  assert.equal(faded.keys.opacity?.at(-1)?.value, 1);
+  const zoomed = applyAnimationPreset(track, "zoom-out");
+  assert.ok((zoomed.keys.size?.at(-1)?.value ?? 1) < track.size);
+  validateComposition({ version: 1, tracks: [faded, { ...zoomed, id: "33333333-3333-4333-8333-333333333333" }] });
+  assert.throws(() =>
+    applyAnimationPreset({ ...track, type: "audio", muted: false }, "fade-in"),
   );
 });
 test("preview cache keys change when settings or media fingerprints change", () => {
