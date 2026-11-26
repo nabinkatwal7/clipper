@@ -1,8 +1,13 @@
 "use client";
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { sampleParade, sampleScopes, sampleWaveform } from "@/lib/scopes";
+import {
+  sampleParade,
+  sampleScopes,
+  sampleVectorscope,
+  sampleWaveform,
+} from "@/lib/scopes";
 
-type ScopeMode = "histogram" | "waveform" | "parade";
+type ScopeMode = "histogram" | "waveform" | "parade" | "vectorscope";
 
 export function VideoScopes({
   video,
@@ -77,6 +82,19 @@ export function VideoScopes({
           else ctx.lineTo(x, y);
         });
         ctx.stroke();
+      } else if (mode === "vectorscope") {
+        const pts = sampleVectorscope(source, width, height);
+        const cx = out.width / 2,
+          cy = out.height / 2,
+          r = 44;
+        ctx.strokeStyle = "#333";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        for (const p of pts) {
+          ctx.fillStyle = `rgb(${Math.round(p.r * 255)},${Math.round(p.g * 255)},${Math.round(p.b * 255)})`;
+          ctx.fillRect(cx + p.u * r * 2, cy - p.v * r * 2, 1, 1);
+        }
       } else {
         const parade = sampleParade(source, width, height);
         const cols = parade.length;
@@ -114,6 +132,7 @@ export function VideoScopes({
                 ["histogram", "Histogram"],
                 ["waveform", "Waveform"],
                 ["parade", "Parade"],
+                ["vectorscope", "Vectorscope"],
               ] as const
             ).map(([id, label]) => (
               <button

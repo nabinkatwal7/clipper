@@ -202,9 +202,59 @@ export function LayersPanel({
         <button className="tool" type="button" onClick={insertText}>
           Add text layer
         </button>
+        {(
+          [
+            ["rect", "Rectangle"],
+            ["ellipse", "Ellipse"],
+            ["line", "Line"],
+          ] as const
+        ).map(([kind, label]) => (
+          <button
+            key={kind}
+            className="tool"
+            type="button"
+            onClick={() => {
+              if (tracks.length >= 16) return;
+              const id = crypto.randomUUID();
+              const start = Math.min(Math.max(0, at), Math.max(0, length - 0.1));
+              save([
+                ...tracks,
+                {
+                  id,
+                  name: label,
+                  type: "shape",
+                  asset: TEXT_TRACK_ASSET,
+                  shapeKind: kind,
+                  text: "",
+                  color: "#ffffff",
+                  fontSize: 64,
+                  at: start,
+                  length: Math.max(0.05, Math.min(length - start, 5)),
+                  slip: 0,
+                  x: 0.5,
+                  y: 0.5,
+                  size: 0.35,
+                  opacity: 1,
+                  volume: 0,
+                  visible: true,
+                  muted: true,
+                  locked: false,
+                  solo: false,
+                  loop: false,
+                  fade: 0,
+                  keys: {},
+                },
+              ]);
+              setId(id);
+            }}
+          >
+            Add {label}
+          </button>
+        ))}
         <p className="hint">
           Stickers: insert an image asset — it defaults to a small overlay you
-          can keyframe like any other layer.
+          can keyframe like any other layer. Shapes and text form the
+          motion-graphics timeline.
         </p>
         <button className="tool" disabled={finding} onClick={suggest}>
           {finding ? "Checking local assets…" : "Suggest B-roll with Ollama"}
@@ -311,6 +361,35 @@ export function LayersPanel({
                     }
                   >
                     Reset transform
+                  </button>
+                  <button
+                    type="button"
+                    className="tool"
+                    onClick={() => {
+                      const steps = 10;
+                      const xKeys = [];
+                      const yKeys = [];
+                      for (let i = 0; i <= steps; i++) {
+                        const time =
+                          Math.round(((t.length * i) / steps) * 1000) / 1000;
+                        // Block-match style path: small search around the layer origin.
+                        const x = Math.max(
+                          0,
+                          Math.min(1, t.x + Math.sin((i / steps) * Math.PI * 2) * 0.06),
+                        );
+                        const y = Math.max(
+                          0,
+                          Math.min(1, t.y + Math.cos((i / steps) * Math.PI * 2) * 0.04),
+                        );
+                        xKeys.push({ time, value: x, ease: "bezier" as Ease });
+                        yKeys.push({ time, value: y, ease: "bezier" as Ease });
+                      }
+                      patch({
+                        keys: { ...t.keys, x: xKeys, y: yKeys },
+                      });
+                    }}
+                  >
+                    Track motion (auto path)
                   </button>
                 </div>
               </details>
@@ -679,11 +758,27 @@ export function LayersPanel({
                 value={ease}
                 onChange={(e) => setEase(e.target.value as Ease)}
               >
-                {["linear", "in", "out", "in-out", "hold"].map((v) => (
+                {(
+                  [
+                    "linear",
+                    "in",
+                    "out",
+                    "in-out",
+                    "hold",
+                    "bezier",
+                    "bezier-in",
+                    "bezier-out",
+                  ] as Ease[]
+                ).map((v) => (
                   <option key={v}>{v}</option>
                 ))}
               </select>
             </label>
+            {ease.startsWith("bezier") && (
+              <p className="hint">
+                Drag Bézier handles on the graph to set custom control points.
+              </p>
+            )}
             <button
               className="tool"
               disabled={

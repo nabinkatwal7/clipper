@@ -7,10 +7,38 @@ export type Ease =
   | "bezier"
   | "bezier-in"
   | "bezier-out";
-export type Keyframe = { time: number; value: number; ease: Ease };
 
-/** Cubic Bézier y for x in 0–1 with fixed control points (CSS-like easings). */
-function cubicBezier(
+export type Keyframe = {
+  time: number;
+  value: number;
+  ease: Ease;
+  /** Custom cubic-bezier controls when ease is bezier* (0–1). */
+  cx1?: number;
+  cy1?: number;
+  cx2?: number;
+  cy2?: number;
+};
+
+export function bezierControls(key: Keyframe): [number, number, number, number] {
+  if (
+    [key.cx1, key.cy1, key.cx2, key.cy2].every(
+      (n) => typeof n === "number" && Number.isFinite(n),
+    )
+  )
+    return [
+      Math.max(0, Math.min(1, key.cx1!)),
+      Math.max(0, Math.min(1, key.cy1!)),
+      Math.max(0, Math.min(1, key.cx2!)),
+      Math.max(0, Math.min(1, key.cy2!)),
+    ];
+  if (key.ease === "bezier-in") return [0.42, 0, 1, 1];
+  if (key.ease === "bezier-out") return [0, 0, 0.58, 1];
+  if (key.ease === "bezier") return [0.42, 0, 0.58, 1];
+  return [0, 0, 1, 1];
+}
+
+/** Cubic Bézier y for x in 0–1. */
+export function cubicBezier(
   t: number,
   x1: number,
   y1: number,
@@ -34,14 +62,20 @@ function cubicBezier(
   return ((ay * u + by) * u + cy) * u;
 }
 
-function easeProgress(ease: Ease, t: number) {
-  if (ease === "hold") return 0;
-  if (ease === "in") return t * t;
-  if (ease === "out") return 1 - (1 - t) * (1 - t);
-  if (ease === "in-out") return t * t * (3 - 2 * t);
-  if (ease === "bezier") return cubicBezier(t, 0.42, 0, 0.58, 1);
-  if (ease === "bezier-in") return cubicBezier(t, 0.42, 0, 1, 1);
-  if (ease === "bezier-out") return cubicBezier(t, 0, 0, 0.58, 1);
+function easeProgress(key: Keyframe, t: number) {
+  if (key.ease === "hold") return 0;
+  if (key.ease === "in") return t * t;
+  if (key.ease === "out") return 1 - (1 - t) * (1 - t);
+  if (key.ease === "in-out") return t * t * (3 - 2 * t);
+  if (
+    key.ease === "bezier" ||
+    key.ease === "bezier-in" ||
+    key.ease === "bezier-out" ||
+    key.cx1 !== undefined
+  ) {
+    const [x1, y1, x2, y2] = bezierControls(key);
+    return cubicBezier(t, x1, y1, x2, y2);
+  }
   return t;
 }
 
@@ -58,7 +92,7 @@ export function sampleCurve(
       b = keys[i + 1];
     if (time < b.time) {
       const t = (time - a.time) / (b.time - a.time);
-      return a.value + (b.value - a.value) * easeProgress(a.ease, t);
+      return a.value + (b.value - a.value) * easeProgress(a, t);
     }
   }
   return keys.at(-1)!.value;
@@ -76,7 +110,8 @@ export function curve(
     const a = keys[i],
       b = keys[i + 1],
       t = `((${clock}-(${offset + a.time}))/${b.time - a.time})`;
-    // Bézier eases approximate with smoothstep polynomials for FFmpeg exprs.
+    const [x1, y1, x2, y2] = bezierControls(a);
+    // Approximate custom Bézier with a cubic polynomial for FFmpeg exprs.
     const eased =
       a.ease === "hold"
         ? "0"
@@ -84,13 +119,13 @@ export function curve(
           ? `(${t}*${t})`
           : a.ease === "out"
             ? `(1-(1-${t})*(1-${t}))`
-            : a.ease === "in-out" || a.ease === "bezier"
+            : a.ease === "in-out"
               ? `(${t}*${t}*(3-2*${t}))`
-              : a.ease === "bezier-in"
-                ? `(${t}*${t}*${t})`
-                : a.ease === "bezier-out"
-                  ? `(1-(1-${t})*(1-${t})*(1-${t}))`
-                  : t;
+              : a.ease.startsWith("bezier") || a.cx1 !== undefined
+                ? `(${y1}*3*(1-${t})*(1-${t})*${t}+${y2}*3*(1-${t})*${t}*${t}+${t}*${t}*${t})`
+                : t;
+    void x1;
+    void x2;
     expr = `if(lt(${clock},${offset + b.time}),${a.value}+(${b.value - a.value})*${eased},${expr})`;
   }
   return `if(lt(${clock},${keys[0].time + offset}),${keys[0].value},${expr})`;

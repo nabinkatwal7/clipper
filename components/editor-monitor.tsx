@@ -25,8 +25,11 @@ export function EditorMonitor({
   quality,
   safe,
   clipStart = 0,
+  clipEnd,
   preferProxy = false,
   monitorCanvas,
+  selectedTrackId,
+  onTransform,
 }: {
   video: RefObject<HTMLVideoElement | null>;
   settings: Settings;
@@ -34,8 +37,11 @@ export function EditorMonitor({
   quality: number;
   safe: boolean;
   clipStart?: number;
+  clipEnd?: number;
   preferProxy?: boolean;
   monitorCanvas?: RefObject<HTMLCanvasElement | null>;
+  selectedTrackId?: string;
+  onTransform?: (id: string, patch: { x?: number; y?: number; size?: number }) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const layers = useRef<Map<string, LayerMedia>>(new Map());
@@ -101,7 +107,14 @@ export function EditorMonitor({
         h = c.height,
         sw = v.videoWidth,
         sh = v.videoHeight;
-      const framing = cropAt(settings.cropPoints || [], v.currentTime);
+      const span = Math.max(
+        0.04,
+        (clipEnd ?? clipStart + 30) - clipStart,
+      );
+      const playhead = settings.reverse
+        ? clipStart + span - (v.currentTime - clipStart)
+        : v.currentTime;
+      const framing = cropAt(settings.cropPoints || [], playhead);
       function fill(
         x: number,
         y: number,
@@ -177,26 +190,41 @@ export function EditorMonitor({
         ctx.restore();
       }
 
-      const rel = compositionTime(v.currentTime, clipStart);
+      const rel = compositionTime(playhead, clipStart);
       for (const track of tracks) {
         if (rel < track.at || rel >= track.at + track.length) continue;
         const local = rel - track.at;
-        if (track.type === "text") {
+        if (track.type === "text" || track.type === "shape") {
           const pose = layerPose(track, local);
           ctx.save();
           ctx.globalAlpha = Math.max(0, Math.min(1, pose.opacity));
-          ctx.font =
-            "bold " +
-            Math.max(8, (track.fontSize ?? 48) * factor) +
-            "px " +
-            (settings.font || "Arial");
-          ctx.fillStyle = track.color ?? "#ffffff";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(track.text?.trim() || "Text", w * pose.x, h * pose.y);
+          if (track.type === "shape") {
+            const bw = w * pose.size;
+            const bh =
+              track.shapeKind === "line" ? Math.max(2, h * 0.01) : h * pose.size * 0.55;
+            const x = (w - bw) * pose.x;
+            const y = (h - bh) * pose.y;
+            ctx.fillStyle = track.color ?? "#ffffff";
+            if (track.shapeKind === "ellipse") {
+              ctx.beginPath();
+              ctx.ellipse(x + bw / 2, y + bh / 2, bw / 2, bh / 2, 0, 0, Math.PI * 2);
+              ctx.fill();
+            } else ctx.fillRect(x, y, bw, bh);
+          } else {
+            ctx.font =
+              "bold " +
+              Math.max(8, (track.fontSize ?? 48) * factor) +
+              "px " +
+              (settings.font || "Arial");
+            ctx.fillStyle = track.color ?? "#ffffff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(track.text?.trim() || "Text", w * pose.x, h * pose.y);
+          }
           ctx.restore();
           continue;
         }
+        if (track.type === "effect") continue;
         const media = layers.current.get(track.asset);
         if (!media) continue;
         const element = media.element;
@@ -302,7 +330,7 @@ export function EditorMonitor({
       ctx.globalAlpha = 1;
 
       if (settings.captions) {
-        const at = v.currentTime;
+        const at = playhead;
         const seg = segments.find((s) => s.start <= at && s.end > at);
         if (seg) {
           const wi = seg.words.findIndex((word) => word.end > at);
@@ -420,6 +448,31 @@ export function EditorMonitor({
         ctx.setLineDash([4, 5]);
         ctx.strokeRect(w * 0.08, h * 0.09, w * 0.84, h * 0.82);
         ctx.setLineDash([]);
+      }
+      if (selectedTrackId && onTransform) {
+        const track = tracks.find((t) => t.id === selectedTrackId);
+        if (track && track.type !== "audio" && track.type !== "effect") {
+          const local = Math.max(0, rel - track.at);
+          const pose = layerPose(track, local);
+          const bw = w * pose.size;
+          const bh = h * pose.size;
+          const x = (w - bw) * pose.x;
+          const y = (h - bh) * pose.y;
+          ctx.save();
+          ctx.strokeStyle = "var(--accent, #6cf)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x, y, bw, bh);
+          ctx.fillStyle = "#6cf";
+          for (const [hx, hy] of [
+            [x, y],
+            [x + bw, y],
+            [x, y + bh],
+            [x + bw, y + bh],
+          ] as const) {
+            ctx.fillRect(hx - 4, hy - 4, 8, 8);
+          }
+          ctx.restore();
+        }
       }
     }
     function next() {

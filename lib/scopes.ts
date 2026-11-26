@@ -64,6 +64,36 @@ export function sampleWaveform(
   return out;
 }
 
+/** Vectorscope: Cb/Cr-like points from RGB (U/V normalized −0.5…0.5). */
+export function sampleVectorscope(
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  maxPoints = 1200,
+): { u: number; v: number; r: number; g: number; b: number }[] {
+  const canvas = document.createElement("canvas");
+  const w = Math.max(1, Math.min(96, Math.floor(width)));
+  const h = Math.max(1, Math.min(96, Math.floor(height)));
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return [];
+  ctx.drawImage(source, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const step = Math.max(1, Math.floor((w * h) / maxPoints));
+  const out: { u: number; v: number; r: number; g: number; b: number }[] = [];
+  for (let p = 0; p < w * h; p += step) {
+    const i = p * 4;
+    const r = data[i] / 255,
+      g = data[i + 1] / 255,
+      b = data[i + 2] / 255;
+    const u = -0.14713 * r - 0.28886 * g + 0.436 * b;
+    const v = 0.615 * r - 0.51499 * g - 0.10001 * b;
+    out.push({ u, v, r, g, b });
+  }
+  return out;
+}
+
 /** RGB parade: per-column average R, G, B in 0–1. */
 export function sampleParade(
   source: CanvasImageSource,

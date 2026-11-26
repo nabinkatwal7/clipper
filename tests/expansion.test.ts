@@ -475,6 +475,42 @@ test("beat detection finds periodic onsets and supports snapping", () => {
   assert.equal(snapToBeats(0.52, result.beats, 0.15), result.beats.find(b => Math.abs(b.time-0.5)<0.05)?.time || 0.52);
 });
 
+import { bezierControls, cubicBezier } from "../lib/keyframe-curve";
+test("custom Bézier control points change sampled curves", () => {
+  const a = {
+    time: 0,
+    value: 0,
+    ease: "bezier" as const,
+    cx1: 0,
+    cy1: 0,
+    cx2: 1,
+    cy2: 1,
+  };
+  const b = { time: 1, value: 1, ease: "hold" as const };
+  assert.ok(Math.abs(sampleCurve([a, b], 0, 0.5) - 0.5) < 0.05);
+  assert.deepEqual(bezierControls(a), [0, 0, 1, 1]);
+  assert.ok(cubicBezier(0.5, 0.42, 0, 0.58, 1) > 0.4);
+});
+
+import { trackPoint } from "../lib/motion-track";
+test("block-match motion tracker follows a shifted bright block", () => {
+  const w = 32,
+    h = 32;
+  const mk = (ox: number, oy: number) => {
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < 6; y++)
+      for (let x = 0; x < 6; x++) {
+        const i = ((oy + y) * w + (ox + x)) * 4;
+        data[i] = data[i + 1] = data[i + 2] = 255;
+        data[i + 3] = 255;
+      }
+    return { width: w, height: h, data };
+  };
+  const path = trackPoint([mk(4, 4), mk(10, 5)], [0, 0.2], 7 / 32, 7 / 32, 8, 5);
+  assert.equal(path.length, 2);
+  assert.ok(path[1].x > path[0].x);
+});
+
 import {
   builtinTemplates,
   deleteTemplate,

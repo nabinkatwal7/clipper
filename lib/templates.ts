@@ -86,6 +86,71 @@ export async function deleteTemplate(id: string) {
   await fs.rm(path.join(templatesDir(), id + ".json"), { force: true });
 }
 
+/** Pack a template JSON (and optional asset files) into a ZIP buffer. */
+export async function exportTemplateZip(id: string) {
+  const template = (await listTemplates())
+    .concat(builtinTemplates())
+    .find((row) => row.id === id);
+  if (!template) throw Error("Template not found");
+  const { ZipArchive } = await import("archiver");
+  const chunks: Buffer[] = [];
+  const archive = new ZipArchive();
+  archive.on("data", (c: Buffer) => chunks.push(c));
+  const done = new Promise<Buffer>((resolve, reject) => {
+    archive.on("end", () => resolve(Buffer.concat(chunks)));
+    archive.on("error", reject);
+  });
+  archive.append(JSON.stringify(template, null, 2), { name: "template.json" });
+  for (const assetId of template.assets || []) {
+    try {
+      const { asset } = await import("./assets");
+      const row = await asset(assetId);
+      const { file } = await import("./store");
+      archive.file(file("assets", row.id, row.ext), {
+        name: "assets/" + row.id + "." + row.ext,
+      });
+    } catch {}
+  }
+  await archive.finalize();
+  return done;
+}
+
+/** Import a ZIP containing template.json (+ optional assets/). */
+export async function importTemplateZip(buffer: Buffer) {
+  const os = await import("node:os");
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const exec = promisify(execFile);
+  const dir = path.join(os.tmpdir(), "clipper-template-" + randomUUID());
+  await fs.mkdir(dir, { recursive: true });
+  try {
+    const zipPath = path.join(dir, "pack.zip");
+    await fs.writeFile(zipPath, buffer);
+    // Use PowerShell Expand-Archive on Windows, unzip elsewhere.
+    try {
+      await exec("powershell", [
+        "-NoProfile",
+        "-Command",
+        `Expand-Archive -Force -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${dir.replace(/'/g, "''")}'`,
+      ]);
+    } catch {
+      await exec("unzip", ["-o", zipPath, "-d", dir]);
+    }
+    const text = await fs.readFile(path.join(dir, "template.json"), "utf8");
+    const parsed = templateSchema.parse(JSON.parse(text));
+    const settings = validateSettings(parsed.settings);
+    const saved = await saveTemplate({
+      name: parsed.name,
+      category: parsed.category,
+      description: parsed.description,
+      settings,
+    });
+    return saved;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
 export function builtinTemplates(): EditTemplate[] {
   const stamp = "1970-01-01T00:00:00.000Z";
   return [

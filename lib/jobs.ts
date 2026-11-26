@@ -598,6 +598,16 @@ export async function render(
     transforms.push(`fade=t=in:st=0:d=${cut.duration}:alpha=1`);
   if (s.motionInterpolation)
     transforms.push("minterpolate=fps=30:mi_mode=blend");
+  for (const span of s.spanTransitions || []) {
+    if (span.type === "fade" || span.type.startsWith("wipe"))
+      transforms.push(
+        `fade=t=in:st=${span.at}:d=${span.duration}:alpha=1`,
+      );
+    else if (span.type === "fadeblack")
+      transforms.push(`fade=t=in:st=${span.at}:d=${span.duration}:c=black`);
+    else if (span.type === "fadewhite")
+      transforms.push(`fade=t=in:st=${span.at}:d=${span.duration}:c=white`);
+  }
   if (s.grade || s.effectStack?.length)
     transforms.push(...gradeFilters(s.grade || {}, w, height, s.effectStack));
   transforms.push(...adjustmentFilters(s.adjustmentLayers, height));
@@ -720,7 +730,13 @@ export async function render(
       "Insufficient free storage for the estimated render. Free disk space and retry.",
     );
   const profile = s.encodeProfile || "fast";
-  const codecs = ["h264_nvenc", "h264_qsv", "h264_amf", "libx264"];
+  const codecs = [
+    "h264_nvenc",
+    "h264_qsv",
+    "h264_amf",
+    "h264_videotoolbox",
+    "libx264",
+  ];
   const presets: Record<string, { preset: string; crf: string }> = {
     draft: { preset: "ultrafast", crf: "28" },
     fast: { preset: process.env.FFMPEG_PRESET || "superfast", crf: "21" },

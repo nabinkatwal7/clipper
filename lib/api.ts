@@ -294,6 +294,16 @@ export async function handle(
     if (action === "templates") {
       const templates = await import("./templates");
       if (req.method === "GET") {
+        if (query.get("pack")) {
+          const zip = await templates.exportTemplateZip(query.get("pack")!);
+          return new Response(new Uint8Array(zip), {
+            headers: {
+              "Content-Type": "application/zip",
+              "Content-Disposition":
+                'attachment; filename="clipper-template.zip"',
+            },
+          });
+        }
         const saved = await templates.listTemplates();
         return NextResponse.json([
           ...templates.builtinTemplates(),
@@ -306,6 +316,11 @@ export async function handle(
           await templates.deleteTemplate(b.id);
           return NextResponse.json({ ok: true });
         }
+        if (b.action === "import-zip" && typeof b.zip === "string") {
+          return NextResponse.json(
+            await templates.importTemplateZip(Buffer.from(b.zip, "base64")),
+          );
+        }
         return NextResponse.json(
           await templates.saveTemplate({
             id: b.id,
@@ -316,6 +331,27 @@ export async function handle(
           }),
         );
       }
+    }
+    if (action === "motion-track" && req.method === "POST") {
+      const b = await req.json();
+      const { trackPoint } = await import("./motion-track");
+      if (!Array.isArray(b.frames) || !b.frames.length)
+        throw Error("Provide sampled frames for motion tracking.");
+      const frames = b.frames.map(
+        (row: { width: number; height: number; data: number[] }) => ({
+          width: row.width,
+          height: row.height,
+          data: Uint8ClampedArray.from(row.data),
+        }),
+      );
+      return NextResponse.json(
+        trackPoint(
+          frames,
+          b.times || frames.map((_: unknown, i: number) => i * 0.2),
+          b.x ?? 0.5,
+          b.y ?? 0.5,
+        ),
+      );
     }
     if (action === "beat-detect" && req.method === "POST") {
       const b = await req.json();

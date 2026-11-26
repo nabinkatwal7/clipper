@@ -255,13 +255,42 @@ export function VideoEditor({
   function toggle() {
     if (!video.current) return;
     if (!video.current.paused) video.current.pause();
-    else {
+    else if (settings.reverse) {
+      // Drive reverse by seeking backward; HTML5 cannot natively reverse decode.
+      if (now <= start || now >= end) seek(end - 0.04);
+      void video.current.pause();
+      setPlaying(true);
+    } else {
       if (now < start || now >= end) seek(start);
       void video.current
         .play()
         .catch(() => setError("Unable to play this source."));
     }
   }
+  useEffect(() => {
+    if (!settings.reverse || !playing || !video.current) return;
+    let frame = 0;
+    let last = performance.now();
+    const rate = settings.playbackRate ?? 1;
+    const tick = (stamp: number) => {
+      const dt = Math.min(0.05, (stamp - last) / 1000) * rate;
+      last = stamp;
+      const v = video.current;
+      if (!v) return;
+      const next = v.currentTime - dt;
+      if (next <= start) {
+        v.currentTime = start;
+        setPlaying(false);
+        setNow(start);
+        return;
+      }
+      v.currentTime = next;
+      setNow(next);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [settings.reverse, settings.playbackRate, playing, start]);
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if (
@@ -640,6 +669,7 @@ export function VideoEditor({
               segments={segments}
               safe={safe}
               clipStart={valid ? start : clip.start}
+              clipEnd={valid ? end : clip.end}
               preferProxy={useProxy && proxyReady}
               monitorCanvas={monitorCanvas}
             />

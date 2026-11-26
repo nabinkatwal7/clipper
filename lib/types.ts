@@ -12,16 +12,26 @@ export type CutTransition = {
   duration: number;
 };
 
+export type SpanTransition = {
+  at: number;
+  duration: number;
+  type: CutTransition["type"];
+};
+
 export type Settings = {
+  schemaVersion?: 1;
   playbackRate?: number;
   reverse?: boolean;
   motionInterpolation?: boolean;
   speedCurve?: import("./speed-curve").SpeedPoint[];
   cutTransition?: CutTransition;
+  spanTransitions?: SpanTransition[];
   encodeProfile?: "fast" | "balanced" | "quality" | "draft" | "archive";
   hardwareEncode?: boolean;
   backgroundAsset?: string;
   captionSpacing?: number;
+  speakerStyles?: { name: string; color: string }[];
+  customFont?: string;
   cropPoints?: import("./reframe").CropPoint[];
   grade?: Partial<import("./grading").Grade>;
   effectStack?: import("./grading").StackedEffect[];
@@ -72,6 +82,7 @@ export type Settings = {
   manualEnd: number;
 };
 export const defaults: Settings = {
+  schemaVersion: 1,
   duration: "30-60",
   count: 5,
   ratio: "9:16",
@@ -92,6 +103,8 @@ export type Segment = {
   end: number;
   text: string;
   words: Word[];
+  style?: "minimal" | "bold" | "highlight";
+  speaker?: string;
 };
 export type Highlight = {
   category?: string;

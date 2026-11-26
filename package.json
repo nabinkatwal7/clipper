@@ -8,6 +8,7 @@
     "start": "next start --hostname 127.0.0.1 --port 4000",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "pixel-diff": "node scripts/pixel-diff.mjs",
     "health": "tsx scripts/health.ts",
     "format": "prettier --write app components lib scripts tests types *.json *.ts *.mjs README.md",
     "clipper": "node scripts/clipper.mjs",

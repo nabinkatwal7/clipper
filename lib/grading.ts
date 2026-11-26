@@ -14,6 +14,8 @@ export const effects = [
   "rgbshift",
   "posterize",
   "invert",
+  "freeze",
+  "motionblur",
 ] as const;
 export type Grade = {
   lut?: string;
@@ -180,6 +182,8 @@ function effectFilter(
       Math.round(2 + 10 * a),
     posterize: "eq=gamma=" + (1 + a) + ":contrast=" + (1 + 0.4 * a),
     invert: "negate",
+    freeze: "tpad=stop_mode=clone:stop_duration=" + (0.05 + 0.4 * a),
+    motionblur: "minterpolate=mi_mode=blend:mc_mode=aobmc:vsbmc=1:fps=30",
   };
   const filters = [
     fx[effect] +

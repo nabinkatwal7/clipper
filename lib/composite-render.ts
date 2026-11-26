@@ -4,6 +4,8 @@ import { enabledTracks, curve, type Composition } from "./composition";
 import { layerAlphaFilter, maskFilter } from "./layer-mask";
 import { layerBlendGraph } from "./layer-blend";
 import { layerTransformFilters } from "./layer-transform";
+import { shapeFilter } from "./motion-graphics";
+import { gradeFilters } from "./grading";
 export async function compose(
   c: Composition | undefined,
   w: number,
@@ -28,19 +30,25 @@ export async function compose(
   for (const t of ordered) {
     if (t.at >= duration) continue;
     const span = Math.min(t.length, duration - t.at);
-    if (t.type === "text") {
+    if (t.type === "text" || t.type === "shape") {
       if (!t.visible) continue;
       i++;
-      const esc = (t.text || "Text")
-        .replace(/\\/g, "\\\\")
-        .replace(/'/g, "\\'")
-        .replace(/:/g, "\\:")
-        .replace(/%/g, "\\%");
-      const fc = (t.color || "#ffffff").replace("#", "0x");
-      const fs = t.fontSize ?? 64;
       const fade = Math.min(t.fade, span / 2);
+      const draw =
+        t.type === "shape"
+          ? shapeFilter(t, w, h)
+          : (() => {
+              const esc = (t.text || "Text")
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "\\'")
+                .replace(/:/g, "\\:")
+                .replace(/%/g, "\\%");
+              const fc = (t.color || "#ffffff").replace("#", "0x");
+              const fs = t.fontSize ?? 64;
+              return `drawtext=text='${esc}':fontsize=${fs}:fontcolor=${fc}:x=(w-text_w)*${curve(t.keys.x, t.x, t.at)}:y=(h-text_h)*${curve(t.keys.y, t.y, t.at)}`;
+            })();
       graph.push(
-        `color=c=black@0.0:s=${w}x${h}:d=${span},fps=30,format=rgba,drawtext=text='${esc}':fontsize=${fs}:fontcolor=${fc}:x=(w-text_w)*${curve(t.keys.x, t.x, t.at)}:y=(h-text_h)*${curve(t.keys.y, t.y, t.at)}:enable='between(t,${t.at},${t.at + span})'${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
+        `color=c=black@0.0:s=${w}x${h}:d=${span},fps=30,format=rgba,${draw}:enable='between(t,${t.at},${t.at + span})'${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
       );
       const placement = `x=0:y=0:enable='between(t,${t.at},${t.at + span})':eof_action=pass:repeatlast=0`;
       graph.push(
@@ -51,6 +59,17 @@ export async function compose(
           placement,
           t.blendMode,
         ),
+      );
+      video = "composite" + i;
+      continue;
+    }
+    if (t.type === "effect") {
+      if (!t.visible || !t.effectStack?.length) continue;
+      const fx = gradeFilters({}, w, h, t.effectStack);
+      if (!fx.length) continue;
+      i++;
+      graph.push(
+        `[${video}]${fx.join(",")},enable='between(t,${t.at},${t.at + span})'[composite${i}]`,
       );
       video = "composite" + i;
       continue;

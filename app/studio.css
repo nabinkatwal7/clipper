@@ -1906,6 +1906,15 @@ html[style*="--timeline-color"] .edit-timeline .playhead,html[style*="--timeline
   stroke: var(--accent);
   stroke-width: 1.5;
 }
+.keyframe-graph .graph-handle-line {
+  stroke: var(--accent);
+  stroke-width: 1;
+  opacity: 0.75;
+}
+.keyframe-graph .graph-handle {
+  fill: var(--accent);
+  cursor: grab;
+}
 .keyframe-graph .graph-point {
   fill: var(--accent-text, #fff);
   stroke: var(--accent);

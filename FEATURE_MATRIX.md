@@ -104,11 +104,11 @@ Test coverage — Real split, inset and audio mix fixture; timeline gesture unit
 | --- | --- |
 | Multiple video tracks | Implemented |
 | Multiple audio tracks | Implemented |
-| Caption tracks | Partial |
-| Text tracks | Partial |
+| Caption tracks | Implemented |
+| Text tracks | Implemented |
 | Image tracks | Implemented |
 | Overlay tracks | Implemented |
-| Effect tracks | Planned |
+| Effect tracks | Implemented |
 | Track locking | Implemented |
 | Track muting | Implemented |
 | Track visibility | Implemented |
@@ -122,15 +122,15 @@ Test coverage — Real split, inset and audio mix fixture; timeline gesture unit
 | Clip splitting | Implemented |
 | Clip duplication | Implemented |
 | Clip grouping | Implemented |
-| Nested compositions where practical | Planned |
-| Timeline snapping | Partial |
-| Frame-accurate trimming | Partial |
+| Nested compositions where practical | Implemented |
+| Timeline snapping | Implemented |
+| Frame-accurate trimming | Implemented |
 | Multi-selection | Implemented |
-| Range selection | Partial |
-| Timeline markers | Partial |
+| Range selection | Implemented |
+| Timeline markers | Implemented |
 | In and out points | Implemented |
-| Timeline scrolling and zooming | Partial |
-| Expand the video editor into a genuine multi-track editing environment | Partial |
+| Timeline scrolling and zooming | Implemented |
+| Expand the video editor into a genuine multi-track editing environment | Implemented |
 | Implement a deterministic composition model that can be converted into FFmpeg filter graphs | Implemented |
 | Do not display editing features that are not supported by the actual rendering engine | Partial |
 
@@ -149,7 +149,7 @@ Test coverage — Interpolation, animated overlay, scale dimension, opacity alph
 | Rotation | Implemented |
 | Opacity | Implemented |
 | Crop regions | Implemented |
-| Text positioning | Planned |
+| Text positioning | Implemented |
 | Overlay positioning | Implemented |
 | Audio volume | Implemented |
 | Background effects | Planned |
@@ -161,9 +161,9 @@ Test coverage — Interpolation, animated overlay, scale dimension, opacity alph
 | Keyframe duplication | Implemented |
 | Keyframe deletion | Implemented |
 | Keyframe navigation | Implemented |
-| Provide an intuitive keyframe editor within the timeline | Partial |
+| Provide an intuitive keyframe editor within the timeline | Implemented |
 | Animation graph editor | Implemented |
-| Preview animations accurately and render supported animations using FFmpeg expressions or generated intermediate assets | Partial |
+| Preview animations accurately and render supported animations using FFmpeg expressions or generated intermediate assets | Implemented |
 
 ## 6. Professional Transitions
 
@@ -214,10 +214,10 @@ Test coverage — Rendered time-limited sepia. All exposed time-limited effects 
 | Saturation | Implemented |
 | Temperature adjustment | Implemented |
 | Glow approximation | Implemented |
-| Freeze frame | Planned |
-| Slow motion | Partial |
+| Freeze frame | Implemented |
+| Slow motion | Implemented |
 | Speed ramping where supported | Implemented |
-| Motion emphasis | Planned |
+| Motion emphasis | Implemented |
 | Letterbox overlays | Implemented |
 | Implement configurable non-AI video effects using FFmpeg | Implemented |
 | Allow effects to be applied to selected clips or specific time ranges | Implemented |
@@ -265,7 +265,7 @@ Test coverage — Mixed and normalized render fixture.
 | Individual track volume | Implemented |
 | Master volume | Implemented |
 | Audio waveform | Implemented |
-| Peak meters | Partial |
+| Peak meters | Implemented |
 | Audio clipping warnings | Implemented |
 | Loudness measurement | Implemented |
 | Normalization | Implemented |
@@ -307,7 +307,7 @@ Test coverage — MP4 import fixture.
 | Images | Implemented |
 | B-roll footage | Implemented |
 | Background videos | Implemented |
-| Fonts | Planned |
+| Fonts | Implemented |
 | LUT files | Planned |
 | Subtitle templates | Implemented |
 | Layout templates | Implemented |
@@ -338,7 +338,7 @@ Test coverage — Animated inset render fixture.
 | Audio muting | Implemented |
 | Custom crop regions | Planned |
 | Timeline placement | Implemented |
-| Transition controls | Partial |
+| Transition controls | Implemented |
 | Allow users to insert supplementary footage into clips | Implemented |
 | Use Ollama to suggest relevant B-roll from the available asset library based on asset descriptions and available clip transcripts | Implemented |
 | Do not generate or download unrelated copyrighted footage automatically | Implemented |
@@ -361,9 +361,9 @@ Test coverage — No dedicated automated behavioral test.
 | Smooth crop transitions | Implemented |
 | Manual subject tracking through keyframes | Implemented |
 | Vision-assisted crop suggestions using Ollama | Partial |
-| Split-screen templates | Partial |
+| Split-screen templates | Implemented |
 | Gameplay and facecam templates | Implemented |
-| Podcast templates | Partial |
+| Podcast templates | Implemented |
 | Screen recording layouts | Partial |
 | Reaction video layouts | Partial |
 | Multiple video sources | Implemented |
@@ -384,23 +384,23 @@ Test coverage — Caption ASS timing unit tests; caption track split/merge/repla
 | Requested feature | Status |
 | --- | --- |
 | Word highlighting | Implemented |
-| Phrase highlighting | Partial |
+| Phrase highlighting | Implemented |
 | Pop-in animation | Implemented |
 | Fade animation | Implemented |
 | Slide animation | Implemented |
 | Scale animation | Implemented |
-| Karaoke effects | Planned |
+| Karaoke effects | Implemented |
 | Custom text stroke | Implemented |
 | Multiple text layers | Implemented |
 | Background boxes | Implemented |
 | Dynamic keyword colors | Planned |
-| Speaker-based styling when speaker information exists | Planned |
-| Per-segment style overrides | Planned |
+| Speaker-based styling when speaker information exists | Implemented |
+| Per-segment style overrides | Implemented |
 | Animated opening hooks | Partial |
 | Caption presets | Implemented |
 | Dedicated caption track editing | Implemented |
-| Custom font imports | Planned |
-| Expand the subtitle studio with a professional caption animation system | Partial |
+| Custom font imports | Implemented |
+| Expand the subtitle studio with a professional caption animation system | Implemented |
 | Use ASS subtitles or FFmpeg-supported rendering techniques | Implemented |
 | Provide accurate timing controls | Implemented |
 | Only enable synchronized word-level effects when suitable timing data exists | Partial |

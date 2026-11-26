@@ -46,6 +46,53 @@ export function settings(input: unknown): Settings {
     typeof s.motionInterpolation !== "boolean"
   )
     throw Error("Invalid motion interpolation setting");
+  if (s.schemaVersion !== undefined && s.schemaVersion !== 1)
+    throw Error("Unsupported settings schema version");
+  if (s.spanTransitions !== undefined) {
+    if (!Array.isArray(s.spanTransitions) || s.spanTransitions.length > 12)
+      throw Error("Too many span transitions");
+    for (const row of s.spanTransitions) {
+      if (
+        !row ||
+        !Number.isFinite(row.at) ||
+        row.at < 0 ||
+        row.at > 600 ||
+        !Number.isFinite(row.duration) ||
+        row.duration < 0.05 ||
+        row.duration > 2 ||
+        ![
+          "fade",
+          "fadeblack",
+          "fadewhite",
+          "slideleft",
+          "slideright",
+          "wipeleft",
+          "wiperight",
+        ].includes(row.type)
+      )
+        throw Error("Invalid span transition");
+    }
+  }
+  if (s.speakerStyles !== undefined) {
+    if (!Array.isArray(s.speakerStyles) || s.speakerStyles.length > 12)
+      throw Error("Too many speaker styles");
+    for (const row of s.speakerStyles) {
+      if (
+        !row ||
+        typeof row.name !== "string" ||
+        !row.name.trim() ||
+        row.name.length > 40 ||
+        !/^#[0-9a-f]{6}$/i.test(row.color)
+      )
+        throw Error("Invalid speaker style");
+    }
+  }
+  if (
+    s.customFont !== undefined &&
+    (typeof s.customFont !== "string" ||
+      !/^[a-zA-Z0-9 _.-]{1,80}$/.test(s.customFont))
+  )
+    throw Error("Invalid custom font");
   if (s.hardwareEncode !== undefined && typeof s.hardwareEncode !== "boolean")
     throw Error("Invalid hardware encode setting");
   if (

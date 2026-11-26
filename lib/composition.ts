@@ -17,10 +17,13 @@ export type Track = LayerTransform & {
   name: string;
   group?: string;
   asset: string;
-  type: "video" | "image" | "audio" | "text";
+  type: "video" | "image" | "audio" | "text" | "shape" | "effect";
   text?: string;
   color?: string;
   fontSize?: number;
+  shapeKind?: "rect" | "ellipse" | "line";
+  effectStack?: import("./grading").StackedEffect[];
+  nested?: Composition;
   at: number;
   length: number;
   slip: number;
@@ -58,10 +61,11 @@ export function validateComposition(v: Composition) {
       !/^[a-f0-9-]{36}$/.test(t.id) ||
       typeof t.asset !== "string" ||
       !/^[a-f0-9-]{36}$/.test(t.asset) ||
-      (t.type === "text" && t.asset !== TEXT_TRACK_ASSET) ||
+      ((t.type === "text" || t.type === "shape" || t.type === "effect") &&
+        t.asset !== TEXT_TRACK_ASSET) ||
       (t.group !== undefined && !/^[a-f0-9-]{36}$/.test(t.group)) ||
       ids.has(t.id) ||
-      !["audio", "image", "video", "text"].includes(t.type)
+      !["audio", "image", "video", "text", "shape", "effect"].includes(t.type)
     )
       throw Error("Invalid timeline track");
     if (t.type === "text") {
@@ -75,12 +79,30 @@ export function validateComposition(v: Composition) {
       )
         throw Error("Invalid text layer");
     }
+    if (t.type === "shape") {
+      if (
+        !t.shapeKind ||
+        !["rect", "ellipse", "line"].includes(t.shapeKind) ||
+        (t.color !== undefined && !/^#[0-9a-f]{6}$/i.test(t.color))
+      )
+        throw Error("Invalid shape layer");
+    }
+    if (t.nested) {
+      if (t.nested.version !== 1 || !Array.isArray(t.nested.tracks))
+        throw Error("Invalid nested composition");
+      if (t.nested.tracks.some((n) => n.nested))
+        throw Error("Nested compositions are limited to one level.");
+      validateComposition(t.nested);
+    }
     ids.add(t.id);
     const transforms = layerTransformFilters(t);
     if (t.type === "audio" && transforms.length)
       throw Error("Visual transforms require an image or video layer.");
-    if (t.type === "text" && (t.keyColor || t.mask))
-      throw Error("Chroma key and masks are not supported on text layers.");
+    if (
+      (t.type === "text" || t.type === "shape" || t.type === "effect") &&
+      (t.keyColor || t.mask)
+    )
+      throw Error("Chroma key and masks are not supported on that layer type.");
     if (
       t.blendMode !== undefined &&
       (t.type === "audio" ||
@@ -149,6 +171,12 @@ export function validateComposition(v: Composition) {
           ].includes(key.ease)
         )
           throw Error("Invalid animation point");
+        for (const c of [key.cx1, key.cy1, key.cx2, key.cy2])
+          if (
+            c !== undefined &&
+            (!Number.isFinite(c) || c < 0 || c > 1)
+          )
+            throw Error("Invalid Bézier control point");
         previous = key.time;
       }
     }

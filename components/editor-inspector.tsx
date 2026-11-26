@@ -282,8 +282,8 @@ function TemplateBrowser({
   return (
     <>
       <p className="hint">
-        Apply a JSON editing template. Templates store settings only — media and
-        composition tracks stay on the current clip.
+        Apply JSON templates or download/upload ZIP packs that can include
+        referenced assets.
       </p>
       <div className="field-grid">
         <label className="field">
@@ -310,6 +310,30 @@ function TemplateBrowser({
         >
           Save template
         </button>
+        <label className="tool">
+          Import ZIP
+          <input
+            type="file"
+            accept=".zip,application/zip"
+            hidden
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const buf = await file.arrayBuffer();
+              const zip = btoa(
+                String.fromCharCode(...new Uint8Array(buf)),
+              );
+              const r = await fetch("/api/templates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "import-zip", zip }),
+              });
+              const data = await r.json();
+              setMessage(r.ok ? "Imported " + data.name : data.error || "Import failed");
+              if (r.ok) void refresh();
+            }}
+          />
+        </label>
       </div>
       {message && <p role="status">{message}</p>}
       {rows.map((row) => (
@@ -320,12 +344,15 @@ function TemplateBrowser({
             onClick={() =>
               change({
                 ...row.settings,
-                composition: settings.composition,
+                composition: row.settings.composition || settings.composition,
               })
             }
           >
             Apply · {row.name}
           </button>
+          <a className="tool" href={"/api/templates?pack=" + row.id}>
+            ZIP
+          </a>
           <small>
             {row.category}
             {row.description ? " · " + row.description : ""}
