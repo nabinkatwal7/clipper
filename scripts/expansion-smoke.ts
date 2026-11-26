@@ -191,6 +191,42 @@ async function main() {
   );
   assert.deepEqual(alpha, [0, 255, 0]);
   console.log("PASS mask geometry interpolates across rendered frames");
+  const { layerAlphaFilter } = await import("../lib/layer-mask");
+  const { curve } = await import("../lib/keyframe-curve");
+  const fadeCurve = curve(
+    [
+      { time: 0, value: 0, ease: "linear" },
+      { time: 1, value: 1, ease: "linear" },
+    ],
+    1,
+    0,
+    "T",
+  );
+  const alphas: number[] = [];
+  await run(
+    bin.ffmpeg,
+    [
+      "-hide_banner",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=red:s=64x64:r=2:d=1.5",
+      "-vf",
+      "format=rgba,colorchannelmixer=aa=0.5," +
+        layerAlphaFilter(`alpha(X,Y)*(${fadeCurve})`) +
+        ",alphaextract,showinfo",
+      "-f",
+      "null",
+      "-",
+    ],
+    undefined,
+    (line) => {
+      const match = line.match(/mean:\[(\d+)\]/);
+      if (match) alphas.push(Number(match[1]));
+    },
+  );
+  assert.deepEqual(alphas, [0, 64, 128]);
+  console.log("PASS opacity keyframes preserve existing layer transparency");
   const { blendModes, layerBlendGraph } = await import("../lib/layer-blend");
   const luminance = async (
     mode: keyof typeof blendModes,
@@ -450,6 +486,10 @@ async function main() {
     rotation: 22,
     flipX: true,
     keys: {
+      opacity: [
+        { time: 0, value: 0.25, ease: "in" },
+        { time: 0.8, value: 0.8, ease: "hold" },
+      ],
       rotation: [
         { time: 0, value: 22, ease: "in-out" },
         { time: 0.8, value: -45, ease: "hold" },

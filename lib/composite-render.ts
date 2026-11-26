@@ -1,7 +1,7 @@
 import { asset } from "./assets";
 import { file } from "./store";
 import { enabledTracks, curve, type Composition } from "./composition";
-import { maskFilter } from "./layer-mask";
+import { layerAlphaFilter, maskFilter } from "./layer-mask";
 import { layerBlendGraph } from "./layer-blend";
 import { layerTransformFilters } from "./layer-transform";
 export async function compose(
@@ -46,13 +46,20 @@ export async function compose(
         ? `,colorkey=0x${key.color.slice(1)}:${key.similarity}:${key.blend}`
         : "";
       const resetClock =
-        t.mask || t.keys.rotation?.length ? ",setpts=PTS-STARTPTS" : "";
+        t.mask || t.keys.rotation?.length || t.keys.opacity?.length
+          ? ",setpts=PTS-STARTPTS"
+          : "";
       const mask = t.mask ? "," + maskFilter(t.mask) : "";
       const transforms = layerTransformFilters(t, t.keys.rotation)
         .map((filter) => "," + filter)
         .join("");
+      const opacity = t.keys.opacity?.length
+        ? layerAlphaFilter(
+            `alpha(X,Y)*(${curve(t.keys.opacity, t.opacity, 0, "T")})`,
+          )
+        : `colorchannelmixer=aa=${t.opacity}`;
       graph.push(
-        `[${i}:v]scale=${vw}:${vh}:force_original_aspect_ratio=decrease,setsar=1,format=rgba${keyFilter}${resetClock}${mask}${transforms},colorchannelmixer=aa=${t.opacity}${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
+        `[${i}:v]scale=${vw}:${vh}:force_original_aspect_ratio=decrease,setsar=1,format=rgba${keyFilter}${resetClock}${mask}${transforms},${opacity}${fade ? ",fade=t=in:st=0:d=" + fade + ":alpha=1,fade=t=out:st=" + (span - fade) + ":d=" + fade + ":alpha=1" : ""},setpts=PTS-STARTPTS+${t.at}/TB[layer${i}]`,
       );
       const placement = `x='(W-w)*${curve(t.keys.x, t.x, t.at)}':y='(H-h)*${curve(t.keys.y, t.y, t.at)}':enable='between(t,${t.at},${t.at + span})':eof_action=pass:repeatlast=0`;
       graph.push(

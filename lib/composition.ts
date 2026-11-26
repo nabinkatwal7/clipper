@@ -27,7 +27,9 @@ export type Track = LayerTransform & {
   keyColor?: { color: string; similarity: number; blend: number };
   mask?: LayerMask;
   blendMode?: BlendMode;
-  keys: Partial<Record<"x" | "y" | "volume" | "rotation", Keyframe[]>>;
+  keys: Partial<
+    Record<"x" | "y" | "volume" | "rotation" | "opacity", Keyframe[]>
+  >;
 };
 export type Composition = { version: 1; tracks: Track[] };
 const within = (n: unknown, min: number, max: number) =>
@@ -92,8 +94,8 @@ export function validateComposition(v: Composition) {
     if (!t.keys || typeof t.keys !== "object") throw Error("Invalid keyframes");
     for (const [k, keys] of Object.entries(t.keys)) {
       if (
-        !["x", "y", "volume", "rotation"].includes(k) ||
-        (k === "rotation" && t.type === "audio") ||
+        !["x", "y", "volume", "rotation", "opacity"].includes(k) ||
+        (t.type === "audio" && ["rotation", "opacity"].includes(k)) ||
         !Array.isArray(keys) ||
         keys.length > 48
       )

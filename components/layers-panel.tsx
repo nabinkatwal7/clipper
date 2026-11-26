@@ -50,9 +50,9 @@ export function LayersPanel({
   const [selection, selectMany] = useState<string[]>([]);
   const tracks = s.composition?.tracks || [],
     [id, setId] = useState(""),
-    [selectedParam, setParam] = useState<"x" | "y" | "volume" | "rotation">(
-      "x",
-    ),
+    [selectedParam, setParam] = useState<
+      "x" | "y" | "volume" | "rotation" | "opacity"
+    >("x"),
     [ease, setEase] = useState<Ease>("linear"),
     [ripple, setRipple] = useState(false);
   const t = tracks.find((t) => t.id === id) || tracks[0],
@@ -488,10 +488,14 @@ export function LayersPanel({
               >
                 {(t.type === "audio"
                   ? ["volume"]
-                  : ["x", "y", "volume", "rotation"]
+                  : ["x", "y", "volume", "rotation", "opacity"]
                 ).map((v) => (
                   <option key={v} value={v}>
-                    {v === "rotation" ? "Rotation" : v}
+                    {v === "rotation"
+                      ? "Rotation"
+                      : v === "opacity"
+                        ? "Opacity"
+                        : v}
                   </option>
                 ))}
               </select>

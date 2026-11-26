@@ -78,5 +78,9 @@ export function maskFilter(mask: LayerMask) {
       : "max(abs(ld(0)),abs(ld(1)))";
   const opacity = `if(gt(ld(2),0),clip((1-ld(3))/ld(2),0,1),lte(ld(3),1))`;
   const coverage = mask.invert ? `1-${opacity}` : opacity;
-  return `format=gbrap,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='${setup}st(3,${distance});alpha(X,Y)*(${coverage})':interpolation=nearest,format=rgba`;
+  return layerAlphaFilter(`${setup}st(3,${distance});alpha(X,Y)*(${coverage})`);
+}
+
+export function layerAlphaFilter(expression: string) {
+  return `format=gbrap,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='${expression}':interpolation=nearest,format=rgba`;
 }
