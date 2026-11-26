@@ -8,6 +8,8 @@ import { render } from "./jobs";
 import { clipBasename, captionFile } from "./post-captions";
 import { poster } from "./clip-poster";
 import { ledger } from "./production-store";
+import { postKitFiles } from "./clipping/postkit";
+import type { ComplianceReport } from "./clipping/campaigns";
 import { beginProgress, completeProgress, reporter } from "./progress";
 function stamp(n: number, vtt: boolean) {
   const ms = Math.round(Math.max(n, 0) * 1000);
@@ -57,6 +59,7 @@ export async function buildPackage(
   clips: Clip[],
   single: boolean,
   signal: AbortSignal,
+  compliance?: (clip: Clip) => ComplianceReport | undefined,
 ) {
   const rights = (await ledger(p.id)).rights;
   const dest = packageLocation(p.id, single ? clips[0].id : undefined),
@@ -115,6 +118,17 @@ export async function buildPackage(
         );
       const description = captionFile(c);
       zip.append(description, { name: folder + "caption.txt" });
+      for (const [name, content] of Object.entries(
+        postKitFiles({
+          clip: c,
+          sourceTitle: p.title,
+          sourceUrl: p.source,
+          rights,
+          compliance: compliance?.(c),
+          srt: (rows) => subtitleTrack(rows, c.start, c.end, false, c.settings.playbackRate),
+        }),
+      ))
+        zip.append(content, { name: folder + name });
       zip.append(
         JSON.stringify(
           {

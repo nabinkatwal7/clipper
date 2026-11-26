@@ -89,6 +89,7 @@ import { parseCsv } from "./clipping/chat";
 import { nicheAnalysis } from "./clipping/niche";
 import { mutateCollection } from "./clipping/collection";
 import { scan as scanStorage, report as storageReport, planCache, planPolicy, execute as executeCleanup, POLICIES, type Policy, type Category, type Plan } from "./clipping/storage";
+import { PLATFORM_PRESETS } from "./clipping/postkit";
 import { parseProfile, type ContentProfile } from "./clipping/profiles";
 import { poster } from "./clip-poster";
 import { sourceInfo } from "./source-info";
@@ -501,7 +502,18 @@ export async function handle(
       const target = packageLocation(p.id, id);
       if (req.method === "POST") {
         if (busy(p.id)) throw Error("Project is busy");
-        enqueue(p.id, (signal) => buildPackage(p, clips, !!id, signal));
+        const camp = query.get("campaign")
+          ? (await readCollection<Campaign>("campaigns")).find((x) => x.id === query.get("campaign"))
+          : undefined;
+        const led = camp ? await ledger(p.id) : undefined;
+        enqueue(p.id, (signal) =>
+          buildPackage(p, clips, !!id, signal, camp && led ? (c) => checkCompliance(camp, factsFromClip(p, c, {
+            attributionText: led.rights.attribution || undefined,
+            sourceCreator: led.rights.creator || undefined,
+            rights: led.rights.permission,
+            reviewStatus: led.reviews[c.editorialId || c.id]?.status as "pending" | "accepted" | "rejected" | undefined,
+          })) : undefined),
+        );
         return NextResponse.json({ queued: true }, { status: 202 });
       }
       const info = await fs.stat(target).catch(() => null);
@@ -1328,6 +1340,7 @@ export async function handle(
       }
       if (req.method === "DELETE") return NextResponse.json({ removed: await remove("profiles", query.get("id") || "") });
     }
+    if (action === "platform-presets" && req.method === "GET") return NextResponse.json(PLATFORM_PRESETS);
     if (action === "campaigns") {
       if (req.method === "GET") return NextResponse.json(await readCollection("campaigns"));
       if (req.method === "POST") {
@@ -1354,9 +1367,20 @@ export async function handle(
       if (!campaign) throw Error("Campaign not found.");
       const project = await read(String(b.project || ""));
       const overrides = b.overrides && typeof b.overrides === "object" ? b.overrides : {};
+      const led = await ledger(project.id);
       const reports = project.clips
         .filter((c) => !b.clip || c.id === b.clip)
-        .map((c) => ({ clip: c.id, title: c.title, report: checkCompliance(campaign, factsFromClip(project, c, overrides)) }));
+        .map((c) => ({
+          clip: c.id,
+          title: c.title,
+          report: checkCompliance(campaign, factsFromClip(project, c, {
+            attributionText: led.rights.attribution || undefined,
+            sourceCreator: led.rights.creator || undefined,
+            rights: led.rights.permission,
+            reviewStatus: led.reviews[c.editorialId || c.id]?.status as "pending" | "accepted" | "rejected" | undefined,
+            ...overrides,
+          })),
+        }));
       return NextResponse.json(reports);
     }
     if (action === "creators") {

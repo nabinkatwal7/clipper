@@ -402,3 +402,26 @@ test("cleanup previews respect dependencies, running jobs and verification; exec
     await fs.rm(root, { recursive: true, force: true });
   }
 });
+
+// ---- Phase 6: post kit and platform presets
+import { postKitFiles, presetWarnings, PLATFORM_PRESETS } from "../lib/clipping/postkit";
+test("post kit contains the requested files, never invents quotes, and records provenance", () => {
+  const clip = { title: "Big win", postCaption: "What a finish #clutch #nepal", start: 62, end: 100, category: "gaming", settings: { ratio: "9:16" } as Project["settings"], segments: [{ start: 62, end: 66, text: "No way, that just happened", words: [] }] };
+  const files = postKitFiles({ clip, sourceTitle: "Stream", sourceUrl: "https://e.com/v", rights: { permission: "permitted", creator: "Ram", license: "", attribution: "", notes: "" }, language: "en", srt: () => "1\n00:00:00,000 --> 00:00:04,000\nNo way\n" });
+  assert.deepEqual(Object.keys(files).sort(), ["attribution.txt", "captions-original.srt", "description.txt", "hashtags.txt", "metadata.json", "pinned-comment.txt", "title.txt"]);
+  assert.equal(files["hashtags.txt"].trim(), "#clutch #nepal");
+  assert.equal(files["description.txt"].trim(), "What a finish");
+  assert.match(files["attribution.txt"], /Ram/);
+  const meta = JSON.parse(files["metadata.json"]);
+  assert.equal(meta.source.startsAt, "1:02");
+  assert.equal(meta.suggestedOpeningLine.text, "No way, that just happened");
+  const bare = postKitFiles({ clip: { ...clip, segments: [] }, sourceTitle: "S", rights: { permission: "unknown", creator: "", license: "", attribution: "", notes: "" }, srt: () => "" });
+  assert.equal(JSON.parse(bare["metadata.json"]).suggestedOpeningLine, null);
+  assert.match(bare["attribution.txt"], /No attribution recorded/);
+});
+test("platform presets are advisory and warn on mismatches", () => {
+  const p = PLATFORM_PRESETS.find((x) => x.id === "instagram-reels")!;
+  const w = presetWarnings(p, { start: 0, end: 120, settings: { ratio: "16:9" } as Project["settings"] });
+  assert.equal(w.length, 2);
+  assert.match(p.note, /Verify/);
+});

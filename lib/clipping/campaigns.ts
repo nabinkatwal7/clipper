@@ -67,6 +67,8 @@ export type ClipFacts = {
   category?: string;
   transcript?: string;
   reviewStatus?: "pending" | "accepted" | "rejected";
+  /** As recorded by the user in the rights ledger. The software cannot verify it. */
+  rights?: "unknown" | "permitted" | "restricted";
 };
 
 export type Check = { id: string; label: string; status: "pass" | "fail" | "needs-review"; automatic: boolean; detail: string };
@@ -131,7 +133,9 @@ export function checkCompliance(c: Campaign, f: ClipFacts): ComplianceReport {
   if (c.categories.length && f.category) add("category", "Content category", c.categories.some((x) => norm(x) === norm(f.category!)) ? "pass" : "needs-review", `${f.category} (campaign: ${c.categories.join(", ")})`, false);
   if (c.reviewRequired) add("review", "Human review", f.reviewStatus === "accepted" ? "pass" : "needs-review", f.reviewStatus === "accepted" ? "accepted by a reviewer" : `status: ${f.reviewStatus ?? "pending"}`, false);
   // Always human: rights and brand safety cannot be verified by this software.
-  add("rights", "Source rights and permission", "needs-review", "Confirm you own or are licensed to use the source.", false);
+  if (f.rights === "restricted") add("rights", "Source rights and permission", "fail", "Recorded as restricted.", false);
+  else if (f.rights === "permitted") add("rights", "Source rights and permission", "pass", "Recorded as permitted by you (not independently verified).", false);
+  else add("rights", "Source rights and permission", "needs-review", "Record whether you own or are licensed to use the source.", false);
 
   const pass = checks.filter((x) => x.status === "pass").length;
   const fail = checks.filter((x) => x.status === "fail").length;
